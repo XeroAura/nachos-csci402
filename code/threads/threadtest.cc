@@ -414,6 +414,18 @@ ThreadTest()
 #ifdef CHANGED
 
 //Global variables
+Lock recLineLock
+int recLineCounter[5]
+Condition recLineCV[5];
+int recState[5] = {1,1,1,1,1}
+ //0 available, 1 busy, 2 on-break
+
+int recTokens[5];
+Lock* recLock[5];
+Condition* recCV[5];
+
+Lock* tokenLock;
+int nextToken=0;
 
 void
 Problem2()
@@ -425,12 +437,61 @@ Problem2()
 
 /* Hospital members*/
 void
-Patient(){
+Patient(int index){
+	recLineLock->Acquire();
+	//Find shortest line or receptionist
+	int shortest = recLineCount[0];
+	for(int i=1; i<recCount; i++){
+		if(recLineCount[i] < shortest){
+		lineIndex = I;
+		shortest = recLineCount[i];
+		}
+		if(recState[i]=0){
+			//Found open Recept
+			recState[i]=1;
+			lineIndex = I;
+			Break;
+		}
+	}
+	
+	if(shortest > -1){
+		//All Recept are busy, wait in line
+		recLineCount[lineIndex]++;
+		recLineCV[lineIndex]->Wait(____);
+		recLineCount[lineIndex]--;
+	}
+	recLineLock->Release();
+	recLock[lineIndex]->Acquire();
+	recCV[lineIndex]->Signal(___);
+	recCV[lineIndex]->Wait(___);
+	int myToken = recTokens[lineIndex];
+	recCV[lineIndex]->Signal(___);
 
 }
 
 void
-Receptionist(){
+Receptionist(int index){
+	while(true){
+		recLineLock->Acquire();
+		recState[index]=0;
+		if(recLineCount[index] > 0){
+			//Patient waiting for me
+			recLineCV[index]->Signal(recLock);
+			recState[index]=1;
+		}
+		recLock[index]->Acquire();
+		recLineLock->Release();
+	
+		recCV[index]->Wait(recLock[index]);
+		tokenLock->Acquire();
+		recTokens[index]=nextToken;
+		nextToken++;
+		tokenLock->Release();
+		
+		recCV[index]->Signal(recLock[index]);
+		recCV[index]->Wait(recLock[index]);
+		recLock[index] -> Release();
+	} //End of whiles
 
 }
 
