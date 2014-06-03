@@ -410,11 +410,53 @@ ThreadTest()
 	TestSuite();
 }
 //Simple test cases for the threads assignment.
-//
+
 #ifdef CHANGED
+
+//Global variables
+
 void
 Problem2()
 {
-  printf("Problem2\n");
+  printf("Problem2 start\n");
+
+
 }
+
+/* Hospital members*/
+void
+Patient(){
+
+}
+
+void
+Receptionist(){
+
+}
+
+void
+Doctor(){
+
+}
+
+void
+Cashier(){
+
+}
+
+void 
+Door_Boy(){
+
+}
+
+void
+Clerk(){
+
+}
+
+void
+Manager(){
+
+}
+
 #endif
