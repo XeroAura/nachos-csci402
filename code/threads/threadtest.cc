@@ -414,8 +414,8 @@ ThreadTest()
 #ifdef CHANGED
 
 //Global variables
-Lock recLineLock
-int recLineCounter[5]
+Lock recLineLock;
+int recLineCounter[5];
 Condition recLineCV[5];
 int recState[5] = {1,1,1,1,1}
  //0 available, 1 busy, 2 on-break
