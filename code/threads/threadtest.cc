@@ -444,8 +444,8 @@ Patient(int index){
 	int lineIndex = 0;
 	for(int i=1; i<recCount; i++){
 		if(recLineCount[i] < shortest){
-		lineIndex = i;
-		shortest = recLineCount[i];
+			lineIndex = I;
+			shortest = recLineCount[i];
 		}
 		if(recState[i]=0){
 			//Found open Recept
