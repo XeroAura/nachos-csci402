@@ -25,7 +25,10 @@
 #include "synch.h"
 #include "system.h"
 #include "scheduler.h"
+
+#ifdef CHANGED
 #include <iostream>
+#endif
 
 //----------------------------------------------------------------------
 // Semaphore::Semaphore
@@ -103,6 +106,7 @@ Semaphore::V()
 // Note -- without a correct implementation of Condition::Wait(), 
 // the test case in the network assignment won't work!
 
+#ifdef CHANGED
 //----------------------------------------------------------------------
 // Lock::Lock(char* debugName)
 //       Initializes a lock, so that it can be used for synchronization
@@ -289,3 +293,4 @@ void Condition::Broadcast(Lock* conditionLock) {
     Signal(conditionLock);
   }
 }
+#endif
