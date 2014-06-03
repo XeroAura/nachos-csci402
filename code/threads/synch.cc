@@ -184,6 +184,7 @@ void Lock::Release() {
     isFree = true;
     lockOwner = NULL;
   }
+  (void)interrupt->SetLevel(oldLevel);
 }
 
 //----------------------------------------------------------------------
@@ -273,7 +274,6 @@ void Condition::Signal(Lock* conditionLock) {
     waitingLock = NULL;
   }
   (void)interrupt->SetLevel(oldLevel);
-  delete thread;
   return;
 }
 
