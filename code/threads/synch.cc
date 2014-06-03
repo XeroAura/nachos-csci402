@@ -116,6 +116,7 @@ Lock::Lock(char* debugName){
   isFree = true;
   currentThread = NULL;
   lockOwner = NULL;
+  waitList = new std::queue<Thread*>;
 }
 
 //----------------------------------------------------------------------
@@ -125,9 +126,10 @@ Lock::Lock(char* debugName){
 //----------------------------------------------------------------------
 
 Lock::~Lock() {
-  while (!waitList.empty()){
-    waitList.pop();
+  while (!waitList->empty()){
+    waitList->pop();
   }
+  delete waitList;
 }
 
 //----------------------------------------------------------------------
@@ -142,7 +144,7 @@ Lock::~Lock() {
 
 void Lock::Acquire() {
   IntStatus oldLevel = interrupt->SetLevel(IntOff); //disables interrupts
-  if (lockOwner = currentThread){
+  if (lockOwner == currentThread){
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
@@ -150,7 +152,7 @@ void Lock::Acquire() {
     isFree = false;
     lockOwner = currentThread;
   }else{
-    waitList.push(currentThread);
+    waitList->push(currentThread);
     currentThread->Sleep();
   }
   (void)interrupt->SetLevel(oldLevel);
@@ -173,9 +175,9 @@ void Lock::Release() {
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
-  if (!waitList.empty()){
-    Thread *thread = waitList.front();
-    waitList.pop();
+  if (!waitList->empty()){
+    Thread *thread = waitList->front();
+    waitList->pop();
     scheduler->ReadyToRun(thread);
     lockOwner = thread;
   } else {
@@ -193,6 +195,7 @@ void Lock::Release() {
 Condition::Condition(char* debugName) {
   name = debugName;
   waitingLock = NULL;
+  waitList = new std::queue<Thread*>;
 }
 
 //----------------------------------------------------------------------
@@ -203,9 +206,10 @@ Condition::Condition(char* debugName) {
 //----------------------------------------------------------------------
 
 Condition::~Condition() {
-  while(!waitList.empty()){
-    waitList.pop();
+  while(!waitList->empty()){
+    waitList->pop();
   }
+  delete waitList;
 }
 
 //----------------------------------------------------------------------
@@ -233,7 +237,7 @@ void Condition::Wait(Lock* conditionLock){
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
-  waitList.push(currentThread);
+  waitList->push(currentThread);
   conditionLock->Release();
   currentThread->Sleep();
   conditionLock->Acquire();
@@ -253,7 +257,7 @@ void Condition::Wait(Lock* conditionLock){
 
 void Condition::Signal(Lock* conditionLock) {
   IntStatus oldLevel = interrupt->SetLevel(IntOff);
-  if (waitList.empty()){
+  if (waitList->empty()){
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
@@ -262,10 +266,10 @@ void Condition::Signal(Lock* conditionLock) {
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
-  Thread *thread = waitList.front();
-  waitList.pop();
+  Thread *thread = waitList->front();
+  waitList->pop();
   scheduler->ReadyToRun(thread);
-  if (waitList.empty()){
+  if (waitList->empty()){
     waitingLock = NULL;
   }
   (void)interrupt->SetLevel(oldLevel);
@@ -280,7 +284,8 @@ void Condition::Signal(Lock* conditionLock) {
 //----------------------------------------------------------------------
 
 void Condition::Broadcast(Lock* conditionLock) {
-  while(!waitList.empty()){
+  std::cout << "I get to here." << std::endl;
+  while(!(waitList->empty())){
     Signal(conditionLock);
   }
 }

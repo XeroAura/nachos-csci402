@@ -87,7 +87,7 @@ class Lock {
     Thread* lockOwner;                  // A reference to the current
                                         // owner of the lock.
 
-    std::queue<Thread*> waitList;       // A list of threads that are
+    std::queue<Thread*> *waitList;       // A list of threads that are
                                         // waiting on the lock to be free.
 };
 
@@ -141,7 +141,7 @@ class Condition {
   private:
     char* name;                         // for debugging
 
-    std::queue<Thread*> waitList;       // list of threads waiting for the 
+    std::queue<Thread*> *waitList;       // list of threads waiting for the 
                                         // lock in the condition variable to
                                         // be free
 
