@@ -411,4 +411,10 @@ ThreadTest()
 }
 //Simple test cases for the threads assignment.
 //
-
+#ifdef CHANGED
+void
+Problem2()
+{
+  printf("Problem2\n");
+}
+#endif
