@@ -449,7 +449,6 @@ Patient(int index){
 	recLineLock->Acquire();
 
 	//Find shortest line or receptionist
-
 	printf("Patient %d is looking for the best receptionist line to enter. \n",index);
 	int shortest = recLineCount[0]; //Shortest line length
 	int lineIndex = 0; //Index of line
@@ -461,10 +460,10 @@ Patient(int index){
 		if(recState[i] == 0){ //If receptionist is open
 			recState[i]=1; //Set receptionist's state to busy
 			lineIndex = i; //Change line index to this receptionist
-			break;
+		break;
 		}
 	}
-	
+
 	if(shortest > -1){ //All Receptionists are busy, wait in line
 		recLineCount[lineIndex]++; //Increment shortest line length
 		recLineCV[lineIndex]->Wait(recLock[lineIndex]); //Wait till called
@@ -477,7 +476,8 @@ Patient(int index){
 	recCV[lineIndex]->Wait(recLock[lineIndex]); //Wait for receptionist to reply
 	int myToken = recTokens[lineIndex]; //Take token from receptionist
 	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist token taken
-  recLock[lineIndex]->Release(); //Release lock to receptionist
+	recLock[lineIndex]->Release(); //Release lock to receptionist
+
 
 }
 
@@ -505,35 +505,30 @@ Receptionist(int index){
 		recCV[index]->Signal(recLock[index]); //Signal patient that token ready
 		recCV[index]->Wait(recLock[index]); //Wait for patient to take token
 		recLock[index] -> Release(); //Release lock on receptionist
-	} //End of while
+	}
 }
 
 void
 Doctor(int index){
 	while(true){
-  	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
-  	for(int i = 0; i < yieldCount; i++){ //Check patient for that long
-  		currentThread->Yield();
-  	}
-  	int sickTest = rand()%4; //Generate if patient is sick
-  	if(sickTest == 0){ //Not sick
 
-  	} else{ //Sick
-  		switch(sickTest){
-  			case 1:
+		docReadyLock->Acquire();
+		docReady = true;
+		docState[index] = 0;
+		docReadyLock->Release();
 
-  			break;
-  			case 2:
+	  	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
+	  	for(int i = 0; i < yieldCount; i++){ //Check patient for that long
+	  		currentThread->Yield(); //Yield thread to simulate time spent
+	  	}
+	  	int sickTest = rand()%4; //Generate if patient is sick
+	  	if(sickTest == 0){ //Not sick
 
-  			break;
-  			case 3:
+	  	} else{ //Sick
 
-  			break;
-  			default:
-  			printf("Doctor: invalid sickness generated.");
-  		}
-  	}
-  }
+
+		}
+	}
 }
 
 void
