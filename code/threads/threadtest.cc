@@ -415,6 +415,7 @@ ThreadTest()
 #ifdef CHANGED
 
 //Global variables
+//Receptionist globals
 Lock* recLineLock = new Lock("recLineLock");
 int recLineCount[5] = {0,0,0,0,0};
 Condition* recLineCV[5];
@@ -424,23 +425,32 @@ int recTokens[5] = {0,0,0,0,0};
 Lock* recLock[5];
 Condition* recCV[5];
 Lock* tokenLock = new Lock("tokenLock");
-int nextToken=0;
+int nextToken = 0;
 int recCount = 5;
 
 //Doctor globals
-Lock* docLineLock = new Lock("docLineLock");
-Condition* docLineCV;
-Lock* docLock[5];
-Condition* docCV[5];
+Lock* docLock[5]; //Lock for doctor and patient meeting
+Condition* docCV[5]; //CV for doctor and patient meeting
 int docState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
+int docCount = 5;
 
 //Doorboy globals
-Lock* docReadyLock = new Lock("docReadyLock");
-bool docReady = false;
+Lock* docLineLock = new Lock("docLineLock"); //Lock to manage line
+Condition* docLineCV; //CV for doctor line
+
+Lock* docReadyLock = new Lock("docReadyLock"); //Lock for doctor readiness
+Condition* docReady; //Condition variable for doctor readiness call
+int doorBoyCount = 5;
+
+//Cashier globals
 
 //Clerk globals
 int consultingFee[5] = {0,0,0,0,0};
 Condition* consultingCV[5];
+
+int clerkCount = 5;
+
+//Manager globals
 
 /* Hospital members*/
 void
@@ -480,8 +490,6 @@ Patient(int index){
 	int myToken = recTokens[lineIndex]; //Take token from receptionist
 	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist token taken
 	recLock[lineIndex]->Release(); //Release lock to receptionist
-
-
 }
 
 void
@@ -512,15 +520,23 @@ Receptionist(int index){
 	}
 }
 
+void 
+Door_Boy(){
+	while(true){
+
+	}
+}
+
 void
 Doctor(int index){
 	while(true){
 
-		docReadyLock->Acquire();
-		docReady = true;
-		docState[index] = 0;
-		docReadyLock->Release();
+		docReadyLock->Acquire(); //Acquire doctor ready lock
+		docState[index] = 0; //Sets own state to ready
+		docReadyLock->Release(); //Release doctor ready lock
 
+		docCV->Wait(docLock[index]);
+	
 	  	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
 	  	for(int i = 0; i < yieldCount; i++){ //Check patient for that long
 	  		currentThread->Yield(); //Yield thread to simulate time spent
@@ -538,13 +554,6 @@ Doctor(int index){
 void
 Cashier(){
 
-}
-
-void 
-Door_Boy(){
-	while(true){
-
-	}
 }
 
 void
