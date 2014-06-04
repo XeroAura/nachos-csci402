@@ -431,20 +431,15 @@ int recCount = 5;
 int consultingFee[5] = {0,0,0,0,0};
 
 
-void
-Problem2()
-{
-  printf("Problem2 start\n");
-  
-
-}
-
 /* Hospital members*/
 void
 Patient(int index){
+  printf("Patient %d has arrived at the hospital. \n",index);
 	recLineLock->Acquire();
 
 	//Find shortest line or receptionist
+
+  printf("Patient %d is looking for the best receptionist line to enter. \n",index);
 	int shortest = recLineCount[0]; //Shortest line length
 	int lineIndex = 0; //Index of line
 	for(int i=1; i<recCount; i++){ //Go through each receptionist
@@ -479,10 +474,11 @@ void
 Receptionist(int index){
 	while(true){
 		recLineLock->Acquire(); //Acquire line lock
+    printf("Receptionist %d has arrived at the hospital.",index);
 		recState[index]=0; //Set self to not busy
 		if(recLineCount[index] > 0){ //Check to see if anyone in line
 			recLineCV[index]->Signal(recLock[index]); //Signal first person in line
-			recState[index]=1; //Set self to busy
+			recState[index]=1; //Set self to busy\
 		}
 		recLock[index]->Acquire(); //Acquire receptionist lock
 		recLineLock->Release(); //Release line lock
@@ -548,4 +544,24 @@ Manager(){
 
 }
 
+
+
+
+//Tests and test threads for part 2 of the first assignment
+void
+Problem2()
+{
+  Thread *t;
+  printf("Problem 2 start\n");
+
+  t = new Thread("t1_r1");
+  t->Fork((VoidFunctionPtr)Receptionist,0);
+
+  t = new Thread("t1_p1");
+  t->Fork((VoidFunctionPtr)Patient,0);
+
+}
+
+
 #endif
+
