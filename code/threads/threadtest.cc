@@ -418,7 +418,7 @@ ThreadTest()
 Lock* recLineLock = new Lock("recLineLock");
 int recLineCount[5] = {0,0,0,0,0};
 Condition* recLineCV[5];
-int recState[5] = {1,1,1,1,1} //0 available, 1 busy, 2 on-break
+int recState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
 
 int recTokens[5] = {0,0,0,0,0};
 Lock* recLock[5];
@@ -426,6 +426,10 @@ Condition* recCV[5];
 Lock* tokenLock = new Lock("tokenLock");
 int nextToken=0;
 int recCount = 5;
+
+//Doctor globals
+int consultingFee[5] = {0,0,0,0,0};
+
 
 void
 Problem2()
@@ -497,7 +501,6 @@ Receptionist(int index){
 
 void
 Doctor(int index){
-
 
 	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
 	for(int i = 0; i < yieldCount; i++){
