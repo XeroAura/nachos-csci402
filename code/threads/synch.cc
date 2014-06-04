@@ -118,8 +118,6 @@ Semaphore::V()
 Lock::Lock(char* debugName){
   name = debugName;
   isFree = true;
-  currentThread = NULL;
-  lockOwner = NULL;
   waitList = new std::queue<Thread*>;
 }
 
