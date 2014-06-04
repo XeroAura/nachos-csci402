@@ -452,7 +452,7 @@ Patient(int index){
 			lineIndex = i; //Set index to this receptionist
 			shortest = recLineCount[i]; //Set shortest line length to this one's
 		}
-		if(recState[i]=0){ //If receptionist is open
+		if(recState[i] == 0){ //If receptionist is open
 			recState[i]=1; //Set receptionist's state to busy
 			lineIndex = i; //Change line index to this receptionist
 			break;
