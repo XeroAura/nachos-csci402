@@ -443,59 +443,59 @@ Problem2()
 void
 Patient(int index){
 	recLineLock->Acquire();
+
 	//Find shortest line or receptionist
-	int shortest = recLineCount[0];
-	int lineIndex = 0;
-	for(int i=1; i<recCount; i++){
-		if(recLineCount[i] < shortest){
-			lineIndex = i;
-			shortest = recLineCount[i];
+	int shortest = recLineCount[0]; //Shortest line length
+	int lineIndex = 0; //Index of line
+	for(int i=1; i<recCount; i++){ //Go through each receptionist
+		if(recLineCount[i] < shortest){ //If the next receptionist has a shorter line
+			lineIndex = i; //Set index to this receptionist
+			shortest = recLineCount[i]; //Set shortest line length to this one's
 		}
-		if(recState[i]=0){
-			//Found open Recept
-			recState[i]=1;
-			lineIndex = i;
+		if(recState[i]=0){ //If receptionist is open
+			recState[i]=1; //Set receptionist's state to busy
+			lineIndex = i; //Change line index to this receptionist
 			break;
 		}
 	}
 	
-	if(shortest > -1){
-		//All Reciept are busy, wait in line
-		recLineCount[lineIndex]++;
-		recLineCV[lineIndex]->Wait(recLock[lineIndex]);
-		recLineCount[lineIndex]--;
+	if(shortest > -1){ //All Receptionists are busy, wait in line
+		recLineCount[lineIndex]++; //Increment shortest line length
+		recLineCV[lineIndex]->Wait(recLock[lineIndex]); //Wait till called
+		recLineCount[lineIndex]--; //Decrement after being woken
 	}
-	recLineLock->Release();
-	recLock[lineIndex]->Acquire();
-	recCV[lineIndex]->Signal(recLock[lineIndex]);
-	recCV[lineIndex]->Wait(recLock[lineIndex]);
-	int myToken = recTokens[lineIndex];
-	recCV[lineIndex]->Signal(recLock[lineIndex]);
+
+	recLineLock->Release(); //Release lock on line
+	recLock[lineIndex]->Acquire(); //Acquire lock to receptionist
+	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist ready
+	recCV[lineIndex]->Wait(recLock[lineIndex]); //Wait for receptionist to reply
+	int myToken = recTokens[lineIndex]; //Take token from receptionist
+	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist token taken
+  recLock[lineIndex]->Release(); //Release lock to receptionist
 
 }
 
 void
 Receptionist(int index){
 	while(true){
-		recLineLock->Acquire();
-		recState[index]=0;
-		if(recLineCount[index] > 0){
-			//Patient waiting for me
-			recLineCV[index]->Signal(recLock[index]);
-			recState[index]=1;
+		recLineLock->Acquire(); //Acquire line lock
+		recState[index]=0; //Set self to not busy
+		if(recLineCount[index] > 0){ //Check to see if anyone in line
+			recLineCV[index]->Signal(recLock[index]); //Signal first person in line
+			recState[index]=1; //Set self to busy
 		}
-		recLock[index]->Acquire();
-		recLineLock->Release();
+		recLock[index]->Acquire(); //Acquire receptionist lock
+		recLineLock->Release(); //Release line lock
 	
-		recCV[index]->Wait(recLock[index]);
-		tokenLock->Acquire();
-		recTokens[index]=nextToken;
-		nextToken++;
-		tokenLock->Release();
-		
-		recCV[index]->Signal(recLock[index]);
-		recCV[index]->Wait(recLock[index]);
-		recLock[index] -> Release();
+		recCV[index]->Wait(recLock[index]); //Wait for patient to arrive
+		tokenLock->Acquire(); //Acquire token lock
+		recTokens[index]=nextToken; //Provide token to patient
+		nextToken++; //Increment token count
+		tokenLock->Release(); //Release token lock
+	
+		recCV[index]->Signal(recLock[index]); //Signal patient that token ready
+		recCV[index]->Wait(recLock[index]); //Wait for patient to take token
+		recLock[index] -> Release(); //Release lock on receptionist
 	} //End of while
 }
 
@@ -503,10 +503,10 @@ void
 Doctor(int index){
 
 	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
-	for(int i = 0; i < yieldCount; i++){
+	for(int i = 0; i < yieldCount; i++){ //Check patient for that long
 		currentThread->Yield();
 	}
-	int sickTest = rand()%4;
+	int sickTest = rand()%4; //Generate if patient is sick
 	if(sickTest == 0){ //Not sick
 
 	} else{ //Sick
