@@ -414,23 +414,24 @@ ThreadTest()
 #ifdef CHANGED
 
 //Global variables
-Lock* recLineLock
-int recLineCount[5]
+Lock* recLineLock = new Lock("recLineLock");
+int recLineCount[5] = {0,0,0,0,0};
 Condition* recLineCV[5];
-int recState[5] = {1,1,1,1,1}
+int recState[5] = {1,1,1,1,1};
  //0 available, 1 busy, 2 on-break
 
-int recTokens[5];
+int recTokens[5] = {0,0,0,0,0};
 Lock* recLock[5];
 Condition* recCV[5];
-
-Lock* tokenLock;
+Lock* tokenLock = new Lock("tokenLock");
 int nextToken=0;
+int recCount = 5;
 
 void
 Problem2()
 {
   printf("Problem2 start\n");
+  
 
 
 }
@@ -444,7 +445,7 @@ Patient(int index){
 	int lineIndex = 0;
 	for(int i=1; i<recCount; i++){
 		if(recLineCount[i] < shortest){
-			lineIndex = I;
+			lineIndex = i;
 			shortest = recLineCount[i];
 		}
 		if(recState[i]=0){
