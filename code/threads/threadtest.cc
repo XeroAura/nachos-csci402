@@ -484,6 +484,7 @@ Patient(int index){
 void
 Receptionist(int index){
 	while(true){
+	  printf("Receptionist %d is about to acquire the lock.",index);
 		recLineLock->Acquire(); //Acquire line lock
     printf("Receptionist %d has arrived at the hospital.",index);
 		recState[index]=0; //Set self to not busy
@@ -566,11 +567,11 @@ Problem2()
   Thread *t;
   printf("Problem 2 start\n");
 
-  t = new Thread("t1_r1");
-  t->Fork((VoidFunctionPtr)Receptionist,0);
+  t = new Thread("Receptionist 0");
+  t->Fork(Patient,0);
 
-  t = new Thread("t1_p1");
-  t->Fork((VoidFunctionPtr)Patient,0);
+  t = new Thread("Patient 0");
+  t->Fork(Receptionist,0);
 
 }
 
