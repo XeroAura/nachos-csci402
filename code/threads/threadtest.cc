@@ -40,16 +40,16 @@ Lock t1_l1("t1_l1");  // the lock tested in Test 1
 //     This is the rightful lock owner
 // --------------------------------------------------
 void t1_t1() {
-  t1_l1.Acquire();
+	t1_l1.Acquire();
   t1_s1.V();  // Allow t1_t2 to try to Acquire Lock
 
   printf ("%s: Acquired Lock %s, waiting for t3\n",currentThread->getName(),
-   t1_l1.getName());
+  	t1_l1.getName());
   t1_s3.P();
   printf ("%s: working in CS\n",currentThread->getName());
   for (int i = 0; i < 1000000; i++) ;
-    printf ("%s: Releasing Lock %s\n",currentThread->getName(),
-     t1_l1.getName());
+  	printf ("%s: Releasing Lock %s\n",currentThread->getName(),
+  		t1_l1.getName());
   t1_l1.Release();
   t1_done.V();
 }
@@ -64,15 +64,15 @@ void t1_t2() {
   t1_s2.V();  // Let t3 try to acquire the lock
 
   printf("%s: trying to acquire lock %s\n",currentThread->getName(),
-    t1_l1.getName());
+  	t1_l1.getName());
   t1_l1.Acquire();
 
   printf ("%s: Acquired Lock %s, working in CS\n",currentThread->getName(),
-   t1_l1.getName());
+  	t1_l1.getName());
   for (int i = 0; i < 10; i++)
-    ;
+  	;
   printf ("%s: Releasing Lock %s\n",currentThread->getName(),
-   t1_l1.getName());
+  	t1_l1.getName());
   t1_l1.Release();
   t1_done.V();
 }
@@ -87,9 +87,9 @@ void t1_t3() {
 
   t1_s3.V();// Let t1 do it's stuff
   for ( int i = 0; i < 3; i++ ) {
-    printf("%s: Trying to release Lock %s\n",currentThread->getName(),
-      t1_l1.getName());
-    t1_l1.Release();
+  	printf("%s: Trying to release Lock %s\n",currentThread->getName(),
+  		t1_l1.getName());
+  	t1_l1.Release();
   }
 }
 
@@ -107,13 +107,13 @@ Semaphore t2_done("t2_done",0);     // So that TestSuite knows when Test 2 is
 //     This thread will signal a variable with nothing waiting
 // --------------------------------------------------
 void t2_t1() {
-  t2_l1.Acquire();
-  printf("%s: Lock %s acquired, signalling %s\n",currentThread->getName(),
-    t2_l1.getName(), t2_c1.getName());
-  t2_c1.Signal(&t2_l1);
-  printf("%s: Releasing Lock %s\n",currentThread->getName(),
-    t2_l1.getName());
-  t2_l1.Release();
+	t2_l1.Acquire();
+	printf("%s: Lock %s acquired, signalling %s\n",currentThread->getName(),
+		t2_l1.getName(), t2_c1.getName());
+	t2_c1.Signal(&t2_l1);
+	printf("%s: Releasing Lock %s\n",currentThread->getName(),
+		t2_l1.getName());
+	t2_l1.Release();
   t2_s1.V();// release t2_t2
   t2_done.V();
 }
@@ -126,10 +126,10 @@ void t2_t2() {
   t2_s1.P();// Wait for t2_t1 to be done with the lock
   t2_l1.Acquire();
   printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-    t2_l1.getName(), t2_c1.getName());
+  	t2_l1.getName(), t2_c1.getName());
   t2_c1.Wait(&t2_l1);
   printf("%s: Releasing Lock %s\n",currentThread->getName(),
-    t2_l1.getName());
+  	t2_l1.getName());
   t2_l1.Release();
 }
 // --------------------------------------------------
@@ -147,10 +147,10 @@ Semaphore t3_done("t3_done",0); // So that TestSuite knows when Test 3 is
 //     one t3_waiter will be released
 // --------------------------------------------------
 void t3_waiter() {
-  t3_l1.Acquire();
+	t3_l1.Acquire();
   t3_s1.V();// Let the signaller know we're ready to wait
   printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-    t3_l1.getName(), t3_c1.getName());
+  	t3_l1.getName(), t3_c1.getName());
   t3_c1.Wait(&t3_l1);
   printf("%s: freed from %s\n",currentThread->getName(), t3_c1.getName());
   t3_l1.Release();
@@ -167,15 +167,15 @@ void t3_signaller() {
 
   // Don't signal until someone's waiting
 
-  for ( int i = 0; i < 5 ; i++ ) 
-    t3_s1.P();
-  t3_l1.Acquire();
-  printf("%s: Lock %s acquired, signalling %s\n",currentThread->getName(),
-    t3_l1.getName(), t3_c1.getName());
-  t3_c1.Signal(&t3_l1);
-  printf("%s: Releasing %s\n",currentThread->getName(), t3_l1.getName());
-  t3_l1.Release();
-  t3_done.V();
+	for ( int i = 0; i < 5 ; i++ ) 
+		t3_s1.P();
+	t3_l1.Acquire();
+	printf("%s: Lock %s acquired, signalling %s\n",currentThread->getName(),
+		t3_l1.getName(), t3_c1.getName());
+	t3_c1.Signal(&t3_l1);
+	printf("%s: Releasing %s\n",currentThread->getName(), t3_l1.getName());
+	t3_l1.Release();
+	t3_done.V();
 }
 
 // --------------------------------------------------
@@ -193,10 +193,10 @@ Semaphore t4_done("t4_done",0); // So that TestSuite knows when Test 4 is
 //     t4_waiters will be released
 // --------------------------------------------------
 void t4_waiter() {
-  t4_l1.Acquire();
+	t4_l1.Acquire();
   t4_s1.V();// Let the signaller know we're ready to wait
   printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-    t4_l1.getName(), t4_c1.getName());
+  	t4_l1.getName(), t4_c1.getName());
   t4_c1.Wait(&t4_l1);
   printf("%s: freed from %s\n",currentThread->getName(), t4_c1.getName());
   t4_l1.Release();
@@ -213,15 +213,15 @@ void t4_signaller() {
 
   // Don't broadcast until someone's waiting
 
-  for ( int i = 0; i < 5 ; i++ ) 
-    t4_s1.P();
-  t4_l1.Acquire();
-  printf("%s: Lock %s acquired, broadcasting %s\n",currentThread->getName(),
-    t4_l1.getName(), t4_c1.getName());
-  t4_c1.Broadcast(&t4_l1);
-  printf("%s: Releasing %s\n",currentThread->getName(), t4_l1.getName());
-  t4_l1.Release();
-  t4_done.V();
+	for ( int i = 0; i < 5 ; i++ ) 
+		t4_s1.P();
+	t4_l1.Acquire();
+	printf("%s: Lock %s acquired, broadcasting %s\n",currentThread->getName(),
+		t4_l1.getName(), t4_c1.getName());
+	t4_c1.Broadcast(&t4_l1);
+	printf("%s: Releasing %s\n",currentThread->getName(), t4_l1.getName());
+	t4_l1.Release();
+	t4_done.V();
 }
 // --------------------------------------------------
 // Test 5 - see TestSuite() for details
@@ -237,13 +237,13 @@ Semaphore t5_s1("t5_s1",0);// To make sure t5_t2 acquires the lock after
 //     This thread will wait on a condition under t5_l1
 // --------------------------------------------------
 void t5_t1() {
-  t5_l1.Acquire();
+	t5_l1.Acquire();
   t5_s1.V();// release t5_t2
   printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-    t5_l1.getName(), t5_c1.getName());
+  	t5_l1.getName(), t5_c1.getName());
   t5_c1.Wait(&t5_l1);
   printf("%s: Releasing Lock %s\n",currentThread->getName(),
-    t5_l1.getName());
+  	t5_l1.getName());
   t5_l1.Release();
 }
 
@@ -257,13 +257,13 @@ void t5_t2() {
   t5_l1.Acquire();
   t5_l2.Acquire();
   printf("%s: Lock %s acquired, signalling %s\n",currentThread->getName(),
-    t5_l2.getName(), t5_c1.getName());
+  	t5_l2.getName(), t5_c1.getName());
   t5_c1.Signal(&t5_l2);
   printf("%s: Releasing Lock %s\n",currentThread->getName(),
-    t5_l2.getName());
+  	t5_l2.getName());
   t5_l2.Release();
   printf("%s: Releasing Lock %s\n",currentThread->getName(),
-    t5_l1.getName());
+  	t5_l1.getName());
   t5_l1.Release();
 }
 
@@ -288,85 +288,85 @@ void t5_t2() {
 //     Fatal errors terminate the thread in question.
 // --------------------------------------------------
 void TestSuite() {
-  Thread *t;
-  char *name;
-  int i;
+	Thread *t;
+	char *name;
+	int i;
 
   // Test 1
 
-  printf("Starting Test 1\n");
+	printf("Starting Test 1\n");
 
-  t = new Thread("t1_t1");
-  t->Fork((VoidFunctionPtr)t1_t1,0);
+	t = new Thread("t1_t1");
+	t->Fork((VoidFunctionPtr)t1_t1,0);
 
-  t = new Thread("t1_t2");
-  t->Fork((VoidFunctionPtr)t1_t2,0);
+	t = new Thread("t1_t2");
+	t->Fork((VoidFunctionPtr)t1_t2,0);
 
-  t = new Thread("t1_t3");
-  t->Fork((VoidFunctionPtr)t1_t3,0);
+	t = new Thread("t1_t3");
+	t->Fork((VoidFunctionPtr)t1_t3,0);
 
   // Wait for Test 1 to complete
-  for (  i = 0; i < 2; i++ )
-    t1_done.P();
+	for (  i = 0; i < 2; i++ )
+		t1_done.P();
 
   // Test 2
 
-  printf("Starting Test 2.  Note that it is an error if thread t2_t2\n");
-  printf("completes\n");
+	printf("Starting Test 2.  Note that it is an error if thread t2_t2\n");
+	printf("completes\n");
 
-  t = new Thread("t2_t1");
-  t->Fork((VoidFunctionPtr)t2_t1,0);
+	t = new Thread("t2_t1");
+	t->Fork((VoidFunctionPtr)t2_t1,0);
 
-  t = new Thread("t2_t2");
-  t->Fork((VoidFunctionPtr)t2_t2,0);
+	t = new Thread("t2_t2");
+	t->Fork((VoidFunctionPtr)t2_t2,0);
 
   // Wait for Test 2 to complete
-  t2_done.P();
+	t2_done.P();
 
   // Test 3
 
-  printf("Starting Test 3\n");
+	printf("Starting Test 3\n");
 
-  for (  i = 0 ; i < 5 ; i++ ) {
-    name = new char [20];
-    sprintf(name,"t3_waiter%d",i);
-    t = new Thread(name);
-    t->Fork((VoidFunctionPtr)t3_waiter,0);
-  }
-  t = new Thread("t3_signaller");
-  t->Fork((VoidFunctionPtr)t3_signaller,0);
+	for (  i = 0 ; i < 5 ; i++ ) {
+		name = new char [20];
+		sprintf(name,"t3_waiter%d",i);
+		t = new Thread(name);
+		t->Fork((VoidFunctionPtr)t3_waiter,0);
+	}
+	t = new Thread("t3_signaller");
+	t->Fork((VoidFunctionPtr)t3_signaller,0);
 
   // Wait for Test 3 to complete
-  for (  i = 0; i < 2; i++ )
-    t3_done.P();
+	for (  i = 0; i < 2; i++ )
+		t3_done.P();
 
   // Test 4
 
-  printf("Starting Test 4\n");
+	printf("Starting Test 4\n");
 
-  for (  i = 0 ; i < 5 ; i++ ) {
-    name = new char [20];
-    sprintf(name,"t4_waiter%d",i);
-    t = new Thread(name);
-    t->Fork((VoidFunctionPtr)t4_waiter,0);
-  }
-  t = new Thread("t4_signaller");
-  t->Fork((VoidFunctionPtr)t4_signaller,0);
+	for (  i = 0 ; i < 5 ; i++ ) {
+		name = new char [20];
+		sprintf(name,"t4_waiter%d",i);
+		t = new Thread(name);
+		t->Fork((VoidFunctionPtr)t4_waiter,0);
+	}
+	t = new Thread("t4_signaller");
+	t->Fork((VoidFunctionPtr)t4_signaller,0);
 
   // Wait for Test 4 to complete
-  for (  i = 0; i < 6; i++ )
-    t4_done.P();
+	for (  i = 0; i < 6; i++ )
+		t4_done.P();
 
   // Test 5
 
-  printf("Starting Test 5.  Note that it is an error if thread t5_t1\n");
-  printf("completes\n");
+	printf("Starting Test 5.  Note that it is an error if thread t5_t1\n");
+	printf("completes\n");
 
-  t = new Thread("t5_t1");
-  t->Fork((VoidFunctionPtr)t5_t1,0);
+	t = new Thread("t5_t1");
+	t->Fork((VoidFunctionPtr)t5_t1,0);
 
-  t = new Thread("t5_t2");
-  t->Fork((VoidFunctionPtr)t5_t2,0);
+	t = new Thread("t5_t2");
+	t->Fork((VoidFunctionPtr)t5_t2,0);
 
 }
 #endif
@@ -384,12 +384,12 @@ void TestSuite() {
 void
 SimpleThread(int which)
 {
-  int num;
+	int num;
 
-  for (num = 0; num < 5; num++) {
-   printf("*** thread %d looped %d times\n", which, num);
-   currentThread->Yield();
- }
+	for (num = 0; num < 5; num++) {
+		printf("*** thread %d looped %d times\n", which, num);
+		currentThread->Yield();
+	}
 }
 
 //----------------------------------------------------------------------
@@ -401,14 +401,14 @@ SimpleThread(int which)
 void
 ThreadTest()
 {
-  DEBUG('t', "Entering SimpleTest");
+	DEBUG('t', "Entering SimpleTest");
 
-  Thread *t = new Thread("forked thread");
+	Thread *t = new Thread("forked thread");
 
-  t->Fork(SimpleThread, 1);
-  SimpleThread(0);
-  DEBUG('t', "Entering TestSuite");
-  TestSuite();
+	t->Fork(SimpleThread, 1);
+	SimpleThread(0);
+	DEBUG('t', "Entering TestSuite");
+	TestSuite();
 }
 //Simple test cases for the threads assignment.
 
@@ -445,12 +445,12 @@ Condition* consultingCV[5];
 /* Hospital members*/
 void
 Patient(int index){
-  printf("Patient %d has arrived at the hospital. \n",index);
-  recLineLock->Acquire();
+	printf("Patient %d has arrived at the hospital. \n",index);
+	recLineLock->Acquire();
 
 	//Find shortest line or receptionist
 
-  printf("Patient %d is looking for the best receptionist line to enter. \n",index);
+	printf("Patient %d is looking for the best receptionist line to enter. \n",index);
 	int shortest = recLineCount[0]; //Shortest line length
 	int lineIndex = 0; //Index of line
 	for(int i=1; i<recCount; i++){ //Go through each receptionist
@@ -483,10 +483,11 @@ Patient(int index){
 
 void
 Receptionist(int index){
+	printf("before while\n");
 	while(true){
-	  printf("Receptionist %d is about to acquire the lock.",index);
+		printf("Receptionist %d is about to acquire the lock.",index);
 		recLineLock->Acquire(); //Acquire line lock
-    printf("Receptionist %d has arrived at the hospital.",index);
+		printf("Receptionist %d has arrived at the hospital.",index);
 		recState[index]=0; //Set self to not busy
 		if(recLineCount[index] > 0){ //Check to see if anyone in line
 			recLineCV[index]->Signal(recLock[index]); //Signal first person in line
@@ -509,7 +510,7 @@ Receptionist(int index){
 
 void
 Doctor(int index){
-  while(true){
+	while(true){
   	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
   	for(int i = 0; i < yieldCount; i++){ //Check patient for that long
   		currentThread->Yield();
@@ -521,17 +522,17 @@ Doctor(int index){
   		switch(sickTest){
   			case 1:
 
-        break;
-        case 2:
+  			break;
+  			case 2:
 
-        break;
-        case 3:
+  			break;
+  			case 3:
 
-        break;
-        default:
-        printf("Doctor: invalid sickness generated.");
-      }
-    }
+  			break;
+  			default:
+  			printf("Doctor: invalid sickness generated.");
+  		}
+  	}
   }
 }
 
@@ -542,9 +543,9 @@ Cashier(){
 
 void 
 Door_Boy(){
-  while(true){
+	while(true){
 
-  }
+	}
 }
 
 void
@@ -564,14 +565,26 @@ Manager(){
 void
 Problem2()
 {
-  Thread *t;
-  printf("Problem 2 start\n");
 
-  t = new Thread("Receptionist 0");
-  t->Fork(Patient,0);
+	for(int i = 0; i<5;i++)
+		recLock[i] = new Lock("lock");
 
-  t = new Thread("Patient 0");
-  t->Fork(Receptionist,0);
+	Thread *t;
+	printf("Problem 2 start\n");
+
+	t = new Thread("Receptionist 0");
+
+	printf("before fork\n");
+
+	t->Fork((VoidFunctionPtr) Receptionist,1);
+
+	printf("recept forked\n");
+
+	t = new Thread("Patient 0");
+
+	printf("before forked\n");
+	t->Fork((VoidFunctionPtr) Patient,2);
+	printf("patient forked\n");
 
 }
 
