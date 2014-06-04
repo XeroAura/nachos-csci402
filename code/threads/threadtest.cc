@@ -13,6 +13,7 @@
 #include "system.h"
 #ifdef CHANGED
 #include "synch.h"
+#include <stdlib.h>
 #endif
 
 #ifdef CHANGED
@@ -417,8 +418,7 @@ ThreadTest()
 Lock* recLineLock
 int recLineCount[5]
 Condition* recLineCV[5];
-int recState[5] = {1,1,1,1,1}
- //0 available, 1 busy, 2 on-break
+int recState[5] = {1,1,1,1,1} //0 available, 1 busy, 2 on-break
 
 int recTokens[5];
 Lock* recLock[5];
@@ -431,7 +431,6 @@ void
 Problem2()
 {
   printf("Problem2 start\n");
-
 
 }
 
@@ -496,7 +495,32 @@ Receptionist(int index){
 }
 
 void
-Doctor(){
+Doctor(int index){
+
+
+	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
+	for(int i = 0; i < yieldCount; i++){
+		currentThread->Yield();
+	}
+	int sickTest = rand()%4;
+	if(sickTest == 0){ //Not sick
+
+	} else{ //Sick
+		switch(sickTest){
+			case 1:
+
+				break;
+			case 2:
+
+				break;
+			case 3:
+
+				break;
+			default:
+				printf("Doctor: invalid sickness generated.");
+		}
+	}
+
 
 }
 
