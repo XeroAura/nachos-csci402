@@ -425,13 +425,15 @@ int recTokens[5] = {0,0,0,0,0};
 Lock* recLock[5];
 Condition* recCV[5];
 Lock* tokenLock = new Lock("tokenLock");
-int nextToken = 0;
+int nextToken = 1;
 int recCount = 5;
 
 //Doctor globals
 Lock* docLock[5]; //Lock for doctor and patient meeting
 Condition* docCV[5]; //CV for doctor and patient meeting
 int docState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break, 3 held, 4 waiting
+int docToken[5] = {0,0,0,0,0};
+int docPrescription[5] = {0,0,0,0,0}; //1-4 represent problems
 int docCount = 5;
 
 //Doorboy globals
@@ -565,16 +567,19 @@ Doctor(int index){
 		docReadyCV[index]->Wait(docReadyLock); //Wait for doorboy to send patient
 		docReadyLock->Release(); //Release doctor ready lock
 		
-		docLock[index]->Acquire();
-		docCV[index]->Wait(docLock[index]);
+		docLock[index]->Acquire(); //Acquire doctor lock
+		docCV[index]->Wait(docLock[index]); //Wait for patient to arrive
+		int token = docToken[index]; //Get patient's token number
 		
 	  	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
 	  	for(int i = 0; i < yieldCount; i++){ //Check patient for that long
 	  		currentThread->Yield(); //Yield thread to simulate time spent
 	  	}
-	  	int sickTest = rand()%4; //Generate if patient is sick
+	  	int sickTest = rand()%5; //Generate if patient is sick
 	  	/* 0 not sick
-	  	   1-3 sick */
+	  	   1-4 sick */
+	  	
+	  	docPrescription[index] = sickTest;
 	  	//Tell cashiers cost of treatment
 
 
