@@ -445,8 +445,7 @@ int doorBoyCount = 5;
 //Cashier globals
 
 //Clerk globals
-int consultingFee[5] = {0,0,0,0,0};
-Condition* consultingCV[5];
+int medicineFee[5] = {0,0,0,0,0};
 
 int clerkCount = 5;
 
@@ -535,19 +534,18 @@ Doctor(int index){
 		docState[index] = 0; //Sets own state to ready
 		docReadyLock->Release(); //Release doctor ready lock
 
-		docCV->Wait(docLock[index]);
+		docCV->Wait(docLock[index]); //Wait for doorboy to send someone
 	
 	  	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
 	  	for(int i = 0; i < yieldCount; i++){ //Check patient for that long
 	  		currentThread->Yield(); //Yield thread to simulate time spent
 	  	}
 	  	int sickTest = rand()%4; //Generate if patient is sick
-	  	if(sickTest == 0){ //Not sick
+	  	/* 0 not sick
+	  	   1-3 sick */
+	  	
+	  	
 
-	  	} else{ //Sick
-
-
-		}
 	}
 }
 
