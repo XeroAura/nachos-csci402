@@ -534,7 +534,7 @@ Doctor(int index){
 		docState[index] = 0; //Sets own state to ready
 		docReadyLock->Release(); //Release doctor ready lock
 
-		docLock[index]->Aquire();
+		docLock[index]->Acquire();
 		docCV->Wait(docLock[index]); //Wait for doorboy to send someone
 	
 	  	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
@@ -544,8 +544,8 @@ Doctor(int index){
 	  	int sickTest = rand()%4; //Generate if patient is sick
 	  	/* 0 not sick
 	  	   1-3 sick */
-	  	
-	  	
+	  	//Tell cashiers cost of treatment
+
 
 	}
 }
