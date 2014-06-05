@@ -469,7 +469,7 @@ Patient(int index){
 			shortest = recLineCount[i]; //Set shortest line length to this one's
 		}
 		if(recState[i] == 0){ //If receptionist is open
-			recState[i]=1; //Set receptionist's state to busy
+			recState[i] = 1; //Set receptionist's state to busy
 			lineIndex = i; //Change line index to this receptionist
 			printf("Found an available receptionist! \n");
 			shortest = -1;
@@ -477,11 +477,11 @@ Patient(int index){
 		}
 	}
 	printf("Patient %d has chosen receptionist %d. \n", index, lineIndex);
-	if(shortest > -1){ //All Receptionists are busy, wait in line
+	if(shortest > -1 && recState[lineIndex] == 1){ //All Receptionists are busy, wait in line
 		recLineCount[lineIndex]++; //Increment shortest line length
 		recLineCV[lineIndex]->Wait(recLock[lineIndex]); //Wait till called
 		recLineCount[lineIndex]--; //Decrement after being woken
-        }
+    }
   	printf("Patient %d is releasing the line lock. \n",index); 
 	recLineLock->Release(); //Release lock on line
 	printf("Patient %d is acquiring the lock to receptionist %d \n", index, lineIndex);
@@ -494,6 +494,23 @@ Patient(int index){
 	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist token taken
 	recLock[lineIndex]->Release(); //Release lock to receptionist
 	printf("Patient %d is leaving receptionist %d \n",index,lineIndex);
+
+	// docLineLock->Acquire(); //Acquires lock for doctor line
+	// docLineCount++; //Increments line count by one
+	// docLineCV->Wait(docLineLock); //Wait for doorboy to call
+	// docLineLock->Release();
+
+	// docReadyLock->Acquire(); //Acquire lock for doctor
+	// int docIndex = 0;
+	// for(docIndex = 0; docIndex < docCount; docIndex++){ //Search through doctors
+	// 	if(docState[docIndex == 4]){ //Find waiting doctor
+	// 		docState[docIndex] = 1; //Set doctor to busy
+	// 		docToken[docIndex] = myToken; //Give token to doctor
+	// 		docCV[docIndex]-> Signal(docReadyLock); //Tell doctor arrived
+	// 		break;
+	// 	}
+	// }
+	// docReadyLock->Release();
 }
 
 void
@@ -539,14 +556,15 @@ Door_Boy(){
 
 		docLineLock->Acquire(); //Acquires doctor line lock
 		if(docLineCount > 0){ //If patient waiting
+
+			docReadyLock->Acquire(); //Acquires doctor ready lock
+			docState[docIndex] = 4; //Sets doctor to waiting
+			docReadyCV[docIndex]->Signal(docReadyLock); //Notifies doctor patient coming
+			docReadyLock->Release();
+
 			docLineCV->Signal(docLineLock); //Signals patient
 			docLineCount--; //Decrements line length by one
 			docLineLock->Release();
-
-			docReadyLock->Acquire(); //Acquires doctor ready lock
-			docReadyCV[docIndex]->Signal(docReadyLock); //Notifies doctor patient coming
-			docState[docIndex] = 4; //Sets doctor to waiting
-			docReadyLock->Release();
 		}
 		else{
 			docLineLock->Release();
@@ -581,8 +599,7 @@ Doctor(int index){
 	  	
 	  	docPrescription[index] = sickTest;
 	  	//Tell cashiers cost of treatment
-
-
+	  	
 	}
 }
 
@@ -625,27 +642,14 @@ Problem2()
     sprintf(name,"recCV%d",i);
     recCV[i] = new Condition(name);
   }
-  Thread *t;
-  int numPatients = 0;
-  printf("Problem 2 Start \n");
-	
-  printf("Enter the number of receptionists you want (between 2 and 5): ");
-  scanf("%d", &recCount);
-  printf("Enter the number of patients you want (at least 20): ");
-  scanf("%d", &numPatients);
-  
-  for (int i = 0; i < recCount; i++){
-    name = new char [20];
-    sprintf(name,"Receptionist %d",i);
-    t = new Thread(name);
-    t->Fork((VoidFunctionPtr) Receptionist,i); 
-  }
-  for (int i = 0; i < numPatients; i++){
-    name = new char [20];
-    sprintf(name,"Patient %d",i);
-    t = new Thread(name);
-    t->Fork((VoidFunctionPtr) Patient,i);
-  }
+
+	Thread *t;
+	printf("Problem 2 Start \n");
+	t = new Thread("Receptionist 0");
+	t->Fork((VoidFunctionPtr) Receptionist,0);
+
+	t = new Thread("Patient 1");
+	t->Fork((VoidFunctionPtr) Patient,1);
 }
 
 
