@@ -481,7 +481,7 @@ Patient(int index){
 		recLineCount[lineIndex]++; //Increment shortest line length
 		recLineCV[lineIndex]->Wait(recLock[lineIndex]); //Wait till called
 		recLineCount[lineIndex]--; //Decrement after being woken
-        }
+    }
   	printf("Patient %d is releasing the line lock. \n",index); 
 	recLineLock->Release(); //Release lock on line
 	printf("Patient %d is acquiring the lock to receptionist %d \n", index, lineIndex);
@@ -494,6 +494,23 @@ Patient(int index){
 	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist token taken
 	recLock[lineIndex]->Release(); //Release lock to receptionist
 	printf("Patient %d is leaving receptionist %d \n",index,lineIndex);
+
+	docLineLock->Acquire(); //Acquires lock for doctor line
+	docLineCount++; //Increments line count by one
+	docLineCV->Wait(docLineLock); //Wait for doorboy to call
+	docLineLock->Release();
+
+	docReadyLock->Acquire(); //Acquire lock for doctor
+	int docIndex = 0;
+	for(docIndex = 0; docIndex < docCount; docIndex++){ //Search through doctors
+		if(docState[docIndex == 4]){ //Find waiting doctor
+			docState[docIndex] = 1; //Set doctor to busy
+			docToken[docIndex] = myToken; //Give token to doctor
+			docCV[docIndex]-> Signal(docReadyLock); //Tell doctor arrived
+			break;
+		}
+	}
+	docReadyLock->Release();
 }
 
 void
@@ -539,14 +556,15 @@ Door_Boy(){
 
 		docLineLock->Acquire(); //Acquires doctor line lock
 		if(docLineCount > 0){ //If patient waiting
+
+			docReadyLock->Acquire(); //Acquires doctor ready lock
+			docState[docIndex] = 4; //Sets doctor to waiting
+			docReadyCV[docIndex]->Signal(docReadyLock); //Notifies doctor patient coming
+			docReadyLock->Release();
+
 			docLineCV->Signal(docLineLock); //Signals patient
 			docLineCount--; //Decrements line length by one
 			docLineLock->Release();
-
-			docReadyLock->Acquire(); //Acquires doctor ready lock
-			docReadyCV[docIndex]->Signal(docReadyLock); //Notifies doctor patient coming
-			docState[docIndex] = 4; //Sets doctor to waiting
-			docReadyLock->Release();
 		}
 		else{
 			docLineLock->Release();
@@ -581,8 +599,7 @@ Doctor(int index){
 	  	
 	  	docPrescription[index] = sickTest;
 	  	//Tell cashiers cost of treatment
-
-
+	  	
 	}
 }
 
