@@ -431,15 +431,16 @@ int recCount = 5;
 //Doctor globals
 Lock* docLock[5]; //Lock for doctor and patient meeting
 Condition* docCV[5]; //CV for doctor and patient meeting
-int docState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
+int docState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break, 3 held, 4 waiting
 int docCount = 5;
 
 //Doorboy globals
 Lock* docLineLock = new Lock("docLineLock"); //Lock to manage line
 Condition* docLineCV; //CV for doctor line
+int docLineCount = 0;
 
 Lock* docReadyLock = new Lock("docReadyLock"); //Lock for doctor readiness
-Condition* docReady; //Condition variable for doctor readiness call
+Condition* docReadyCV[5]; //Condition variable for doctor readiness call
 int doorBoyCount = 5;
 
 //Cashier globals
@@ -521,7 +522,34 @@ Receptionist(int index){
 void 
 Door_Boy(){
 	while(true){
+		docReadyLock->Acquire(); //Acquires lock for doctor ready
+		int docIndex = 0;
+		for(docIndex = 0; docIndex< docCount; docIndex++){ //Goes through each doctor
+			if(docState[docIndex] == 0){ //Finds first one ready
+				docState[docIndex] = 3; //Claims doctor as own
+				break;
+			}
+		}
+		docReadyLock->Release();
 
+		docLineLock->Acquire(); //Acquires doctor line lock
+		if(docLineCount > 0){ //If patient waiting
+			docLineCV->Signal(docLineLock); //Signals patient
+			docLineCount--; //Decrements line length by one
+			docLineLock->Release();
+
+			docReadyLock->Acquire(); //Acquires doctor ready lock
+			docReadyCV[docIndex]->Signal(docReadyLock); //Notifies doctor patient coming
+			docState[docIndex] = 4; //Sets doctor to waiting
+			docReadyLock->Release();
+		}
+		else{
+			docLineLock->Release();
+			docReadyLock->Acquire(); //Acquires doctor ready lock
+			docState[docIndex] = 0; //Sets doctor back to available for other door boys
+			docReadyLock->Release();
+			//Go on break
+		}
 	}
 }
 
@@ -531,11 +559,12 @@ Doctor(int index){
 
 		docReadyLock->Acquire(); //Acquire doctor ready lock
 		docState[index] = 0; //Sets own state to ready
+		docReadyCV[index]->Wait(docReadyLock); //Wait for doorboy to send patient
 		docReadyLock->Release(); //Release doctor ready lock
 
 		docLock[index]->Acquire();
-		docCV->Wait(docLock[index]); //Wait for doorboy to send someone
-	
+		docCV[index]->Wait(docLock[index]);
+		
 	  	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
 	  	for(int i = 0; i < yieldCount; i++){ //Check patient for that long
 	  		currentThread->Yield(); //Yield thread to simulate time spent
