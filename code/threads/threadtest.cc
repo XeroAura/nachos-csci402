@@ -495,22 +495,22 @@ Patient(int index){
 	recLock[lineIndex]->Release(); //Release lock to receptionist
 	printf("Patient %d is leaving receptionist %d \n",index,lineIndex);
 
-	docLineLock->Acquire(); //Acquires lock for doctor line
-	docLineCount++; //Increments line count by one
-	docLineCV->Wait(docLineLock); //Wait for doorboy to call
-	docLineLock->Release();
+	// docLineLock->Acquire(); //Acquires lock for doctor line
+	// docLineCount++; //Increments line count by one
+	// docLineCV->Wait(docLineLock); //Wait for doorboy to call
+	// docLineLock->Release();
 
-	docReadyLock->Acquire(); //Acquire lock for doctor
-	int docIndex = 0;
-	for(docIndex = 0; docIndex < docCount; docIndex++){ //Search through doctors
-		if(docState[docIndex == 4]){ //Find waiting doctor
-			docState[docIndex] = 1; //Set doctor to busy
-			docToken[docIndex] = myToken; //Give token to doctor
-			docCV[docIndex]-> Signal(docReadyLock); //Tell doctor arrived
-			break;
-		}
-	}
-	docReadyLock->Release();
+	// docReadyLock->Acquire(); //Acquire lock for doctor
+	// int docIndex = 0;
+	// for(docIndex = 0; docIndex < docCount; docIndex++){ //Search through doctors
+	// 	if(docState[docIndex == 4]){ //Find waiting doctor
+	// 		docState[docIndex] = 1; //Set doctor to busy
+	// 		docToken[docIndex] = myToken; //Give token to doctor
+	// 		docCV[docIndex]-> Signal(docReadyLock); //Tell doctor arrived
+	// 		break;
+	// 	}
+	// }
+	// docReadyLock->Release();
 }
 
 void
@@ -642,27 +642,14 @@ Problem2()
     sprintf(name,"recCV%d",i);
     recCV[i] = new Condition(name);
   }
-  Thread *t;
-  int numPatients = 0;
-  printf("Problem 2 Start \n");
-	
-  printf("Enter the number of receptionists you want (between 2 and 5): ");
-  scanf("%d", &recCount);
-  printf("Enter the number of patients you want (at least 20): ");
-  scanf("%d", &numPatients);
-  
-  for (int i = 0; i < recCount; i++){
-    name = new char [20];
-    sprintf(name,"Receptionist %d",i);
-    t = new Thread(name);
-    t->Fork((VoidFunctionPtr) Receptionist,i); 
-  }
-  for (int i = 0; i < numPatients; i++){
-    name = new char [20];
-    sprintf(name,"Patient %d",i);
-    t = new Thread(name);
-    t->Fork((VoidFunctionPtr) Patient,i);
-  }
+
+	Thread *t;
+	printf("Problem 2 Start \n");
+	t = new Thread("Receptionist 0");
+	t->Fork((VoidFunctionPtr) Receptionist,0);
+
+	t = new Thread("Patient 1");
+	t->Fork((VoidFunctionPtr) Patient,1);
 }
 
 
