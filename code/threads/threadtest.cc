@@ -502,20 +502,19 @@ Receptionist(int index){
 			recLineCV[index]->Signal(recLock[index]); //Signal first person in line
 			recState[index]=1; //Set self to busy
 			printf("Receptionist %d has signaled the first patient in line and is now busy.",index);
+			recLock[index]->Acquire(); //Acquire receptionist lock
+			printf("Receptionist %d is releasing the line lock. \n",index);
+			recLineLock->Release(); //Release line lock
+			recCV[index]->Wait(recLock[index]); //Wait for patient to arrive
+			tokenLock->Acquire(); //Acquire token lock
+			recTokens[index]=nextToken; //Provide token to patient
+			nextToken++; //Increment token count
+			tokenLock->Release(); //Release token lock
+			recCV[index]->Signal(recLock[index]); //Signal patient that token ready
+			recCV[index]->Wait(recLock[index]); //Wait for patient to take token
+			printf("Receptionist %d is releasing the lock on its booth. \n",index);
+			recLock[index]->Release(); //Release lock on receptionist
 		}
-		recLock[index]->Acquire(); //Acquire receptionist lock
-		printf("Receptionist %d is releasing the line lock. \n",index);
-		recLineLock->Release(); //Release line lock
-		recCV[index]->Wait(recLock[index]); //Wait for patient to arrive
-		tokenLock->Acquire(); //Acquire token lock
-		recTokens[index]=nextToken; //Provide token to patient
-		nextToken++; //Increment token count
-		tokenLock->Release(); //Release token lock
-
-		recCV[index]->Signal(recLock[index]); //Signal patient that token ready
-		recCV[index]->Wait(recLock[index]); //Wait for patient to take token
-		printf("Receptionist %d is releasing the lock on its booth. \n",index);
-		recLock[index]->Release(); //Release lock on receptionist
 	}
 }
 

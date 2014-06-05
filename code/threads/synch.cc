@@ -174,7 +174,9 @@ void Lock::Acquire() {
 void Lock::Release() {
   IntStatus oldLevel = interrupt->SetLevel(IntOff);
   if (currentThread != lockOwner){
-    std::cout << "Error: Only " << lockOwner->getName() << ", the owner of " << getName() << ", can release the lock. " << std::endl;
+    if (lockOwner != NULL){
+      std::cout << "Error: Only " << lockOwner->getName() << ", the owner of " << getName() << ", can release the lock. " << std::endl;
+    }
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
