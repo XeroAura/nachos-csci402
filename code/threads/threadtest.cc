@@ -469,7 +469,7 @@ Patient(int index){
 			shortest = recLineCount[i]; //Set shortest line length to this one's
 		}
 		if(recState[i] == 0){ //If receptionist is open
-			recState[i]=1; //Set receptionist's state to busy
+			recState[i] = 1; //Set receptionist's state to busy
 			lineIndex = i; //Change line index to this receptionist
 			printf("Found an available receptionist! \n");
 			shortest = -1;
@@ -477,7 +477,7 @@ Patient(int index){
 		}
 	}
 	printf("Patient %d has chosen receptionist %d. \n", index, lineIndex);
-	if(shortest > 0){ //All Receptionists are busy, wait in line
+	if(shortest > -1 && recState[lineIndex] == 1){ //All Receptionists are busy, wait in line
 		recLineCount[lineIndex]++; //Increment shortest line length
 		recLineCV[lineIndex]->Wait(recLock[lineIndex]); //Wait till called
 		recLineCount[lineIndex]--; //Decrement after being woken
