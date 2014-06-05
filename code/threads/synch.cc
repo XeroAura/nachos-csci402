@@ -176,6 +176,8 @@ void Lock::Release() {
   if (currentThread != lockOwner){
     if (lockOwner != NULL){
       std::cout << "Error: Only " << lockOwner->getName() << ", the owner of " << getName() << ", can release the lock. " << std::endl;
+    } else {
+      std::cout << "Error: This lock has not been acquired yet." << std::endl;
     }
     (void)interrupt->SetLevel(oldLevel);
     return;

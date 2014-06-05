@@ -69,7 +69,7 @@ class Lock {
     Lock(char* debugName);  		// initialize lock to be FREE
     ~Lock();				// deallocate lock
     char* getName() { return name; }	// debugging assist
-
+    char* getOwner() {return lockOwner->getName();} //debugging assist
     void Acquire(); // these are the only operations on a lock
     void Release(); // they are both *atomic*
 
