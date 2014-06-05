@@ -14,6 +14,7 @@
 #ifdef CHANGED
 #include "synch.h"
 #include <stdlib.h>
+#include <vector>
 #endif
 
 #ifdef CHANGED
@@ -479,7 +480,7 @@ Patient(int index){
 	printf("Patient %d has chosen receptionist %d. \n", index, lineIndex);
 	if(shortest > -1 && recState[lineIndex] == 1){ //All Receptionists are busy, wait in line
 		recLineCount[lineIndex]++; //Increment shortest line length
-		recLineCV[lineIndex]->Wait(recLock[lineIndex]); //Wait till called
+		recLineCV[lineIndex]->Wait(recLineLock); //Wait till called
 		recLineCount[lineIndex]--; //Decrement after being woken
     }
   	printf("Patient %d is releasing the line lock. \n",index); 
@@ -495,22 +496,35 @@ Patient(int index){
 	recLock[lineIndex]->Release(); //Release lock to receptionist
 	printf("Patient %d is leaving receptionist %d \n",index,lineIndex);
 
-	// docLineLock->Acquire(); //Acquires lock for doctor line
-	// docLineCount++; //Increments line count by one
-	// docLineCV->Wait(docLineLock); //Wait for doorboy to call
-	// docLineLock->Release();
 
-	// docReadyLock->Acquire(); //Acquire lock for doctor
-	// int docIndex = 0;
-	// for(docIndex = 0; docIndex < docCount; docIndex++){ //Search through doctors
-	// 	if(docState[docIndex == 4]){ //Find waiting doctor
-	// 		docState[docIndex] = 1; //Set doctor to busy
-	// 		docToken[docIndex] = myToken; //Give token to doctor
-	// 		docCV[docIndex]-> Signal(docReadyLock); //Tell doctor arrived
-	// 		break;
-	// 	}
-	// }
-	// docReadyLock->Release();
+	docLineLock->Acquire(); //Acquires lock for doctor line
+	docLineCount++; //Increments line count by one
+	docLineCV->Wait(docLineLock); //Wait for doorboy to call
+	docLineLock->Release();
+
+	docReadyLock->Acquire(); //Acquire lock for doctor
+	int docIndex = 0;
+	for(docIndex = 0; docIndex < docCount; docIndex++){ //Search through doctors
+		if(docState[docIndex == 4]){ //Find waiting doctor
+			docState[docIndex] = 1; //Set doctor to busy
+			docToken[docIndex] = myToken; //Give token to doctor
+			docReadyCV[docIndex]-> Signal(docReadyLock); //Tell doctor arrived
+			break;
+		}
+	}
+	docReadyLock->Release();
+
+	docLock[docIndex]->Acquire(); //Acquire doctor lock
+	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to do checkup
+	int prescription = docPrescription[docIndex]; //Takes prescription
+	docCV[docIndex]->Signal(docLock[docIndex]); //Notifies doctor that patient took prescrip.
+	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor
+
+
+	docLock[docIndex]->Release();
+
+
+
 }
 
 void
@@ -583,11 +597,8 @@ Doctor(int index){
 		docReadyLock->Acquire(); //Acquire doctor ready lock
 		docState[index] = 0; //Sets own state to ready
 		docReadyCV[index]->Wait(docReadyLock); //Wait for doorboy to send patient
-		docReadyLock->Release(); //Release doctor ready lock
-		
-		docLock[index]->Acquire(); //Acquire doctor lock
-		docCV[index]->Wait(docLock[index]); //Wait for patient to arrive
 		int token = docToken[index]; //Get patient's token number
+		docReadyLock->Release(); //Release doctor ready lock
 		
 	  	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
 	  	for(int i = 0; i < yieldCount; i++){ //Check patient for that long
@@ -596,10 +607,18 @@ Doctor(int index){
 	  	int sickTest = rand()%5; //Generate if patient is sick
 	  	/* 0 not sick
 	  	   1-4 sick */
+	  	docLock[index]->Acquire();
+	  	docPrescription[index] = sickTest; //Tells patient illness and prescription
+	  	docCV[index]->Signal(docLock[index]); //Tells patient to take prescription
+	  	docCV[index]->Wait(docLock[index]); //Waits for patient to take prescription
+
+
+
+	  	docLock[index]->Release();
 	  	
 	  	docPrescription[index] = sickTest;
 	  	//Tell cashiers cost of treatment
-	  	
+
 	}
 }
 
