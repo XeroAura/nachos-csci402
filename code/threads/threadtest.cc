@@ -459,7 +459,6 @@ void
 Patient(int index){
 	printf("Patient %d has arrived at the hospital. \n",index);
 	recLineLock->Acquire();
-	printf("%s \n",recLineLock->getOwner());
 	//Find shortest line or receptionist
 	printf("Patient %d is looking for the best receptionist line to enter. \n",index);
 	int shortest = recLineCount[0]; //Shortest line length
@@ -472,18 +471,18 @@ Patient(int index){
 		if(recState[i] == 0){ //If receptionist is open
 			recState[i]=1; //Set receptionist's state to busy
 			lineIndex = i; //Change line index to this receptionist
+			printf("Found an available receptionist! \n");
 			shortest = -1;
 			break;
 		}
 	}
 	printf("Patient %d has chosen receptionist %d. \n", index, lineIndex);
-
-	if(shortest > -1){ //All Receptionists are busy, wait in line
+	if(shortest > 0){ //All Receptionists are busy, wait in line
 		recLineCount[lineIndex]++; //Increment shortest line length
 		recLineCV[lineIndex]->Wait(recLock[lineIndex]); //Wait till called
 		recLineCount[lineIndex]--; //Decrement after being woken
-	}
-	printf("Patient %d is releasing the line lock. \n",index); 
+        }
+  	printf("Patient %d is releasing the line lock. \n",index); 
 	recLineLock->Release(); //Release lock on line
 	printf("Patient %d is acquiring the lock to receptionist %d \n", index, lineIndex);
 	recLock[lineIndex]->Acquire(); //Acquire lock to receptionist
@@ -494,19 +493,19 @@ Patient(int index){
 	int myToken = recTokens[lineIndex]; //Take token from receptionist
 	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist token taken
 	recLock[lineIndex]->Release(); //Release lock to receptionist
+	printf("Patient %d is leaving receptionist %d \n",index,lineIndex);
 }
 
 void
 Receptionist(int index){
 	while(1){
 		recLineLock->Acquire(); //Acquire line lock
-		printf("Receptionist %d has arrived at the hospital. \n",index);
+		printf("Receptionist %d is ready to work. \n",index);
 		recState[index]=0; //Set self to not busy
-		printf("Receptionist %d has been set to available. \n",index);
 		if(recLineCount[index] > 0){ //Check to see if anyone in line
 			recLineCV[index]->Signal(recLock[index]); //Signal first person in line
 			recState[index]=1; //Set self to busy
-			printf("Receptionist %d has signaled the first patient in line and is now busy.",index);
+			printf("Receptionist %d has signaled the first patient in line and is now busy. \n",index);
 		}
        		recLock[index]->Acquire(); //Acquire receptionist lock
        		printf("Receptionist %d is releasing the line lock. \n",index);
@@ -514,6 +513,7 @@ Receptionist(int index){
 		printf("Receptionist %d is waiting for the patient to arrive. \n",index);
        		recCV[index]->Wait(recLock[index]); //Wait for patient to arrive
        		tokenLock->Acquire(); //Acquire token lock
+		printf("Receptionist %d is providing the patient with a token. \n",index);
        		recTokens[index]=nextToken; //Provide token to patient
        		nextToken++; //Increment token count
        		tokenLock->Release(); //Release token lock

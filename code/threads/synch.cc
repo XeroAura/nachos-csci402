@@ -153,7 +153,7 @@ void Lock::Acquire() {
   if (isFree){
     isFree = false;
     lockOwner = currentThread;
-    std::cout << "The owner of " << getName() << " is " << lockOwner->getName() << std::endl;
+    //    std::cout << getName() << ": The owner of " << getName() << " is " << lockOwner->getName() << std::endl;
   }else{
     waitList->push(currentThread);
     currentThread->Sleep();
@@ -188,11 +188,11 @@ void Lock::Release() {
     scheduler->ReadyToRun(thread);
     std::cout << thread;
     lockOwner = thread;
-    std::cout << "Passing ownership of " << getName() << " to " << lockOwner->getName() << std::endl;
+    //    std::cout << getName() << ": " << "Passing ownership of " << getName() << " to " << lockOwner->getName() << std::endl;
   } else {
     isFree = true;
     lockOwner = NULL;
-    std::cout << currentThread->getName() <<  " is clearing ownership of " << getName() << std::endl;
+    //    std::cout << getName() << ": " << currentThread->getName() <<  " is clearing ownership of " << getName() << std::endl;
   }
   (void)interrupt->SetLevel(oldLevel);
 }
