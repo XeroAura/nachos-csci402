@@ -415,6 +415,9 @@ ThreadTest()
 #ifdef CHANGED
 
 //Global variables
+
+int completedPatientThreads = 0; //for debugging
+
 //Receptionist globals
 Lock* recLineLock = new Lock("recLineLock");
 int recLineCount[5] = {0,0,0,0,0};
@@ -463,7 +466,7 @@ Patient(int index){
 	printf("Patient %d is looking for the best receptionist line to enter. \n",index);
 	int shortest = recLineCount[0]; //Shortest line length
 	int lineIndex = 0; //Index of line
-	for(int i=1; i<recCount; i++){ //Go through each receptionist
+	for(int i=0; i<recCount; i++){ //Go through each receptionist
 		if(recLineCount[i] < shortest){ //If the next receptionist has a shorter line
 			lineIndex = i; //Set index to this receptionist
 			shortest = recLineCount[i]; //Set shortest line length to this one's
@@ -479,7 +482,7 @@ Patient(int index){
 	printf("Patient %d has chosen receptionist %d. \n", index, lineIndex);
 	if(shortest > -1 && recState[lineIndex] == 1){ //All Receptionists are busy, wait in line
 		recLineCount[lineIndex]++; //Increment shortest line length
-		recLineCV[lineIndex]->Wait(recLock[lineIndex]); //Wait till called
+		recLineCV[lineIndex]->Wait(recLineLock); //Wait till called
 		recLineCount[lineIndex]--; //Decrement after being woken
     }
   	printf("Patient %d is releasing the line lock. \n",index); 
@@ -494,6 +497,8 @@ Patient(int index){
 	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist token taken
 	recLock[lineIndex]->Release(); //Release lock to receptionist
 	printf("Patient %d is leaving receptionist %d \n",index,lineIndex);
+	
+	completedPatientThreads++;
 
 	// docLineLock->Acquire(); //Acquires lock for doctor line
 	// docLineCount++; //Increments line count by one
@@ -511,6 +516,7 @@ Patient(int index){
 	// 	}
 	// }
 	// docReadyLock->Release();
+
 }
 
 void
@@ -520,11 +526,12 @@ Receptionist(int index){
 		printf("Receptionist %d is ready to work. \n",index);
 		recState[index]=0; //Set self to not busy
 		if(recLineCount[index] > 0){ //Check to see if anyone in line
-			recLineCV[index]->Signal(recLock[index]); //Signal first person in line
+			recLineCV[index]->Signal(recLineLock); //Signal first person in line
 			recState[index]=1; //Set self to busy
 			printf("Receptionist %d has signaled the first patient in line and is now busy. \n",index);
 		}
        		recLock[index]->Acquire(); //Acquire receptionist lock
+		printf("Receptionist %d has %d people in the line. \n",index,recLineCount[index]);
        		printf("Receptionist %d is releasing the line lock. \n",index);
        		recLineLock->Release(); //Release line lock
 		printf("Receptionist %d is waiting for the patient to arrive. \n",index);
@@ -643,13 +650,30 @@ Problem2()
     recCV[i] = new Condition(name);
   }
 
-	Thread *t;
-	printf("Problem 2 Start \n");
-	t = new Thread("Receptionist 0");
-	t->Fork((VoidFunctionPtr) Receptionist,0);
+ 
 
-	t = new Thread("Patient 1");
-	t->Fork((VoidFunctionPtr) Patient,1);
+	Thread *t;
+	int numPatients;
+	printf("Problem 2 Start \n");
+	printf("Enter how many receptionists to have in the office (between 2 and 5): ");
+	scanf("%d",&recCount);
+	printf("Enter how many patients to have in the office (at least 20): ");
+	scanf("%d",&numPatients);
+	
+	for (int i = 0; i < recCount; i++){
+	  name = new char [20];
+	  sprintf(name,"Receptionist %d",i);
+	  t = new Thread(name);
+	  t->Fork((VoidFunctionPtr) Receptionist,i);
+	}
+	
+	for (int i = 0; i < numPatients; i++){
+	  name = new char [20];
+	  sprintf(name,"Patient %d",i);
+	  t = new Thread(name);
+	  t->Fork((VoidFunctionPtr) Patient,i);
+	}
+	printf("%d",completedPatientThreads);
 }
 
 
