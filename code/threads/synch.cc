@@ -186,7 +186,6 @@ void Lock::Release() {
     Thread *thread = waitList->front();
     waitList->pop();
     scheduler->ReadyToRun(thread);
-    std::cout << thread;
     lockOwner = thread;
     //    std::cout << getName() << ": " << "Passing ownership of " << getName() << " to " << lockOwner->getName() << std::endl;
   } else {

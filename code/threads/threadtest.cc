@@ -642,14 +642,27 @@ Problem2()
     sprintf(name,"recCV%d",i);
     recCV[i] = new Condition(name);
   }
-
-	Thread *t;
-	printf("Problem 2 Start \n");
-	t = new Thread("Receptionist 0");
-	t->Fork((VoidFunctionPtr) Receptionist,0);
-
-	t = new Thread("Patient 1");
-	t->Fork((VoidFunctionPtr) Patient,1);
+  Thread *t;
+  int numPatients = 0;
+  printf("Problem 2 Start \n");
+	
+  printf("Enter the number of receptionists you want (between 2 and 5): ");
+  scanf("%d", &recCount);
+  printf("Enter the number of patients you want (at least 20): ");
+  scanf("%d", &numPatients);
+  
+  for (int i = 0; i < recCount; i++){
+    name = new char [20];
+    sprintf(name,"Receptionist %d",i);
+    t = new Thread(name);
+    t->Fork((VoidFunctionPtr) Receptionist,i); 
+  }
+  for (int i = 0; i < numPatients; i++){
+    name = new char [20];
+    sprintf(name,"Patient %d",i);
+    t = new Thread(name);
+    t->Fork((VoidFunctionPtr) Patient,i);
+  }
 }
 
 
