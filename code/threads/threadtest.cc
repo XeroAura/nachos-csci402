@@ -14,7 +14,7 @@
 #ifdef CHANGED
 #include "synch.h"
 #include <stdlib.h>
-#include <vector>
+#include <map>
 #endif
 
 #ifdef CHANGED
@@ -442,11 +442,11 @@ int docCount = 5;
 
 //Doorboy globals
 Lock* docLineLock = new Lock("docLineLock"); //Lock to manage line
-Condition* docLineCV; //CV for doctor line
+Condition* docLineCV = new Condition("docLineCV"); //CV for doctor line
 int docLineCount = 0;
 
 Lock* doorBoyLock = new Lock("doorBoyLock"); //Lock for doorboy
-Condition* doorBoyCV; //CV to notify doorboy that doctor open
+Condition* doorBoyCV = new Condition("doorBoyCV"); //CV to notify doorboy that doctor open
 
 Lock* docReadyLock = new Lock("docReadyLock"); //Lock for doctor readiness
 Condition* docReadyCV[5]; //Condition variable for doctor readiness call
@@ -454,20 +454,25 @@ int doorBoyCount = 5;
 
 //Cashier globals
 Lock* consultLock = new Lock("consultLock"); //Lock for consultation fee map
-std::map <int, int> consultationFee; //Map of consultation fees tied to token
+std::map<int, int> consultationFee; //Map of consultation fees tied to token
+Lock* totalFeeLock = new Lock("totalFeeLock");
 int totalConsultationFee = 0;
 int cashierCount = 5;
 
 Lock* cashierLineLock = new Lock("cashierLineLock");
 int cashierLineCount[5] = {0,0,0,0,0};
 Condition* cashierLineCV[5];
-int cashierState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
 
+Lock* cashierLock[5];
+Condition* cashierCV[5];
+
+int cashierState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
 int cashierToken[5] = {0,0,0,0,0};
 int cashierFee[5] = {0,0,0,0,0};
 
 //Clerk globals
 int medicineFee[5] = {0,0,0,0,0};
+Lock* totalMedicineLock = new Lock("totalMedicineLock");
 int totalMedicineCost = 0;
 int clerkCount = 5;
 
@@ -475,6 +480,10 @@ Lock* clerkLineLock = new Lock("clerkLineLock");
 int clerkLineCount[5] = {0,0,0,0,0};
 Condition* clerkLineCV[5];
 int clerkState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
+int clerkPrescription[5] = {0,0,0,0,0}; //Medicine types 1-4
+
+Lock* clerkLock[5];
+Condition* clerkCV[5];
 
 //Manager globals
 
@@ -544,6 +553,8 @@ Patient(int index){
 	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to return from cashier
 	docLock[docIndex]->Release();
 
+	//Find shortest cashier line
+
 }
 
 void
@@ -572,6 +583,8 @@ Receptionist(int index){
 		recCV[index]->Wait(recLock[index]); //Wait for patient to take token
 		printf("Receptionist %d is releasing the lock on its booth. \n",index);
 		recLock[index]->Release(); //Release lock on receptionist
+
+		//Take break
 	}
 }
 
@@ -609,6 +622,7 @@ Door_Boy(){
 			docReadyLock->Acquire(); //Acquires doctor ready lock
 			docState[docIndex] = 0; //Sets doctor back to available for other door boys
 			docReadyLock->Release();
+
 			//Go on break
 		}
 	}
@@ -659,13 +673,65 @@ Doctor(int index){
 }
 
 void
-Cashier(){
+Cashier(int index){
+	while(1){
+		cashierLineLock->Acquire(); //Acquire line lock
+		cashierState[index]=0; //Set self to not busy
 
+		if(cashierLineCount[index] > 0) { //Check to see if anyone in line
+			cashierLineCV[index]->Signal(cashierLineLock); //Signal first person in line
+			cashierState[index]=1; //Set self to busy
+		}
+
+		cashierLock[index]->Acquire(); //Acquire cashier lock
+		cashierLineLock->Release(); //Release line lock
+		cashierCV[index]->Wait(cashierLock[index]); //Wait for patient to arrive
+		
+		int token = cashierToken[index]; //Get token from patient
+		consultLock->Acquire();
+		int fee = consultationFee[token]; //Look up consultation fee
+		consultLock->Release();
+		cashierFee[index] = fee; 
+		cashierCV[index]->Signal(cashierLock[index]); //Tell patient fee
+		cashierCV[index]->Wait(cashierLock[index]); //Wait for patient to give money
+
+		totalFeeLock->Acquire();
+		totalConsultationFee += fee; //Add consultation fee to total count
+		totalFeeLock->Release();
+
+		//Take break
+	}
 }
 
 void
-Clerk(){
+Clerk(int index){
+	while(1){
+		clerkLineLock->Acquire(); //Acquire line lock
+		clerkState[index]=0; //Set self to not busy
 
+		if(clerkLineCount[index] > 0) { //Check to see if anyone in line
+			clerkLineCV[index]->Signal(clerkLineLock); //Signal first person in line
+			clerkState[index] = 1; //Set self to busy
+		}
+
+		clerkLock[index]->Acquire(); //Acquire clerk lock
+		clerkLineLock->Release(); //Release line lock
+		clerkCV[index]->Wait(clerkLock[index]); //Wait for patient to arrive
+		
+		int prescription = clerkPrescription[index]; //Get prescription from patient
+		
+		int fee = prescription*25;
+		cashierFee[index] = fee; //Tell patient fee
+
+		cashierCV[index]->Signal(cashierLock[index]);
+		cashierCV[index]->Wait(cashierLock[index]); //Wait for patient to give money and take prescription
+
+		totalMedicineLock->Acquire();
+		totalMedicineCost += fee; //Add medicine fee to total count
+		totalMedicineLock->Release();
+
+		//Take break
+	}
 }
 
 void
@@ -696,8 +762,60 @@ Setup(){
 	}
 
 	//Instantiating doctor variables
-	
-	
+	for(int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"docLock%d",i);
+		docLock[i] = new Lock(name);
+	}
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"docCV%d",i);
+		docCV[i] = new Condition(name);
+	}
+
+	//Doorboy
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"docReadyCV%d",i);
+		docReadyCV[i] = new Condition(name);
+	}
+
+	//Cashier
+	//Map?
+	for(int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"cashierLock%d",i);
+		cashierLock[i] = new Lock(name);
+	}
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"cashierCV%d",i);
+		cashierCV[i] = new Condition(name);
+	}
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"cashierLineCV%d",i);
+		cashierLineCV[i] = new Condition(name);
+	}
+
+	//Clerk
+	for(int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"clerkLock%d",i);
+		clerkLock[i] = new Lock(name);
+	}
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"clerkCV%d",i);
+		clerkCV[i] = new Condition(name);
+	}
+
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"clerkLineCV%d",i);
+		clerkLineCV[i] = new Condition(name);
+	}
+
 }
 
 
@@ -714,6 +832,7 @@ Problem2() {
 	printf("Enter how many patients to have in the office (at least 20): ");
 	scanf("%d",&numPatients);
 
+	char* name;
 	for (int i = 0; i < recCount; i++){
 		name = new char [20];
 		sprintf(name,"Receptionist %d",i);
