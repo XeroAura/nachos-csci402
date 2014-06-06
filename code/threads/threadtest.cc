@@ -450,10 +450,14 @@ Condition* docReadyCV[5]; //Condition variable for doctor readiness call
 int doorBoyCount = 5;
 
 //Cashier globals
+Lock* consultLock = new Lock("consultLock"); //Lock for consultation fee map
+std::map <int, int> consultationFee; //Map of consultation fees tied to token
+int totalConsultationFee = 0;;
+int cashierCount = 5;
 
 //Clerk globals
 int medicineFee[5] = {0,0,0,0,0};
-
+int totalMedicineCost = 0;
 int clerkCount = 5;
 
 //Manager globals
@@ -521,10 +525,9 @@ Patient(int index){
 	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to do checkup
 	int prescription = docPrescription[docIndex]; //Takes prescription
 	docCV[docIndex]->Signal(docLock[docIndex]); //Notifies doctor that patient took prescrip.
-	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor
-
-
+	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to return from cashier
 	docLock[docIndex]->Release();
+
 }
 
 void
@@ -613,13 +616,21 @@ Doctor(int index){
 	  	docCV[index]->Signal(docLock[index]); //Tells patient to take prescription
 	  	docCV[index]->Wait(docLock[index]); //Waits for patient to take prescription
 
+	  	//Doctor tells cashiers price of consultation
+	  	consultLock->Acquire();
+	  	consultationFee[token] = sickTest*25+25;
+	  	consultLock->Release();
 
-
+	  	docCV[index]->Signal(docLock[index]);//Tell patient ok to go
 	  	docLock[index]->Release();
 	  	
-	  	docPrescription[index] = sickTest;
-	  	//Tell cashiers cost of treatment
-
+	  	int breakVal = rand()%100; //Generate break value
+	  	if(breakVal < 30){ //Take break for random time
+	  		int breakTimeVal = rand()%11+5; //Random between 5 and 15
+	  		for(int i = 0; i < breakTimeVal; i++){
+	  			currentThread->Yield();
+	  		}
+	  	}
 	}
 }
 
