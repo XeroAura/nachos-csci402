@@ -455,13 +455,26 @@ int doorBoyCount = 5;
 //Cashier globals
 Lock* consultLock = new Lock("consultLock"); //Lock for consultation fee map
 std::map <int, int> consultationFee; //Map of consultation fees tied to token
-int totalConsultationFee = 0;;
+int totalConsultationFee = 0;
 int cashierCount = 5;
+
+Lock* cashierLineLock = new Lock("cashierLineLock");
+int cashierLineCount[5] = {0,0,0,0,0};
+Condition* cashierLineCV[5];
+int cashierState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
+
+int cashierToken[5] = {0,0,0,0,0};
+int cashierFee[5] = {0,0,0,0,0};
 
 //Clerk globals
 int medicineFee[5] = {0,0,0,0,0};
 int totalMedicineCost = 0;
 int clerkCount = 5;
+
+Lock* clerkLineLock = new Lock("clerkLineLock");
+int clerkLineCount[5] = {0,0,0,0,0};
+Condition* clerkLineCV[5];
+int clerkState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
 
 //Manager globals
 
@@ -492,8 +505,8 @@ Patient(int index){
 		recLineCount[lineIndex]++; //Increment shortest line length
 		recLineCV[lineIndex]->Wait(recLineLock); //Wait till called
 		recLineCount[lineIndex]--; //Decrement after being woken
-    }
-  	printf("Patient %d is releasing the line lock. \n",index); 
+	}
+	printf("Patient %d is releasing the line lock. \n",index); 
 	recLineLock->Release(); //Release lock on line
 	printf("Patient %d is acquiring the lock to receptionist %d \n", index, lineIndex);
 	recLock[lineIndex]->Acquire(); //Acquire lock to receptionist
@@ -545,13 +558,13 @@ Receptionist(int index){
 			printf("Receptionist %d has signaled the first patient in line and is now busy. \n",index);
 		}
        		recLock[index]->Acquire(); //Acquire receptionist lock
-		printf("Receptionist %d has %d people in the line. \n",index,recLineCount[index]);
+       		printf("Receptionist %d has %d people in the line. \n",index,recLineCount[index]);
        		printf("Receptionist %d is releasing the line lock. \n",index);
        		recLineLock->Release(); //Release line lock
-		printf("Receptionist %d is waiting for the patient to arrive. \n",index);
+       		printf("Receptionist %d is waiting for the patient to arrive. \n",index);
        		recCV[index]->Wait(recLock[index]); //Wait for patient to arrive
        		tokenLock->Acquire(); //Acquire token lock
-		printf("Receptionist %d is providing the patient with a token. \n",index);
+       		printf("Receptionist %d is providing the patient with a token. \n",index);
        		recTokens[index]=nextToken; //Provide token to patient
        		nextToken++; //Increment token count
        		tokenLock->Release(); //Release token lock
@@ -559,14 +572,14 @@ Receptionist(int index){
        		recCV[index]->Wait(recLock[index]); //Wait for patient to take token
        		printf("Receptionist %d is releasing the lock on its booth. \n",index);
        		recLock[index]->Release(); //Release lock on receptionist
+       	}
        }
-}
 
-void 
-Door_Boy(){
-	while(true){
+       void 
+       Door_Boy(){
+       	while(true){
 
-		doorBoyLock->Acquire();
+       		doorBoyLock->Acquire();
 		doorBoyCV->Wait(doorBoyLock); //Wait for doctor to notify need patient
 		doorBoyLock->Release();
 
@@ -605,7 +618,6 @@ Door_Boy(){
 void
 Doctor(int index){
 	while(true){
-
 		docReadyLock->Acquire(); //Acquire doctor ready lock
 		docState[index] = 0; //Sets own state to ready
 
@@ -644,6 +656,7 @@ Doctor(int index){
 	  			currentThread->Yield();
 	  		}
 	  	}
+	  }
 	}
 }
 
@@ -662,32 +675,36 @@ Manager(){
 
 }
 
+void
+Setup(){
+	char *name;
+	//Instantiating receptionist variables
+	for(int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"recLock%d",i);
+		recLock[i] = new Lock(name);
+	}
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"recLineCV%d",i);
+		recLineCV[i] = new Condition(name);
+	}
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"recCV%d",i);
+		recCV[i] = new Condition(name);
+	}
 
+	//Instantiating doctor variables
+	
+	
+}
 
 
 //Tests and test threads for part 2 of the first assignment
 void
-Problem2()
-{
-  char *name;
-  //instantiating all of the arrays
-  for(int i = 0; i < 5; i++){
-    name = new char [20];
-    sprintf(name,"recLock%d",i);
-    recLock[i] = new Lock(name);
-  }
-  for (int i = 0; i < 5; i++){
-    name = new char [20];
-    sprintf(name,"recLineCV%d",i);
-    recLineCV[i] = new Condition(name);
-  }
-  for (int i = 0; i < 5; i++){
-    name = new char [20];
-    sprintf(name,"recCV%d",i);
-    recCV[i] = new Condition(name);
-  }
-
- 
+Problem2() { 
+	Setup();
 
 	Thread *t;
 	int numPatients;
@@ -696,19 +713,19 @@ Problem2()
 	scanf("%d",&recCount);
 	printf("Enter how many patients to have in the office (at least 20): ");
 	scanf("%d",&numPatients);
-	
+
 	for (int i = 0; i < recCount; i++){
-	  name = new char [20];
-	  sprintf(name,"Receptionist %d",i);
-	  t = new Thread(name);
-	  t->Fork((VoidFunctionPtr) Receptionist,i);
+		name = new char [20];
+		sprintf(name,"Receptionist %d",i);
+		t = new Thread(name);
+		t->Fork((VoidFunctionPtr) Receptionist,i);
 	}
-	
+
 	for (int i = 0; i < numPatients; i++){
-	  name = new char [20];
-	  sprintf(name,"Patient %d",i);
-	  t = new Thread(name);
-	  t->Fork((VoidFunctionPtr) Patient,i);
+		name = new char [20];
+		sprintf(name,"Patient %d",i);
+		t = new Thread(name);
+		t->Fork((VoidFunctionPtr) Patient,i);
 	}
 	printf("%d",completedPatientThreads);
 }
