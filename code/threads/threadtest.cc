@@ -445,6 +445,9 @@ Lock* docLineLock = new Lock("docLineLock"); //Lock to manage line
 Condition* docLineCV; //CV for doctor line
 int docLineCount = 0;
 
+Lock* doorBoyLock = new Lock("doorBoyLock"); //Lock for doorboy
+Condition* doorBoyCV; //CV to notify doorboy that doctor open
+
 Lock* docReadyLock = new Lock("docReadyLock"); //Lock for doctor readiness
 Condition* docReadyCV[5]; //Condition variable for doctor readiness call
 int doorBoyCount = 5;
@@ -562,6 +565,11 @@ Receptionist(int index){
 void 
 Door_Boy(){
 	while(true){
+
+		doorBoyLock->Acquire();
+		doorBoyCV->Wait(doorBoyLock); //Wait for doctor to notify need patient
+		doorBoyLock->Release();
+
 		docReadyLock->Acquire(); //Acquires lock for doctor ready
 		int docIndex = 0;
 		for(docIndex = 0; docIndex< docCount; docIndex++){ //Goes through each doctor
@@ -600,6 +608,11 @@ Doctor(int index){
 
 		docReadyLock->Acquire(); //Acquire doctor ready lock
 		docState[index] = 0; //Sets own state to ready
+
+		doorBoyLock->Acquire();
+		doorBoyCV->Signal(doorBoyLock);//Notify doorboy to send patient in
+		doorBoyLock->Release();
+
 		docReadyCV[index]->Wait(docReadyLock); //Wait for doorboy to send patient
 		int token = docToken[index]; //Get patient's token number
 		docReadyLock->Release(); //Release doctor ready lock
