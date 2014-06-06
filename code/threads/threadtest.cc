@@ -646,7 +646,9 @@ Clerk(){
 
 void
 Manager(){
-
+  while(true){
+    
+  }
 }
 
 
@@ -674,30 +676,30 @@ Problem2()
     recCV[i] = new Condition(name);
   }
 
- 
 
-	Thread *t;
-	int numPatients;
-	printf("Problem 2 Start \n");
-	printf("Enter how many receptionists to have in the office (between 2 and 5): ");
-	scanf("%d",&recCount);
-	printf("Enter how many patients to have in the office (at least 20): ");
-	scanf("%d",&numPatients);
-	
-	for (int i = 0; i < recCount; i++){
-	  name = new char [20];
-	  sprintf(name,"Receptionist %d",i);
-	  t = new Thread(name);
-	  t->Fork((VoidFunctionPtr) Receptionist,i);
-	}
-	
-	for (int i = 0; i < numPatients; i++){
-	  name = new char [20];
-	  sprintf(name,"Patient %d",i);
-	  t = new Thread(name);
-	  t->Fork((VoidFunctionPtr) Patient,i);
-	}
-	printf("%d",completedPatientThreads);
+
+  Thread *t;
+  int numPatients;
+  printf("Problem 2 Start \n");
+  printf("Enter how many receptionists to have in the office (between 2 and 5): ");
+  scanf("%d",&recCount);
+  printf("Enter how many patients to have in the office (at least 20): ");
+  scanf("%d",&numPatients);
+  
+  for (int i = 0; i < recCount; i++){
+    name = new char [20];
+    sprintf(name,"Receptionist %d",i);
+    t = new Thread(name);
+    t->Fork((VoidFunctionPtr) Receptionist,i);
+  }
+  
+  for (int i = 0; i < numPatients; i++){
+    name = new char [20];
+    sprintf(name,"Patient %d",i);
+    t = new Thread(name);
+    t->Fork((VoidFunctionPtr) Patient,i);
+  }
+  printf("%d",completedPatientThreads);
 }
 
 
