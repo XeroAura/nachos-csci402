@@ -552,34 +552,33 @@ Receptionist(int index){
 		recLineLock->Acquire(); //Acquire line lock
 		printf("Receptionist %d is ready to work. \n",index);
 		recState[index]=0; //Set self to not busy
-		if(recLineCount[index] > 0){ //Check to see if anyone in line
+		if(recLineCount[index] > 0) { //Check to see if anyone in line
 			recLineCV[index]->Signal(recLineLock); //Signal first person in line
 			recState[index]=1; //Set self to busy
 			printf("Receptionist %d has signaled the first patient in line and is now busy. \n",index);
 		}
-       		recLock[index]->Acquire(); //Acquire receptionist lock
-       		printf("Receptionist %d has %d people in the line. \n",index,recLineCount[index]);
-       		printf("Receptionist %d is releasing the line lock. \n",index);
-       		recLineLock->Release(); //Release line lock
-       		printf("Receptionist %d is waiting for the patient to arrive. \n",index);
-       		recCV[index]->Wait(recLock[index]); //Wait for patient to arrive
-       		tokenLock->Acquire(); //Acquire token lock
-       		printf("Receptionist %d is providing the patient with a token. \n",index);
-       		recTokens[index]=nextToken; //Provide token to patient
-       		nextToken++; //Increment token count
-       		tokenLock->Release(); //Release token lock
-       		recCV[index]->Signal(recLock[index]); //Signal patient that token ready
-       		recCV[index]->Wait(recLock[index]); //Wait for patient to take token
-       		printf("Receptionist %d is releasing the lock on its booth. \n",index);
-       		recLock[index]->Release(); //Release lock on receptionist
-       	}
-       }
+		recLock[index]->Acquire(); //Acquire receptionist lock
+		printf("Receptionist %d has %d people in the line. \n",index,recLineCount[index]);
+		printf("Receptionist %d is releasing the line lock. \n",index);
+		recLineLock->Release(); //Release line lock
+		printf("Receptionist %d is waiting for the patient to arrive. \n",index);
+		recCV[index]->Wait(recLock[index]); //Wait for patient to arrive
+		tokenLock->Acquire(); //Acquire token lock
+		printf("Receptionist %d is providing the patient with a token. \n",index);
+		recTokens[index]=nextToken; //Provide token to patient
+		nextToken++; //Increment token count
+		tokenLock->Release(); //Release token lock
+		recCV[index]->Signal(recLock[index]); //Signal patient that token ready
+		recCV[index]->Wait(recLock[index]); //Wait for patient to take token
+		printf("Receptionist %d is releasing the lock on its booth. \n",index);
+		recLock[index]->Release(); //Release lock on receptionist
+	}
+}
 
-       void 
-       Door_Boy(){
-       	while(true){
-
-       		doorBoyLock->Acquire();
+void 
+Door_Boy(){
+	while(true){
+		doorBoyLock->Acquire();
 		doorBoyCV->Wait(doorBoyLock); //Wait for doctor to notify need patient
 		doorBoyLock->Release();
 
@@ -629,34 +628,33 @@ Doctor(int index){
 		int token = docToken[index]; //Get patient's token number
 		docReadyLock->Release(); //Release doctor ready lock
 		
-	  	int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
-	  	for(int i = 0; i < yieldCount; i++){ //Check patient for that long
-	  		currentThread->Yield(); //Yield thread to simulate time spent
-	  	}
-	  	int sickTest = rand()%5; //Generate if patient is sick
-	  	/* 0 not sick
-	  	   1-4 sick */
-	  	docLock[index]->Acquire();
-	  	docPrescription[index] = sickTest; //Tells patient illness and prescription
-	  	docCV[index]->Signal(docLock[index]); //Tells patient to take prescription
-	  	docCV[index]->Wait(docLock[index]); //Waits for patient to take prescription
+		int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
+		for(int i = 0; i < yieldCount; i++){ //Check patient for that long
+			currentThread->Yield(); //Yield thread to simulate time spent
+		}
+		int sickTest = rand()%5; //Generate if patient is sick
+		/* 0 not sick
+		   1-4 sick */
+		docLock[index]->Acquire();
+		docPrescription[index] = sickTest; //Tells patient illness and prescription
+		docCV[index]->Signal(docLock[index]); //Tells patient to take prescription
+		docCV[index]->Wait(docLock[index]); //Waits for patient to take prescription
 
-	  	//Doctor tells cashiers price of consultation
-	  	consultLock->Acquire();
-	  	consultationFee[token] = sickTest*25+25;
-	  	consultLock->Release();
+		//Doctor tells cashiers price of consultation
+		consultLock->Acquire();
+		consultationFee[token] = sickTest*25+25;
+		consultLock->Release();
 
-	  	docCV[index]->Signal(docLock[index]);//Tell patient ok to go
-	  	docLock[index]->Release();
-	  	
-	  	int breakVal = rand()%100; //Generate break value
-	  	if(breakVal < 30){ //Take break for random time
-	  		int breakTimeVal = rand()%11+5; //Random between 5 and 15
-	  		for(int i = 0; i < breakTimeVal; i++){
-	  			currentThread->Yield();
-	  		}
-	  	}
-	  }
+		docCV[index]->Signal(docLock[index]);//Tell patient ok to go
+		docLock[index]->Release();
+		
+		int breakVal = rand()%100; //Generate break value
+		if(breakVal < 30){ //Take break for random time
+			int breakTimeVal = rand()%11+5; //Random between 5 and 15
+			for(int i = 0; i < breakTimeVal; i++){
+				currentThread->Yield();
+			}
+		}
 	}
 }
 
@@ -672,9 +670,9 @@ Clerk(){
 
 void
 Manager(){
-  while(true){
-    
-  }
+	while(true){
+
+	}
 }
 
 void
