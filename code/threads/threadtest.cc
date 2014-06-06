@@ -672,7 +672,9 @@ Clerk(){
 
 void
 Manager(){
-
+  while(true){
+    
+  }
 }
 
 void
