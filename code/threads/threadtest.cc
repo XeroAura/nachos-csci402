@@ -437,6 +437,8 @@ Lock* docLock[5]; //Lock for doctor and patient meeting
 Condition* docCV[5]; //CV for doctor and patient meeting
 int docState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break, 3 held, 4 waiting
 int docToken[5] = {0,0,0,0,0};
+Lock* docTokenLock = new Lock("docTokenLock");
+Lock * docPrescriptionLock = new Lock("dockPrescriptionLock");
 int docPrescription[5] = {0,0,0,0,0}; //1-4 represent problems
 int docCount = 5;
 
@@ -468,9 +470,12 @@ Condition* cashierCV[5];
 
 int cashierState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
 int cashierToken[5] = {0,0,0,0,0};
+Lock* cashierTokenLock = new Lock("cashierTokenLock");
 int cashierFee[5] = {0,0,0,0,0};
+Lock* cashierFeeLock = new Lock("cashierFeeLock");
 
 //Clerk globals
+Lock* medicineFeeLock = new Lock("medicineFeeLock");
 int medicineFee[5] = {0,0,0,0,0};
 Lock* totalMedicineLock = new Lock("totalMedicineLock");
 int totalMedicineCost = 0;
@@ -539,7 +544,9 @@ Patient(int index){
 	for(docIndex = 0; docIndex < docCount; docIndex++){ //Search through doctors
 		if(docState[docIndex == 4]){ //Find waiting doctor
 			docState[docIndex] = 1; //Set doctor to busy
+			docTokenLock->Acquire();
 			docToken[docIndex] = myToken; //Give token to doctor
+			docTokenLock->Release();
 			docReadyCV[docIndex]-> Signal(docReadyLock); //Tell doctor arrived
 			break;
 		}
@@ -548,7 +555,9 @@ Patient(int index){
 
 	docLock[docIndex]->Acquire(); //Acquire doctor lock
 	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to do checkup
+	docPrescriptionLock->Acquire();
 	int prescription = docPrescription[docIndex]; //Takes prescription
+	docPrescriptionLock->Release();
 	docCV[docIndex]->Signal(docLock[docIndex]); //Notifies doctor that patient took prescrip.
 	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to return from cashier
 	docLock[docIndex]->Release();
@@ -639,7 +648,9 @@ Doctor(int index){
 		doorBoyLock->Release();
 
 		docReadyCV[index]->Wait(docReadyLock); //Wait for doorboy to send patient
+		docTokenLock->Acquire();
 		int token = docToken[index]; //Get patient's token number
+		docTokenLock->Release();
 		docReadyLock->Release(); //Release doctor ready lock
 		
 		int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
@@ -650,7 +661,9 @@ Doctor(int index){
 		/* 0 not sick
 		   1-4 sick */
 		docLock[index]->Acquire();
+		docPrescriptionLock->Acquire();
 		docPrescription[index] = sickTest; //Tells patient illness and prescription
+		docPrescriptionLock->Release();
 		docCV[index]->Signal(docLock[index]); //Tells patient to take prescription
 		docCV[index]->Wait(docLock[index]); //Waits for patient to take prescription
 
@@ -687,11 +700,18 @@ Cashier(int index){
 		cashierLineLock->Release(); //Release line lock
 		cashierCV[index]->Wait(cashierLock[index]); //Wait for patient to arrive
 		
+		cashierTokenLock->Acquire();
 		int token = cashierToken[index]; //Get token from patient
+		cashierTokenLock->Release();
+
 		consultLock->Acquire();
 		int fee = consultationFee[token]; //Look up consultation fee
 		consultLock->Release();
-		cashierFee[index] = fee; 
+
+		cashierFeeLock->Acquire();
+		cashierFee[index] = fee;  //Set fee for patient to look at
+		cashierFeeLock->Release();
+
 		cashierCV[index]->Signal(cashierLock[index]); //Tell patient fee
 		cashierCV[index]->Wait(cashierLock[index]); //Wait for patient to give money
 
@@ -720,11 +740,14 @@ Clerk(int index){
 		
 		int prescription = clerkPrescription[index]; //Get prescription from patient
 		
-		int fee = prescription*25;
-		cashierFee[index] = fee; //Tell patient fee
+		int fee = prescription*25; //Calculate fee of medicine
 
-		cashierCV[index]->Signal(cashierLock[index]);
-		cashierCV[index]->Wait(cashierLock[index]); //Wait for patient to give money and take prescription
+		medicineFeeLock->Acquire();
+		medicineFee[index] = fee; //Tell patient fee
+		medicineFeeLock->Release();
+
+		clerkCV[index]->Signal(clerkLock[index]);
+		clerkCV[index]->Wait(clerkLock[index]); //Wait for patient to give money and take prescription
 
 		totalMedicineLock->Acquire();
 		totalMedicineCost += fee; //Add medicine fee to total count
