@@ -454,6 +454,9 @@ Lock* docReadyLock = new Lock("docReadyLock"); //Lock for doctor readiness
 Condition* docReadyCV[5]; //Condition variable for doctor readiness call
 int doorBoyCount = 5;
 
+Lock* doorBoyStateLock = new Lock("doorBoyStateLock");
+int doorBoyState[5] = {0,0,0,0,0}; //0 working, 1 on break
+
 //Cashier globals
 Lock* consultLock = new Lock("consultLock"); //Lock for consultation fee map
 std::map<int, int> consultationFee; //Map of consultation fees tied to token
@@ -492,7 +495,17 @@ Lock* clerkLock[5];
 Condition* clerkCV[5];
 
 //Manager globals
+Lock* receptionistBreakLock = new Lock("receptionistBreakLock");
+Condition* receptionistBreakCV[5];
 
+Lock* doorBoyBreakLock = new Lock("doorBoyBreakLock");
+Condition* doorBoyBreakCV[5];
+
+Lock* cashierBreakLock = new Lock("cashierBreakLock");
+Condition* cashierBreakCV[5];
+
+Lock* clerkBreakLock = new Lock("clerkBreakLock");
+Condition* clerkBreakCV[5];
 
 /* Hospital members*/
 void
@@ -521,7 +534,7 @@ Patient(int index){
 		}
 	}
 	printf("Patient %d has chosen receptionist %d. \n", index, lineIndex);
-	if(shortest > -1 && recState[lineIndex] == 1){ //All Receptionists are busy, wait in line
+	if(shortest > -1 && (recState[lineIndex] == 1 || recState[lineIndex] == 2)){ //All Receptionists are busy, wait in line
 		recLineCount[lineIndex]++; //Increment shortest line length
 		recLineCV[lineIndex]->Wait(recLineLock); //Wait till called
 		recLineCount[lineIndex]--; //Decrement after being woken
@@ -593,7 +606,7 @@ Patient(int index){
 			break;
 		}
 	}
-	if(shortest > -1 && cashierState[lineIndex] == 1){ //All cashier are busy, wait in line
+	if(shortest > -1 && (cashierState[lineIndex] == 1 || cashierState[lineIndex] == 2)){ //All cashier are busy, wait in line
 		cashierLineCount[lineIndex]++; //Increment shortest line length
 		cashierLineCV[lineIndex]->Wait(cashierLineLock); //Wait till called
 		cashierLineCount[lineIndex]--; //Decrement after being woken
@@ -631,7 +644,7 @@ Patient(int index){
 			break;
 		}
 	}
-	if(shortest > -1 && clerkState[lineIndex] == 1){ //All clerk are busy, wait in line
+	if(shortest > -1 && (clerkState[lineIndex] == 1|| clerkState[lineIndex] == 2)){ //All clerk are busy, wait in line
 		clerkLineCount[lineIndex]++; //Increment shortest line length
 		clerkLineCV[lineIndex]->Wait(clerkLineLock); //Wait till called
 		clerkLineCount[lineIndex]--; //Decrement after being woken
@@ -682,12 +695,20 @@ Receptionist(int index){
 		printf("Receptionist %d is releasing the lock on its booth. \n",index);
 		recLock[index]->Release(); //Release lock on receptionist
 
-		//Take break
+		//Take break check
+		recLineLock->Acquire();
+		if(recLineCount[index] == 0){ //If noone in line
+			recState[index] = 2; //Set to on-break
+			receptionistBreakLock->Acquire();
+			receptionistBreakCV[index]->Wait(receptionistBreakLock); //Set condition for manager to callback
+			receptionistBreakLock->Release();
+		}
+		recLineLock->Release();
 	}
 }
 
 void 
-Door_Boy(){
+Door_Boy(int index){
 	while(true){
 		doorBoyLock->Acquire();
 		doorBoyCV->Wait(doorBoyLock); //Wait for doctor to notify need patient
@@ -720,9 +741,19 @@ Door_Boy(){
 			docReadyLock->Acquire(); //Acquires doctor ready lock
 			docState[docIndex] = 0; //Sets doctor back to available for other door boys
 			docReadyLock->Release();
-
-			//Go on break
 		}
+
+		//Take break check
+		docLineLock->Acquire();
+		if(docLineCount == 0){ //If noone in line
+			doorBoyStateLock->Acquire();
+			doorBoyState[index] = 1; //Set self to break
+			doorBoyStateLock->Release();
+			doorBoyBreakLock->Acquire();
+			doorBoyBreakCV[index]->Wait(doorBoyBreakLock); //Set condition for manager to callback
+			doorBoyBreakLock->Release();
+		}
+		docLineLock->Release();
 	}
 }
 
@@ -808,7 +839,15 @@ Cashier(int index){
 		totalConsultationFee += fee; //Add consultation fee to total count
 		totalFeeLock->Release();
 
-		//Take break
+		//Take break check
+		cashierLineLock->Acquire();
+		if(cashierLineCount[index] == 0){ //If noone in line
+			cashierState[index] = 2; //Set to on-break
+			cashierBreakLock->Acquire();
+			cashierBreakCV[index]->Wait(cashierBreakLock); //Set condition for manager to callback
+			cashierBreakLock->Release();
+		}
+		cashierLineLock->Release();
 	}
 }
 
@@ -844,7 +883,15 @@ Clerk(int index){
 		totalMedicineCost += fee; //Add medicine fee to total count
 		totalMedicineLock->Release();
 
-		//Take break
+		//Take break check
+		clerkLineLock->Acquire();
+		if(clerkLineCount[index] == 0){ //If noone in line
+			clerkState[index] = 2; //Set to on-break
+			clerkBreakLock->Acquire();
+			clerkBreakCV[index]->Wait(clerkBreakLock); //Set condition for manager to callback
+			clerkBreakLock->Release();
+		}
+		clerkLineLock->Release();
 	}
 }
 
@@ -853,7 +900,21 @@ Manager(){
 	while(true){
 		//Checks hospital is running
 
-		//Wakes up receptionist, door boy, cashier, or clerk
+		//Wakes up receptionist
+		//Check if there are at least 2 people waiting in receptionist line
+		//Set receptionist to off break
+
+		//Wakes up door boy
+		//Check if any patient in line
+		//Set door boy to off break'
+
+		//Wakes up cashier
+		//Check if any patient in line
+		//Set cashier to off break
+
+		//Wakes up clerk
+		//Check if any patient in line
+		//Set clerk to off break
 
 		//Get total consultation fee
 		totalFeeLock->Acquire();
@@ -942,6 +1003,27 @@ Setup(){
 		clerkLineCV[i] = new Condition(name);
 	}
 
+	//Manager
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"receptionistBreakCV%d",i);
+		receptionistBreakCV[i] = new Condition(name);
+	}
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"doorBoyBreakCV%d",i);
+		doorBoyBreakCV[i] = new Condition(name);
+	}
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"clerkBreakCV%d",i);
+		clerkBreakCV[i] = new Condition(name);
+	}
+	for (int i = 0; i < 5; i++){
+		name = new char [20];
+		sprintf(name,"cashierBreakCV%d",i);
+		cashierBreakCV[i] = new Condition(name);
+	}
 }
 
 
