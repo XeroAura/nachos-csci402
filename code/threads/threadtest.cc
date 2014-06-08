@@ -486,6 +486,7 @@ int clerkLineCount[5] = {0,0,0,0,0};
 Condition* clerkLineCV[5];
 int clerkState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
 int clerkPrescription[5] = {0,0,0,0,0}; //Medicine types 1-4
+Lock* clerkPrescriptionLock = new Lock("clerkPrescriptionLock");
 
 Lock* clerkLock[5];
 Condition* clerkCV[5];
@@ -496,6 +497,10 @@ Condition* clerkCV[5];
 void
 Patient(int index){
 	printf("Patient %d has arrived at the hospital. \n",index);
+
+	/*
+	* Receptionist
+	*/
 	recLineLock->Acquire();
 	//Find shortest line or receptionist
 	printf("Patient %d is looking for the best receptionist line to enter. \n",index);
@@ -534,6 +539,10 @@ Patient(int index){
 	printf("Patient %d is leaving receptionist %d \n",index,lineIndex);
 	
 	completedPatientThreads++;
+	
+	/*
+	* Doorboy
+	*/
 	docLineLock->Acquire(); //Acquires lock for doctor line
 	docLineCount++; //Increments line count by one
 	docLineCV->Wait(docLineLock); //Wait for doorboy to call
@@ -553,17 +562,96 @@ Patient(int index){
 	}
 	docReadyLock->Release();
 
+	/*
+	* Doctor
+	*/
 	docLock[docIndex]->Acquire(); //Acquire doctor lock
 	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to do checkup
 	docPrescriptionLock->Acquire();
-	int prescription = docPrescription[docIndex]; //Takes prescription
+	int myPrescription = docPrescription[docIndex]; //Takes prescription
 	docPrescriptionLock->Release();
 	docCV[docIndex]->Signal(docLock[docIndex]); //Notifies doctor that patient took prescrip.
 	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to return from cashier
 	docLock[docIndex]->Release();
 
-	//Find shortest cashier line
+	/*
+	* Cashier
+	*/
+	cashierLineLock->Acquire(); //Find shortest cashier line
+	shortest = cashierLineCount[0]; //Shortest line length
+	lineIndex = 0; //Index of line
+	for(int i=0; i<cashierCount; i++){ //Go through each cashier
+		if(cashierLineCount[i] < shortest){ //If the next cashier has a shorter line
+			lineIndex = i; //Set index to this cashier
+			shortest = cashierLineCount[i]; //Set shortest line length to this one's
+		}
+		if(cashierState[i] == 0){ //If cashier is open
+			cashierState[i] = 1; //Set cashier's state to busy
+			lineIndex = i; //Change line index to this cashier
+			shortest = -1;
+			break;
+		}
+	}
+	if(shortest > -1 && cashierState[lineIndex] == 1){ //All cashier are busy, wait in line
+		cashierLineCount[lineIndex]++; //Increment shortest line length
+		cashierLineCV[lineIndex]->Wait(cashierLineLock); //Wait till called
+		cashierLineCount[lineIndex]--; //Decrement after being woken
+	}
+	cashierLineLock->Release(); //Release lock on line
+	cashierLock[lineIndex]->Acquire(); //Acquire lock to cashier
+	cashierTokenLock->Acquire();
+	cashierTokenLock[lineIndex] = myToken; //Give token to cashier
+	cashierTokenLock->Release();
+	cashierCV[lineIndex]->Signal(cashierLock[lineIndex]); //Notify cashier ready
+	cashierCV[lineIndex]->Wait(cashierLock[lineIndex]); //Wait for cashier to reply with fee
+	
+	cashierFeeLock->Acquire();
+	int myFee = cashierFee[lineIndex]; //Get fee from cashier
+	cashierFeeLock->Release();
 
+	cashierCV[lineIndex]->Signal(cashierLock[lineIndex]); //Give cashier cash
+	cashierLock[lineIndex]->Release();
+
+	/*
+	* Pharmacy Clerk
+	*/
+	clerkLineLock->Acquire(); //Find shortest clerk line
+	shortest = clerkLineCount[0]; //Shortest line length
+	lineIndex = 0; //Index of line
+	for(int i=0; i<clerkCount; i++){ //Go through each clerk
+		if(clerkLineCount[i] < shortest){ //If the next clerk has a shorter line
+			lineIndex = i; //Set index to this clerk
+			shortest = clerkLineCount[i]; //Set shortest line length to this one's
+		}
+		if(clerkState[i] == 0){ //If clerk is open
+			clerkState[i] = 1; //Set clerk's state to busy
+			lineIndex = i; //Change line index to this clerk
+			shortest = -1;
+			break;
+		}
+	}
+	if(shortest > -1 && clerkState[lineIndex] == 1){ //All clerk are busy, wait in line
+		clerkLineCount[lineIndex]++; //Increment shortest line length
+		clerkLineCV[lineIndex]->Wait(clerkLineLock); //Wait till called
+		clerkLineCount[lineIndex]--; //Decrement after being woken
+	}
+	clerkLineLock->Release(); //Release lock on clerk line
+	clerkLock[lineIndex]->Acquire(); //Acquire lock to clerk
+
+	clerkPrescriptionLock->Acquire();
+	clerkPrescription[lineIndex] = myPrescription; //Give clerk prescription
+	clerkPrescriptionLock->Release();
+
+	clerkCV[lineIndex]->Signal(clerkLock[lineIndex]); //Wake clerk up
+	clerkCV[lineIndex]->Wait(clerkLock[lineIndex]);
+
+	medicineFeeLock->Acquire();
+	int myMedicineFee = medicineFee[lineIndex]; //Receive fee and meds from clerk
+	medicineFeeLock->Release();
+
+	clerkCV[lineIndex]->Signal(clerkLock[lineIndex]); //Pay clerk
+
+	//Leave hospital
 }
 
 void
@@ -738,7 +826,9 @@ Clerk(int index){
 		clerkLineLock->Release(); //Release line lock
 		clerkCV[index]->Wait(clerkLock[index]); //Wait for patient to arrive
 		
+		clerkPrescriptionLock->Acquire();
 		int prescription = clerkPrescription[index]; //Get prescription from patient
+		clerkPrescriptionLock->Release();
 		
 		int fee = prescription*25; //Calculate fee of medicine
 
