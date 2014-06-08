@@ -493,6 +493,7 @@ Condition* clerkCV[5];
 
 //Manager globals
 
+
 /* Hospital members*/
 void
 Patient(int index){
@@ -600,7 +601,7 @@ Patient(int index){
 	cashierLineLock->Release(); //Release lock on line
 	cashierLock[lineIndex]->Acquire(); //Acquire lock to cashier
 	cashierTokenLock->Acquire();
-	cashierTokenLock[lineIndex] = myToken; //Give token to cashier
+	cashierToken[lineIndex] = myToken; //Give token to cashier
 	cashierTokenLock->Release();
 	cashierCV[lineIndex]->Signal(cashierLock[lineIndex]); //Notify cashier ready
 	cashierCV[lineIndex]->Wait(cashierLock[lineIndex]); //Wait for cashier to reply with fee
@@ -850,7 +851,19 @@ Clerk(int index){
 void
 Manager(){
 	while(true){
+		//Checks hospital is running
 
+		//Wakes up receptionist, door boy, cashier, or clerk
+
+		//Get total consultation fee
+		totalFeeLock->Acquire();
+		int myConsultFee = totalConsultationFee;
+		totalFeeLock->Release();
+
+		//Get total medicine fee
+		totalMedicineLock->Acquire();
+		int myMedicineFee = totalMedicineCost;
+		totalMedicineLock->Release();
 	}
 }
 
