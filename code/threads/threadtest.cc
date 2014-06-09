@@ -890,23 +890,59 @@ Clerk(int index){
 void
 Manager(){
 	while(true){
-		//Checks hospital is running
+		//Checks hospital is running randomly
+		//Randomly generate number and yield sometimes?
 
 		//Wakes up receptionist
 		//Check if there are at least 2 people waiting in receptionist line
-		//Set receptionist to off break
+		for(int i = 0; i < recCount; i++){
+			recLineLock->Acquire();
+			if(recState[i] == 2 && recLineCount[i] > 1){
+				receptionistBreakLock->Acquire();
+				//Set receptionist to off break
+				receptionistBreakCV[i]->Signal(receptionistBreakLock);
+				receptionistBreakLock->Release();
+			}
+			recLineLock->Release();
+		}
 
 		//Wakes up door boy
-		//Check if any patient in line
-		//Set door boy to off break'
+		docLineLock->Acquire();
+		if(docLineCount > 0){ //Check if any patient in line
+			for(int i = 0; i < doorBoyCount; i++){
+				doorBoyStateLock->Acquire();
+				if(doorBoyState[i] == 1){
+					doorBoyBreakLock->Acquire();
+					//Set door boy to off break
+					doorBoyBreakCV[i]->Signal(doorBoyBreakLock); 
+					doorBoyBreakLock->Release();
+				}
+				doorBoyStateLock->Release();
+			}
+		}
+		docLineLock->Release();
 
 		//Wakes up cashier
-		//Check if any patient in line
-		//Set cashier to off break
+		cashierLineLock->Acquire();
+		for( int i = 0; i < cashierCount; i++){
+			if(cashierLineCount[i] > 0 && cashierState[i] == 2){ //Check if any patient in line
+				cashierBreakLock->Acquire();
+				cashierBreakCV[i]->Signal(cashierBreakLock); //Set cashier to off break
+				cashierBreakLock->Release();
+			}
+		}
+		cashierLineLock->Release();
 
 		//Wakes up clerk
-		//Check if any patient in line
-		//Set clerk to off break
+		clerkLineLock->Acquire();
+		for(int i = 0; i<clerkCount; i++){
+			if(clerkLineCount[i] > 0 && clerkState[i] == 2){
+				clerkBreakLock->Acquire();
+				clerkBreakCV[i]->Signal(clerkBreakLock);
+				clerkBreakLock->Release();
+			}
+		}
+		clerkLineLock->Release();
 
 		//Get total consultation fee
 		totalFeeLock->Acquire();
