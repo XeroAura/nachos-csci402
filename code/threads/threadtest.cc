@@ -672,32 +672,28 @@ void
 Receptionist(int index){
 	while(1){
 		recLineLock->Acquire(); //Acquire line lock
-		printf("Receptionist %d is ready to work. \n",index);
 		recState[index]=0; //Set self to not busy
 		if(recLineCount[index] > 0) { //Check to see if anyone in line
+			printf("Receptionist %d has signaled a Patient",index);
 			recLineCV[index]->Signal(recLineLock); //Signal first person in line
 			recState[index]=1; //Set self to busy
-			printf("Receptionist %d has signaled the first patient in line and is now busy. \n",index);
 		}
 		recLock[index]->Acquire(); //Acquire receptionist lock
-		printf("Receptionist %d has %d people in the line. \n",index,recLineCount[index]);
-		printf("Receptionist %d is releasing the line lock. \n",index);
 		recLineLock->Release(); //Release line lock
-		printf("Receptionist %d is waiting for the patient to arrive. \n",index);
 		recCV[index]->Wait(recLock[index]); //Wait for patient to arrive
 		tokenLock->Acquire(); //Acquire token lock
-		printf("Receptionist %d is providing the patient with a token. \n",index);
 		recTokens[index]=nextToken; //Provide token to patient
+		printf("Receptionist %d gives Token %d to a Patient",index,nextToken);
 		nextToken++; //Increment token count
 		tokenLock->Release(); //Release token lock
 		recCV[index]->Signal(recLock[index]); //Signal patient that token ready
 		recCV[index]->Wait(recLock[index]); //Wait for patient to take token
-		printf("Receptionist %d is releasing the lock on its booth. \n",index);
 		recLock[index]->Release(); //Release lock on receptionist
 
 		//Take break check
 		recLineLock->Acquire();
 		if(recLineCount[index] == 0){ //If noone in line
+			printf("Receptionist %d is going on break.",index);
 			recState[index] = 2; //Set to on-break
 			receptionistBreakLock->Acquire();
 			receptionistBreakCV[index]->Wait(receptionistBreakLock); //Set condition for manager to callback
@@ -1037,8 +1033,16 @@ Problem2() {
 	printf("Problem 2 Start \n");
 	printf("Enter how many receptionists to have in the office (between 2 and 5): ");
 	scanf("%d",&recCount);
-	printf("Enter how many patients to have in the office (at least 20): ");
+	printf("Enter how many patients to have in the office (between 5 and 20): ");
 	scanf("%d",&numPatients);
+	printf("Enter how many doctors to have in the office (between 2 and 5):");
+	scanf("%d",&docCount);
+	printf("Enter how many door boys to have in the office (between 2 and 5):");
+	scanf("%d",&doorBoyCount);
+	printf("Enter how many cashiers to have in the office (between 2 and 5):");
+	scanf("%d",&cashierCount);
+	printf("Enter how many clerks to have in the office (between 2 and 5):");
+	scanf("%d",&clerkCount);
 
 	char* name;
 	for (int i = 0; i < recCount; i++){
@@ -1054,7 +1058,42 @@ Problem2() {
 		t = new Thread(name);
 		t->Fork((VoidFunctionPtr) Patient,i);
 	}
-	printf("%d",completedPatientThreads);
+
+	for (int i = 0; i < docCount; i++){
+		name = new char [20];
+		sprintf(name,"Doctor %d",i);
+		t = new Thread(name);
+		t->Fork((VoidFunctionPtr) Doctor,i);
+	}
+
+	for (int i = 0; i < doorBoyCount; i++){
+		name = new char [20];
+		sprintf(name,"Door Boy %d",i);
+		t = new Thread(name);
+		t->Fork((VoidFunctionPtr) Door_Boy,i);
+	}	
+
+	for (int i = 0; i < cashierCount; i++){
+		name = new char [20];
+		sprintf(name,"Cashier %d",i);
+		t = new Thread(name);
+		t->Fork((VoidFunctionPtr) Cashier,i);
+	}
+
+	for (int i = 0; i < clerkCount; i++){
+		name = new char [20];
+		sprintf(name,"Pharmacy Clerk %d",i);
+		t = new Thread(name);
+		t->Fork((VoidFunctionPtr) Clerk,i);
+	}
+
+	printf("Number of Receptionists = %d \n",recCount);
+	printf("Number of Doctors = %d \n",docCount);
+	printf("Number of DoorBoys = %d \n",doorBoyCount);
+	printf("Number of Cashiers = %d \n",cashierCount);
+	printf("Number of PharmacyClerks = %d \n",clerkCount);
+	printf("Number of Patients = %d \n",numPatients);
+	printf("\n");
 }
 
 
