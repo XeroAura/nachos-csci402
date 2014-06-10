@@ -900,7 +900,11 @@ void
 Manager(){
 	while(true){
 		//Checks hospital is running randomly
-		//Randomly generate number and yield sometimes?
+		//Randomly generate number and yield for other threads
+		int yield = rand()%50+50;
+		for(int i = 0; i<yield; i++){
+			currentThread->Yield();
+		}
 
 		//Wakes up receptionist
 		//Check if there are at least 2 people waiting in receptionist line
@@ -909,6 +913,7 @@ Manager(){
 			if(recState[i] == 2 && recLineCount[i] > 1){
 				receptionistBreakLock->Acquire();
 				//Set receptionist to off break
+				printf("HospitalManager signaled a Receptionist to come off break");
 				receptionistBreakCV[i]->Signal(receptionistBreakLock);
 				receptionistBreakLock->Release();
 			}
@@ -923,6 +928,7 @@ Manager(){
 				if(doorBoyState[i] == 1){
 					doorBoyBreakLock->Acquire();
 					//Set door boy to off break
+					printf("HospitalManager signaled a DoorBoy to come off break");
 					doorBoyBreakCV[i]->Signal(doorBoyBreakLock); 
 					doorBoyBreakLock->Release();
 				}
@@ -936,6 +942,7 @@ Manager(){
 		for( int i = 0; i < cashierCount; i++){
 			if(cashierLineCount[i] > 0 && cashierState[i] == 2){ //Check if any patient in line
 				cashierBreakLock->Acquire();
+				printf("HospitalManager signaled a Cashier to come off break");
 				cashierBreakCV[i]->Signal(cashierBreakLock); //Set cashier to off break
 				cashierBreakLock->Release();
 			}
@@ -947,6 +954,7 @@ Manager(){
 		for(int i = 0; i<clerkCount; i++){
 			if(clerkLineCount[i] > 0 && clerkState[i] == 2){
 				clerkBreakLock->Acquire();
+				printf("HospitalManager signaled a PharmacyClerk to come off break");
 				clerkBreakCV[i]->Signal(clerkBreakLock);
 				clerkBreakLock->Release();
 			}
@@ -956,11 +964,13 @@ Manager(){
 		//Get total consultation fee
 		totalFeeLock->Acquire();
 		int myConsultFee = totalConsultationFee;
+		printf("HospitalManager reports that total consultancy fees are %d", myConsultFee);
 		totalFeeLock->Release();
 
 		//Get total medicine fee
 		totalMedicineLock->Acquire();
 		int myMedicineFee = totalMedicineCost;
+		printf("HospitalManager reports total sales in pharmacy are %d", myMedicineFee);
 		totalMedicineLock->Release();
 	}
 }
