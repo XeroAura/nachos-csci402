@@ -745,14 +745,11 @@ Receptionist(int index){
 			printf("Receptionist %d is going on break. \n",index);
 			recState[index] = 2; //Set to on-break
 			receptionistBreakLock->Acquire();
-			recLineLock->Release();
 			receptionistBreakCV[index]->Wait(receptionistBreakLock); //Set condition for manager to callback
 			printf("Receptionist %d is coming off break. \n",index);
 			receptionistBreakLock->Release();
 		}
-		else{
-			recLineLock->Release();
-		}
+		recLineLock->Release();
 	}
 }
 
@@ -827,14 +824,11 @@ Door_Boy(int index){
 			printf("DoorBoy %d is going on break because there are no Patients. \n",index);
 			doorBoyStateLock->Release();
 			doorBoyBreakLock->Acquire();
-			docLineLock->Release();
 			doorBoyBreakCV[index]->Wait(doorBoyBreakLock); //Set condition for manager to callback
 			printf("DoorBoy %d is coming off break. \n",index);
 			doorBoyBreakLock->Release();
 		}
-		else{
-			docLineLock->Release();
-		}
+		docLineLock->Release();
 	}
 }
 
@@ -941,14 +935,11 @@ Cashier(int index){
 			printf("Cashier %d is going on break \n", index);
 			cashierState[index] = 2; //Set to on-break
 			cashierBreakLock->Acquire();
-			cashierLineLock->Release();
 			cashierBreakCV[index]->Wait(cashierBreakLock); //Set condition for manager to callback
 			printf("Cashier %d is coming off break \n", index);
 			cashierBreakLock->Release();
 		}
-		else{
-			cashierLineLock->Release();
-		}
+		cashierLineLock->Release();
 	}
 }
 
@@ -997,14 +988,12 @@ Clerk(int index){
 		if(clerkLineCount[index] == 0){ //If noone in line
 			clerkState[index] = 2; //Set to on-break
 			clerkBreakLock->Acquire();
-			clerkLineLock->Release();
 			printf("PharmacyClerk %d is going on break. \n",index);
 			clerkBreakCV[index]->Wait(clerkBreakLock); //Set condition for manager to callback
 			printf("PharmacyClerk %d is coming off break. \n",index);
 			clerkBreakLock->Release();
-		}else{	
-			clerkLineLock->Release();
 		}
+		clerkLineLock->Release();
 	}
 }
 
@@ -1257,8 +1246,8 @@ Problem2() {
 		t->Fork((VoidFunctionPtr) Clerk,i);
 	}
 
-	t = new Thread("Manager");
-	t->Fork((VoidFunctionPtr) Manager, 1);
+//	t = new Thread("Manager");
+//	t->Fork((VoidFunctionPtr) Manager, 1);
 
 	printf("\n");
 	printf("Number of Receptionists = %d \n",recCount);
