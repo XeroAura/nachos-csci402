@@ -760,64 +760,69 @@ Receptionist(int index){
 void 
 Door_Boy(int index){
 	while(true){
-		doorBoyState[index] = 0; //Set self to break
-		doorBoyLock->Acquire();
+		doorBoyState[index] = 0; //Set self to working
 		printf("DoorBoy %d is waiting for a Doctor\n", index);
-		doorBoyCV->Wait(doorBoyLock); //Wait for doctor to notify need patient
-		doorBoyLock->Release();
-
-		docReadyLock->Acquire(); //Acquires lock for doctor ready
-		int docIndex = 0;
-		for(docIndex = 0; docIndex< docCount; docIndex++){ //Goes through each doctor
-			if(docState[docIndex] == 0){ //Finds first one ready
-				docState[docIndex] = 3; //Claims doctor as own
-				break;
+		bool docWaiting = false;
+		for(int i = 0; i < docCount; i++){
+			if(docState[i] == 0){
+				docWaiting = true;
 			}
 		}
-		printf("DoorBoy %d has been told by Doctor %d to bring a Patient.\n",index,docIndex);
-		docReadyLock->Release();
 
-		docLineLock->Acquire(); //Acquires doctor line lock
-		if(docLineCount > 0){ //If patient waiting
-
-			docReadyLock->Acquire(); //Acquires doctor ready lock
-			docState[docIndex] = 4; //Sets doctor to waiting
-			docReadyCV[docIndex]->Signal(docReadyLock); //Notifies doctor patient coming
+		if(docWaiting){
+			docReadyLock->Acquire(); //Acquires lock for doctor ready
+			int docIndex = 0;
+			for(docIndex = 0; docIndex< docCount; docIndex++){ //Goes through each doctor
+				if(docState[docIndex] == 0){ //Finds first one ready
+					docState[docIndex] = 3; //Claims doctor as own
+					break;
+				}
+			}
+			printf("DoorBoy %d has been told by Doctor %d to bring a Patient.\n",index,docIndex);
 			docReadyLock->Release();
 
-			printf("DoorBoy %d has signaled a Patient.\n",index);
+			docLineLock->Acquire(); //Acquires doctor line lock
+			if(docLineCount > 0){ //If patient waiting
 
-			doorBoyStateLock->Acquire();
-			doorBoyState[index] = 2; //Sets self to waiting for patient
-			doorBoyStateLock->Release();
+				docReadyLock->Acquire(); //Acquires doctor ready lock
+				docState[docIndex] = 4; //Sets doctor to waiting
+				docReadyCV[docIndex]->Signal(docReadyLock); //Notifies doctor patient coming
+				docReadyLock->Release();
 
-			docLineCV->Signal(docLineLock); //Signals patient
-			docLineCount--; //Decrements line length by one
-			docLineLock->Release();
+				printf("DoorBoy %d has signaled a Patient.\n",index);
 
-			doorBoyPatientLock->Acquire();
-			doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to arrive
-			
-			doorBoyTokenLock->Acquire();
-			int token = doorBoyToken[index]; //Get token from patient
-			doorBoyTokenLock->Release();
+				doorBoyStateLock->Acquire();
+				doorBoyState[index] = 2; //Sets self to waiting for patient
+				doorBoyStateLock->Release();
 
-			printf("DoorBoy %d has received Token %d from Patient %d\n", index, token, token);
-			
-			doorBoyPatientRoomLock->Acquire();
-			doorBoyPatientRoom[index] = docIndex; //Tell patient which room
-			doorBoyPatientRoomLock->Release();
-			
-			doorBoyPatientCV[index]->Signal(doorBoyPatientLock); //Wake up patient to take room
-			printf("DoorBoy %d has told Patient %d to go to Examining Room %d\n", index, token, docIndex);
-			doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to get room
-			doorBoyPatientLock->Release();			
-		}
-		else{
-			docLineLock->Release();
-			docReadyLock->Acquire(); //Acquires doctor ready lock
-			docState[docIndex] = 0; //Sets doctor back to available for other door boys
-			docReadyLock->Release();
+				docLineCV->Signal(docLineLock); //Signals patient
+				docLineCount--; //Decrements line length by one
+				docLineLock->Release();
+
+				doorBoyPatientLock->Acquire();
+				doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to arrive
+				
+				doorBoyTokenLock->Acquire();
+				int token = doorBoyToken[index]; //Get token from patient
+				doorBoyTokenLock->Release();
+
+				printf("DoorBoy %d has received Token %d from Patient %d\n", index, token, token);
+				
+				doorBoyPatientRoomLock->Acquire();
+				doorBoyPatientRoom[index] = docIndex; //Tell patient which room
+				doorBoyPatientRoomLock->Release();
+				
+				doorBoyPatientCV[index]->Signal(doorBoyPatientLock); //Wake up patient to take room
+				printf("DoorBoy %d has told Patient %d to go to Examining Room %d\n", index, token, docIndex);
+				doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to get room
+				doorBoyPatientLock->Release();			
+			}
+			else{
+				docLineLock->Release();
+				docReadyLock->Acquire(); //Acquires doctor ready lock
+				docState[docIndex] = 0; //Sets doctor back to available for other door boys
+				docReadyLock->Release();
+			}
 		}
 
 		//Take break check
@@ -844,11 +849,7 @@ Doctor(int index){
 	while(true){
 		docReadyLock->Acquire(); //Acquire doctor ready lock
 		docState[index] = 0; //Sets own state to ready
-
-		doorBoyLock->Acquire();
 		printf("Doctor %d has told a DoorBoy to bring a Patient to Examining Room %d \n",index, index);
-		doorBoyCV->Signal(doorBoyLock);//Notify doorboy to send patient in
-		doorBoyLock->Release();
 
 		docReadyCV[index]->Wait(docReadyLock); //Wait for doorboy to send patient
 		docTokenLock->Acquire();
