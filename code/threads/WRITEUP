@@ -6,6 +6,10 @@ Group Num 1 : Name            Email            Student ID
 
 I. Requirements:
 - Describe what's your understanding of the requirements from the assignment statement. With the requirement analysis, you would be clear about what you are supposed to do.
+Part 1:
+Finish implementing the synchronization classes of Lock and Condition
+Part 2:
+Create a hospital simulation. Contains at least 20 patients, 2-5 receptionists, 2-5 doorboys, 2-5 doctors, 2-5 cashiers, 2-5 pharmacy clerks, and 1 manager. 
 
 II. Assumptions:
 - Reasonable assumptions you take for your scheme.
