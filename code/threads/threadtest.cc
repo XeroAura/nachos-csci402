@@ -558,7 +558,7 @@ Patient(int index){
 	docLineCount++; //Increments line count by one
 	printf("Patient %d is waiting on a DoorBoy \n",index);
 	docLineCV->Wait(docLineLock); //Wait for doorboy to call
-	printf("Patient %d was signaled by a DoorBoy\n", %d);
+	printf("Patient %d was signaled by a DoorBoy\n", index);
 	docLineLock->Release();
 
 	docReadyLock->Acquire(); //Acquire lock for doctor
@@ -734,7 +734,6 @@ Door_Boy(int index){
 		doorBoyCV->Wait(doorBoyLock); //Wait for doctor to notify need patient
 		doorBoyLock->Release();
 
-		printf("DoorBoy %d has been told by Doctor %d to bring a Patient.\n",index,docIndex);
 		docReadyLock->Acquire(); //Acquires lock for doctor ready
 		int docIndex = 0;
 		for(docIndex = 0; docIndex< docCount; docIndex++){ //Goes through each doctor
@@ -743,6 +742,7 @@ Door_Boy(int index){
 				break;
 			}
 		}
+		printf("DoorBoy %d has been told by Doctor %d to bring a Patient.\n",index,docIndex);
 		docReadyLock->Release();
 
 		docLineLock->Acquire(); //Acquires doctor line lock
@@ -806,7 +806,7 @@ Doctor(int index){
 		int sickTest = rand()%5; //Generate if patient is sick
 		/* 0 not sick
 		   1-4 sick */
-		if(sicktest == 0){
+		if(sickTest == 0){
 			printf("Doctor %d has determined that the Patient with Token %d is not sick\n", index, token);
 		}else{
 			printf("Doctor %d has determined that the Patient with Token %d is sick with disease type %d \n", index, token, sickTest);
@@ -1187,6 +1187,10 @@ Problem2() {
 		t = new Thread(name);
 		t->Fork((VoidFunctionPtr) Clerk,i);
 	}
+
+	t = new Thread("Manager");
+	t->Fork((VoidFunctionPtr) Manager, 0);
+
 	printf("\n");
 	printf("Number of Receptionists = %d \n",recCount);
 	printf("Number of Doctors = %d \n",docCount);
