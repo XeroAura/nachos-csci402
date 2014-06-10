@@ -587,7 +587,7 @@ Patient(int index){
 
 	doorBoyPatientRoomLock->Acquire();
 	int docIndex = doorBoyPatientRoom[myDoorBoy];
-	printf("Patient %d has been told by DoorBoy %d to go to Examining Room %d", myToken, myDoorBoy, docIndex);
+	printf("Patient %d has been told by DoorBoy %d to go to Examining Room %d \n", myToken, myDoorBoy, docIndex);
 	doorBoyPatientRoomLock->Release();
 
 	doorBoyPatientCV[myDoorBoy]->Signal(doorBoyPatientLock);
@@ -752,7 +752,7 @@ Receptionist(int index){
 			receptionistBreakLock->Release();
 		}
 		else{
-		recLineLock->Release();
+			recLineLock->Release();
 		}
 	}
 }
@@ -761,32 +761,27 @@ void
 Door_Boy(int index){
 	while(true){
 		doorBoyState[index] = 0; //Set self to working
-		printf("DoorBoy %d is waiting for a Doctor\n", index);
+		//printf("DoorBoy %d is waiting for a Doctor\n", index);
 		bool docWaiting = false;
-		for(int i = 0; i < docCount; i++){
-			if(docState[i] == 0){
+
+		docReadyLock->Acquire(); //Acquires lock for doctor ready
+		int docIndex = 0;
+		for(docIndex = 0; docIndex< docCount; docIndex++){ //Goes through each doctor
+			if(docState[docIndex] == 0){ //Finds first one ready
+				docState[docIndex] = 3; //Claims doctor as own
 				docWaiting = true;
+				break;
 			}
 		}
-
+		printf("DoorBoy %d has been told by Doctor %d to bring a Patient.\n",index,docIndex);
+		docReadyLock->Release();
+		
 		if(docWaiting){
-			docReadyLock->Acquire(); //Acquires lock for doctor ready
-			int docIndex = 0;
-			for(docIndex = 0; docIndex< docCount; docIndex++){ //Goes through each doctor
-				if(docState[docIndex] == 0){ //Finds first one ready
-					docState[docIndex] = 3; //Claims doctor as own
-					break;
-				}
-			}
-			printf("DoorBoy %d has been told by Doctor %d to bring a Patient.\n",index,docIndex);
-			docReadyLock->Release();
-
 			docLineLock->Acquire(); //Acquires doctor line lock
 			if(docLineCount > 0){ //If patient waiting
 
 				docReadyLock->Acquire(); //Acquires doctor ready lock
 				docState[docIndex] = 4; //Sets doctor to waiting
-				docReadyCV[docIndex]->Signal(docReadyLock); //Notifies doctor patient coming
 				docReadyLock->Release();
 
 				printf("DoorBoy %d has signaled a Patient.\n",index);
@@ -815,7 +810,11 @@ Door_Boy(int index){
 				doorBoyPatientCV[index]->Signal(doorBoyPatientLock); //Wake up patient to take room
 				printf("DoorBoy %d has told Patient %d to go to Examining Room %d\n", index, token, docIndex);
 				doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to get room
-				doorBoyPatientLock->Release();			
+				doorBoyPatientLock->Release();
+
+				docReadyLock->Acquire(); //Acquires doctor ready lock
+				docReadyCV[docIndex]->Signal(docReadyLock); //Notifies doctor patient coming
+				docReadyLock->Release(); //Acquires doctor ready lock
 			}
 			else{
 				docLineLock->Release();
@@ -1260,8 +1259,8 @@ Problem2() {
 		t->Fork((VoidFunctionPtr) Clerk,i);
 	}
 
-//	t = new Thread("Manager");
-//	t->Fork((VoidFunctionPtr) Manager, 1);
+	t = new Thread("Manager");
+	t->Fork((VoidFunctionPtr) Manager, 1);
 
 	printf("\n");
 	printf("Number of Receptionists = %d \n",recCount);
