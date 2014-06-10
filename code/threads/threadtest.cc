@@ -570,12 +570,12 @@ Patient(int index){
 
 	int myDoorBoy = 0;
 	for(int i = 0; i < doorBoyCount; i++){
-		doorBoyStateLock-Acquire();
+		doorBoyStateLock->Acquire();
 		if(doorBoyState[i] == 2){
 			myDoorBoy = i;
 			break;
 		}
-		doorBoystateLock->Release();
+		doorBoyStateLock->Release();
 	}
 	doorBoyTokenLock->Acquire();
 	doorBoyToken[myDoorBoy] = myToken;
@@ -804,7 +804,7 @@ Door_Boy(int index){
 			doorBoyPatientRoom[index] = docIndex; //Tell patient which room
 			doorBoyPatientRoomLock->Release();
 			
-			doorBoyPatientCV[index]->Signal(); //Wake up patient to take room
+			doorBoyPatientCV[index]->Signal(doorBoyPatientLock); //Wake up patient to take room
 			printf("DoorBoy %d has told Patient %d to go to Examining Room %d\n", index, token, docIndex);
 			doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to get room
 			doorBoyPatientLock->Release();			
@@ -1120,7 +1120,6 @@ Setup(){
 		sprintf(name,"doorBoyPatientCV%d",i);
 		doorBoyPatientCV[i] = new Condition(name);
 	}
-	doorBoyPatientCV
 
 	//Cashier
 	//Map?
