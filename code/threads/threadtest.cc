@@ -1217,6 +1217,13 @@ Problem2() {
 		t->Fork((VoidFunctionPtr) Patient,i);
 	}
 
+	for (int i = 0; i < doorBoyCount; i++){
+		name = new char [20];
+		sprintf(name,"Door Boy %d",i);
+		t = new Thread(name);
+		t->Fork((VoidFunctionPtr) Door_Boy,i);
+	}	
+
 	for (int i = 0; i < docCount; i++){
 		name = new char [20];
 		sprintf(name,"Doctor %d",i);
@@ -1224,12 +1231,6 @@ Problem2() {
 		t->Fork((VoidFunctionPtr) Doctor,i);
 	}
 
-	for (int i = 0; i < doorBoyCount; i++){
-		name = new char [20];
-		sprintf(name,"Door Boy %d",i);
-		t = new Thread(name);
-		t->Fork((VoidFunctionPtr) Door_Boy,i);
-	}	
 
 	for (int i = 0; i < cashierCount; i++){
 		name = new char [20];
@@ -1246,7 +1247,7 @@ Problem2() {
 	}
 
 	t = new Thread("Manager");
-	t->Fork((VoidFunctionPtr) Manager, 0);
+	t->Fork((VoidFunctionPtr) Manager, 1);
 
 	printf("\n");
 	printf("Number of Receptionists = %d \n",recCount);
