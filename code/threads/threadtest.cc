@@ -19,7 +19,7 @@
 
 #ifdef CHANGED
 // --------------------------------------------------
-// Test Suite
+// Test suite
 // --------------------------------------------------
 
 
@@ -455,7 +455,7 @@ Condition* docReadyCV[5]; //Condition variable for doctor readiness call
 int doorBoyCount = 5;
 
 Lock* doorBoyStateLock = new Lock("doorBoyStateLock");
-int doorBoyState[5] = {0,0,0,0,0}; //0 working, 1 on break
+int doorBoyState[5] = {1,1,1,1,1}; //0 working, 1 on break
 
 //Cashier globals
 Lock* consultLock = new Lock("consultLock"); //Lock for consultation fee map
@@ -729,6 +729,7 @@ Receptionist(int index){
 void 
 Door_Boy(int index){
 	while(true){
+		doorBoyState[index] = 0; //Set self to break
 		doorBoyLock->Acquire();
 		printf("DoorBoy %d is waiting for a Doctor\n", index);
 		doorBoyCV->Wait(doorBoyLock); //Wait for doctor to notify need patient
