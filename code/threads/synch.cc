@@ -293,7 +293,6 @@ void Condition::Signal(Lock* conditionLock) {
 //----------------------------------------------------------------------
 
 void Condition::Broadcast(Lock* conditionLock) {
-  std::cout << "I get to here." << std::endl;
   while(!(waitList->empty())){
     Signal(conditionLock);
   }
