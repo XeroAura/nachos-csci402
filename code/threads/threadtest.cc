@@ -692,6 +692,7 @@ Receptionist(int index){
 			recState[index] = 2; //Set to on-break
 			receptionistBreakLock->Acquire();
 			receptionistBreakCV[index]->Wait(receptionistBreakLock); //Set condition for manager to callback
+			printf("Receptionist %d is coming off break. \n",index);
 			receptionistBreakLock->Release();
 		}
 		recLineLock->Release();
@@ -701,7 +702,6 @@ Receptionist(int index){
 void 
 Door_Boy(int index){
 	while(true){
-		printf("Door Boy %d is doing something. \n",index);
 		doorBoyLock->Acquire();
 		doorBoyCV->Wait(doorBoyLock); //Wait for doctor to notify need patient
 		doorBoyLock->Release();
@@ -714,6 +714,7 @@ Door_Boy(int index){
 				break;
 			}
 		}
+		printf("DoorBoy %d has been told by Doctor %d to bring a Patient.\n",index,docIndex);
 		docReadyLock->Release();
 
 		docLineLock->Acquire(); //Acquires doctor line lock
@@ -724,6 +725,7 @@ Door_Boy(int index){
 			docReadyCV[docIndex]->Signal(docReadyLock); //Notifies doctor patient coming
 			docReadyLock->Release();
 
+			printf("DoorBoy %d has signaled a Patient.\n",index);
 			docLineCV->Signal(docLineLock); //Signals patient
 			docLineCount--; //Decrements line length by one
 			docLineLock->Release();
@@ -740,9 +742,11 @@ Door_Boy(int index){
 		if(docLineCount == 0){ //If noone in line
 			doorBoyStateLock->Acquire();
 			doorBoyState[index] = 1; //Set self to break
+			printf("DoorBoy %d is going on break because there are no Patients. \n",index);
 			doorBoyStateLock->Release();
 			doorBoyBreakLock->Acquire();
 			doorBoyBreakCV[index]->Wait(doorBoyBreakLock); //Set condition for manager to callback
+			printf("DoorBoy %d is coming off break. \n",index);
 			doorBoyBreakLock->Release();
 		}
 		docLineLock->Release();
@@ -756,12 +760,14 @@ Doctor(int index){
 		docState[index] = 0; //Sets own state to ready
 
 		doorBoyLock->Acquire();
+		printf("Doctor %d has told a DoorBoy to bring a Patient to Examining Room %d",index, index);
 		doorBoyCV->Signal(doorBoyLock);//Notify doorboy to send patient in
 		doorBoyLock->Release();
 
 		docReadyCV[index]->Wait(docReadyLock); //Wait for doorboy to send patient
 		docTokenLock->Acquire();
 		int token = docToken[index]; //Get patient's token number
+		printf("Doctor %d is examining a Patient with Token %d",index, token);
 		docTokenLock->Release();
 		docReadyLock->Release(); //Release doctor ready lock
 		
@@ -850,6 +856,7 @@ Clerk(int index){
 		clerkState[index]=0; //Set self to not busy
 
 		if(clerkLineCount[index] > 0) { //Check to see if anyone in line
+			printf("PharmacyClerk %d has signaled a Patient. \n",index);
 			clerkLineCV[index]->Signal(clerkLineLock); //Signal first person in line
 			clerkState[index] = 1; //Set self to busy
 		}
@@ -880,7 +887,9 @@ Clerk(int index){
 		if(clerkLineCount[index] == 0){ //If noone in line
 			clerkState[index] = 2; //Set to on-break
 			clerkBreakLock->Acquire();
+			printf("PharmacyClerk %d is going on break. \n",index);
 			clerkBreakCV[index]->Wait(clerkBreakLock); //Set condition for manager to callback
+			printf("PharmacyClerk %d is coming off break. \n",index);
 			clerkBreakLock->Release();
 		}
 		clerkLineLock->Release();
