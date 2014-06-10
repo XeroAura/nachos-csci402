@@ -587,6 +587,7 @@ Patient(int index){
 
 	doorBoyPatientRoomLock->Acquire();
 	int docIndex = doorBoyPatientRoom[myDoorBoy];
+	printf("Patient %d has been told by DoorBoy %d to go to Examining Room %d", myToken, myDoorBoy, docIndex);
 	doorBoyPatientRoomLock->Release();
 
 	doorBoyPatientCV[myDoorBoy]->Signal(doorBoyPatientLock);
