@@ -1075,7 +1075,7 @@ Manager(){
 	while(true){
 		//Checks hospital is running randomly
 		//Randomly generate number and yield for other threads
-		int yield = rand()%50+5000;
+		int yield = rand()%50+50;
 		for(int i = 0; i<yield; i++){
 			currentThread->Yield();
 		}
@@ -1146,6 +1146,7 @@ Manager(){
   }
   clerkLineLock->Release();
   if (completedPatientThreads == numPatients){
+    printf("No patients left, Manager leaving \n");
     break;
   }
 
