@@ -6,19 +6,35 @@ Group Num 1 : Name            Email            Student ID
 
 I. Requirements:
 Part 1:
-Finish implementing the synchronization classes of Lock and Condition
+Implement the synchronization classes of Lock and Condition variables. 
+This implementation must address issues that violate mutual exclusion.
+Any thread that does something illegal should not terminate, but output an error message.
+
 Part 2:
 Create a hospital simulation. Contains at least 20 patients, 2-5 receptionists, 2-5 doorboys, 2-5 doctors, 2-5 cashiers, 2-5 pharmacy clerks, and 1 manager. 
+This part cannot use semaphores for synchronizations though.
 
 II. Assumptions:
 Assuming that the base Nachos code is working as intended.
 Part 2 assumes that part 1 was done correctly.
-
+User input is as allowed by assignment requirements and instructions.
 
 III. Design:
-- This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  This should include a description of classes, algorithms, etc.
+- This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  
 
-The hospital design was heavily based on the use of locks and conditions in order to keep the synchronization between the various members
+The first part is heavily based on what Professor Crowley discussed in class lectures. 
+The code is basically an adapted version of what was provided for our use.
+
+The hospital design was heavily based on the use of locks and conditions in order to keep the synchronization between the various members.
+The hospital management simulation code is all located under threadtest.cc.
+Condition variables are used to simulate the interactions between the various members.
+Locks are used to ensure no race conditions occur in the code.
+Patients' code basically shows the steps a patient goes through when visiting the hospital.
+The patient only goes through the steps once and then dies (aka leaving the hospital).
+The other members of the hospital contain an endless while loop to allow repeated cycles through the steps.
+We designed the manager to keep track of the number of patients going through, so it can end the simulation when all patients are done.
+
+
 
 
 IV. Implementation:
@@ -62,5 +78,5 @@ VI. Discussion:
 - Explain your experiment result.
 
 VII. Miscellaneous:
-
-Since the hospital manager does not stop running, even when the patients all leave, the output log will be filled with the outputs from it. Comment out lines # and # in order to leave out the money made by the hospital.
+The hospital manager outputs the total consultation fee and total medicine fees. These messages can obscure the more important messages.
+The manager can be temporarily muted by commenting out the section starting from around line 1173.

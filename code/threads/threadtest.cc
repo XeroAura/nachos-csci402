@@ -416,109 +416,106 @@ ThreadTest()
 #ifdef CHANGED
 
 //Global variables
-
 int completedPatientThreads = 0; //for debugging
-int numPatients = 0;
+int numPatients = 0; //Number of patients
 
 
 //Receptionist globals
 Lock* recLineLock = new Lock("recLineLock");
-int recLineCount[5] = {0,0,0,0,0};
-Condition* recLineCV[5];
+int recLineCount[5] = {0,0,0,0,0}; //Number of patients in each receptionist line
+Condition* recLineCV[5]; //CV for receptionist line patients
 int recState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
 
-int recTokens[5] = {0,0,0,0,0};
-Lock* recLock[5];
-Condition* recCV[5];
-Lock* tokenLock = new Lock("tokenLock");
-int nextToken = 0;
-int recCount = 5;
+int recTokens[5] = {0,0,0,0,0}; //Used to transfer token from patient to receptionist
+Lock* recLock[5]; //Lock for interaction between receptionist and patient
+Condition* recCV[5]; //Condition for interaction between receptionist and patient
+Lock* tokenLock = new Lock("tokenLock"); //Lock for token assignment
+int nextToken = 0; //Next token value
+int recCount = 5; //Number of receptionists
 
 //Doctor globals
 Lock* docLock[5]; //Lock for doctor and patient meeting
 Condition* docCV[5]; //CV for doctor and patient meeting
 int docState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break, 3 waiting
-int docToken[5] = {-1,-1,-1,-1,-1};
-Lock* docTokenLock = new Lock("docTokenLock");
-Lock * docPrescriptionLock = new Lock("dockPrescriptionLock");
+int docToken[5] = {-1,-1,-1,-1,-1}; //Used to give doctor token from patients
+Lock* docTokenLock = new Lock("docTokenLock"); //Lock for docTokens use
+Lock * docPrescriptionLock = new Lock("dockPrescriptionLock"); //Lock for passing prescriptions
 int docPrescription[5] = {0,0,0,0,0}; //1-4 represent problems
-int docCount = 5;
+int docCount = 5; //Number of doctors
 
 //Doorboy globals
 Lock* doorBoyLineLock = new Lock("doorBoyLineLock"); //Lock to manage line
 Condition* doorBoyLineCV = new Condition("doorBoyLineCV"); //CV for doctor line
-int doorBoyLineCount = 0;
+int doorBoyLineCount = 0; //Number of people in doorboy line
 
-int doorBoyDoctorCount = 0;
-int doctorDoorBoyCount = 0;
+int doorBoyDoctorCount = 0; //Number of doorboys waiting on doctor
+int doctorDoorBoyCount = 0; //Number of doctors waiting on doorboy
 Lock* dbbLock = new Lock("dbbLock"); //Lock for doorboy
-Condition* doctorDoorBoyCV[5];
-Condition* doorBoyDoctorCV[5];
+Condition* doctorDoorBoyCV[5]; //CV for doctors waiting on doorboy
+Condition* doorBoyDoctorCV[5]; //CV for doorboy waiting on doctor
 
 Lock* docReadyLock = new Lock("docReadyLock"); //Lock for doctor readiness
 Condition* docReadyCV[5]; //Condition variable for doctor readiness call
 
-int doorBoyCount = 5;
+int doorBoyCount = 5; //Number of doorboys
 int doorBoyState[5] = {1,1,1,1,1}; //0 free, 1 busy, 2 onbreak, 3 waiting for patient, 9 waiting doctor
 
-Condition* doorBoyPatientCV[5];
+Condition* doorBoyPatientCV[5]; //Used for interaction between doorboy and patient
 Lock* doorBoyPatientLock = new Lock("doorBoyPatientLock");
-int doorBoyToken[5] = {-1,-1,-1,-1,-1};
+int doorBoyToken[5] = {-1,-1,-1,-1,-1}; //Used to pass token between patient and doorboy
 
-Lock* doorBoyTokenLock = new Lock("doorBoyTokenLock");
-Lock* doorBoyPatientRoomLock = new Lock("doorBoyPatientRoomLock");
-int doorBoyPatientRoom[5] = {-1,-1,-1,-1,-1};
+Lock* doorBoyTokenLock = new Lock("doorBoyTokenLock"); // Lock for doorBoyToken
+Lock* doorBoyPatientRoomLock = new Lock("doorBoyPatientRoomLock"); //Lock for doorBoyPatientRoom
+int doorBoyPatientRoom[5] = {-1,-1,-1,-1,-1}; //Used to tell patient which examination room
 
 //Cashier globals
 Lock* consultLock = new Lock("consultLock"); //Lock for consultation fee map
 std::map<int, int> consultationFee; //Map of consultation fees tied to token
-Lock* totalFeeLock = new Lock("totalFeeLock");
-int totalConsultationFee = 0;
-int cashierCount = 5;
+Lock* totalFeeLock = new Lock("totalFeeLock"); //Lock for total consultation fee
+int totalConsultationFee = 0; //Total consultation fee
+int cashierCount = 5; //Number of cashiers
 
-Lock* cashierLineLock = new Lock("cashierLineLock");
-int cashierLineCount[5] = {0,0,0,0,0};
-Condition* cashierLineCV[5];
+Lock* cashierLineLock = new Lock("cashierLineLock"); //Used for lines for cashier
+int cashierLineCount[5] = {0,0,0,0,0}; //Used for counting people in lines for cashier
+Condition* cashierLineCV[5]; //Cashier line CV
 
-Lock* cashierLock[5];
-Condition* cashierCV[5];
+Lock* cashierLock[5]; //Lock for interaction with cashier
+Condition* cashierCV[5]; //CV for interaction with cashier
 
 int cashierState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
-int cashierToken[5] = {0,0,0,0,0};
-Lock* cashierTokenLock = new Lock("cashierTokenLock");
-int cashierFee[5] = {0,0,0,0,0};
-Lock* cashierFeeLock = new Lock("cashierFeeLock");
+int cashierToken[5] = {0,0,0,0,0}; //Used to pass token to cashier
+Lock* cashierTokenLock = new Lock("cashierTokenLock"); //Lock for cashierToken
+int cashierFee[5] = {0,0,0,0,0}; //Fee charged by cashier to patient
+Lock* cashierFeeLock = new Lock("cashierFeeLock"); //Lock for cashierFee
 
 //Clerk globals
-Lock* medicineFeeLock = new Lock("medicineFeeLock");
-int medicineFee[5] = {0,0,0,0,0};
-Lock* totalMedicineLock = new Lock("totalMedicineLock");
-int totalMedicineCost = 0;
-int clerkCount = 5;
+Lock* medicineFeeLock = new Lock("medicineFeeLock"); //Lock for medicine costs
+int medicineFee[5] = {0,0,0,0,0}; //Used to pass costs to patient
+Lock* totalMedicineLock = new Lock("totalMedicineLock"); //Used to lock total medicine cost
+int totalMedicineCost = 0; //Used to keep track of total medicine costs
+int clerkCount = 5; // Number of clerks
 
-Lock* clerkLineLock = new Lock("clerkLineLock");
-int clerkLineCount[5] = {0,0,0,0,0};
-Condition* clerkLineCV[5];
+Lock* clerkLineLock = new Lock("clerkLineLock"); //Lock for clerk lines
+int clerkLineCount[5] = {0,0,0,0,0}; //Number of people in each line
+Condition* clerkLineCV[5]; //CV for clerk line calling
 int clerkState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
 int clerkPrescription[5] = {0,0,0,0,0}; //Medicine types 1-4
-Lock* clerkPrescriptionLock = new Lock("clerkPrescriptionLock");
+Lock* clerkPrescriptionLock = new Lock("clerkPrescriptionLock"); //Lock for prescription passing
 
-Lock* clerkTokenLock = new Lock("clerkTokenLock");
-int clerkToken[5] = {0,0,0,0,0};
+Lock* clerkTokenLock = new Lock("clerkTokenLock"); //Lock for token passing
+int clerkToken[5] = {0,0,0,0,0}; //Used to hold tokens passed to clerk by patient
 
-Lock* clerkLock[5];
-Condition* clerkCV[5];
+Lock* clerkLock[5]; //Lock for interaction with clerks
+Condition* clerkCV[5]; //CV for interaction with clerks
 
 //Manager globals
+//Locks and condition variables used to put and wake up people in breaks
 Lock* receptionistBreakLock = new Lock("receptionistBreakLock");
 Condition* receptionistBreakCV[5];
-
 Lock* doorBoyBreakLock = new Lock("doorBoyBreakLock");
 Condition* doorBoyBreakCV[5];
-
 Lock* cashierBreakLock = new Lock("cashierBreakLock");
 Condition* cashierBreakCV[5];
-
 Lock* clerkBreakLock = new Lock("clerkBreakLock");
 Condition* clerkBreakCV[5];
 
@@ -839,8 +836,8 @@ Door_Boy(int index){
 			doorBoyLineLock->Acquire();
 			docReadyLock->Release();
 			
-			doorBoyState[index] = 3;
-			doorBoyLineCount--;
+			doorBoyState[index] = 3; //Set self to waiting
+			doorBoyLineCount--; //Decrement line count
 			doorBoyLineCV->Signal(doorBoyLineLock); //Signal patient to start
 			
 			doorBoyPatientLock->Acquire();
@@ -900,7 +897,7 @@ docLock[index]->Acquire();
 			int dbNum = 0;
 			for(int i = 0; i<doorBoyCount; i++){
 				if(doorBoyState[i] == 9){
-					doorBoyState[i] = 0;
+					doorBoyState[i] = 0; //Find doorboy waiting and set to open
 					dbNum = i;
 					break;
 				}
@@ -1158,10 +1155,7 @@ Manager(){
 		}
 		cashierLineLock->Release();
 		
-		totalFeeLock->Acquire();
-		int myConsultFee = totalConsultationFee;
-		//printf("HospitalManager reports that total consultancy fees are %d\n", myConsultFee);
-		totalFeeLock->Release();
+		
 
 		//Wakes up clerk
 		clerkLineLock->Acquire();
@@ -1175,11 +1169,22 @@ Manager(){
 		}
 		clerkLineLock->Release();
 
+
+		/* 
+		* COMMENT OUT BETWEEN TO REMOVE SPAM FROM HOSPITAL MANAGER 
+		*/
+		totalFeeLock->Acquire();
+		int myConsultFee = totalConsultationFee;
+		printf("HospitalManager reports that total consultancy fees are %d\n", myConsultFee);
+		totalFeeLock->Release();
+
 		totalMedicineLock->Acquire();
-		//Get total medicine fee
 		int myMedicineFee = totalMedicineCost;
-		//printf("HospitalManager reports total sales in pharmacy are %d\n", myMedicineFee);
+		printf("HospitalManager reports total sales in pharmacy are %d\n", myMedicineFee);
 		totalMedicineLock->Release();
+		/* 
+		* COMMENT OUT BETWEEM TO REMOVE SPAM FROM HOSPITAL MANAGER 
+		*/
 
 		if (completedPatientThreads == numPatients){
 			// printf("No patients left, Manager leaving \n");
