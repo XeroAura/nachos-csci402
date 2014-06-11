@@ -18,6 +18,7 @@ Part 2 assumes that part 1 was done correctly.
 III. Design:
 - This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  This should include a description of classes, algorithms, etc.
 
+The hospital design was heavily based on the use of locks and conditions in order to keep the synchronization between the various members
 
 
 IV. Implementation:
