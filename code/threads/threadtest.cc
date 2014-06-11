@@ -612,9 +612,10 @@ Patient(int index){
 	docTokenLock->Release();
 
 	docReadyCV[docIndex]-> Signal(docReadyLock); //Tell doctor arrived
-	docReadyLock->Release();
 
 	docLock[docIndex]->Acquire(); //Acquire doctor lock
+	docReadyLock->Release();
+
 	printf("Patient %d is waiting to be examined by the Doctor in ExaminingRoom %d \n", myToken, docIndex);
 
 	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to do checkup
@@ -658,8 +659,8 @@ Patient(int index){
 		cashierLineCV[lineIndex]->Wait(cashierLineLock); //Wait till called
 		cashierLineCount[lineIndex]--; //Decrement after being woken
 	}
-	cashierLineLock->Release(); //Release lock on line
 	cashierLock[lineIndex]->Acquire(); //Acquire lock to cashier
+	cashierLineLock->Release(); //Release lock on line
 	printf("Patient %d is waiting to see Cashier %d\n", myToken, lineIndex);
 	cashierTokenLock->Acquire();
 	cashierToken[lineIndex] = myToken; //Give token to cashier
@@ -701,8 +702,8 @@ Patient(int index){
 			clerkLineCount[lineIndex]--; //Decrement after being woken
 		}
 
-		clerkLineLock->Release(); //Release lock on clerk line
 		clerkLock[lineIndex]->Acquire(); //Acquire lock to clerk
+		clerkLineLock->Release(); //Release lock on clerk line
 
 		clerkTokenLock->Acquire();
 		clerkToken[lineIndex] = myToken; //Give token to cashier
@@ -774,10 +775,11 @@ Door_Boy(int index){
 		doorBoyStateLock->Acquire();
 		doorBoyState[index] = 0; //Set self to free
 		doorBoyStateLock->Release();
+
 		docLineLock->Acquire();
 	    if(docLineCount > 0){ //If there are patients in line
-	    	docLineLock->Release();
 	    	doctorDoorBoyLock->Acquire();
+	    	docLineLock->Release();
 	      	if(doctorDoorBoyCount > 0){ //Signal doctor to wake for patient
 		      	doctorDoorBoyCount--;
 		        doctorDoorBoyCV->Signal(doctorDoorBoyLock); //Wake doctor to treat patient
@@ -789,9 +791,9 @@ Door_Boy(int index){
 		        doctorDoorBoyLock->Release();
 		    }
 		    else{ //No doctors available  
+		      	doorBoyDoctorLock->Acquire();
 		      	doctorDoorBoyLock->Release();
 		      	printf("DoorBoy %d is waiting for a Doctor\n", index);
-		      	doorBoyDoctorLock->Acquire();
 		      	doorBoyDoctorCount++;
 
 		      	doorBoyStateLock->Acquire();
@@ -821,9 +823,10 @@ Door_Boy(int index){
 			docLineLock->Acquire();
 			docLineCount--; //Decrements line length by one
 			docLineCV->Signal(docLineLock); //Signals patient
-			
+
 			doorBoyPatientLock->Acquire();
 			docLineLock->Release();
+
 			printf("DoorBoy %d has signaled a Patient.\n",index);
 
 			doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to arrive
@@ -876,8 +879,8 @@ Doctor(int index){
 			doorBoyDoctorLock->Release();
 		}
 		else{ //No door boys available	
-			doorBoyDoctorLock->Release();
 			doctorDoorBoyLock->Acquire();
+			doorBoyDoctorLock->Release();
 			doctorDoorBoyCount++;
 
 			docReadyLock->Acquire();
@@ -892,6 +895,8 @@ Doctor(int index){
 
 		docReadyLock->Acquire();
 		docReadyCV[index]->Wait(docReadyLock); //Wait for patient to arrive
+
+	    docLock[index]->Acquire(); //Start meeting with patient
 	    docReadyLock->Release(); //Release doctor ready lock
 
 	    docTokenLock->Acquire();
@@ -919,7 +924,6 @@ Doctor(int index){
 		printf("Doctor %d is prescribing medicine type %d to the Patient with Token %d \n", index, sickTest, token);
 		docPrescriptionLock->Release();
 		
-	    docLock[index]->Acquire(); //Start meeting with patient
     	docCV[index]->Signal(docLock[index]); //Tells patient to take prescription
 		docCV[index]->Wait(docLock[index]); //Waits for patient to take prescription
 
