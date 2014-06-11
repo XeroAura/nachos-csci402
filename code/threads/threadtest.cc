@@ -459,7 +459,7 @@ Condition* docReadyCV[5]; //Condition variable for doctor readiness call
 int doorBoyCount = 5;
 
 Lock* doorBoyStateLock = new Lock("doorBoyStateLock");
-int doorBoyState[5] = {1,1,1,1,1}; //0 free, 1 busy, 2 onbreak, 9 waiting
+int doorBoyState[5] = {1,1,1,1,1}; //0 free, 1 busy, 2 onbreak, 3 waiting for patient, 4 taken by patient, 9 waiting doctor
 
 Condition* doorBoyPatientCV[5];
 Lock* doorBoyPatientLock = new Lock("doorBoyPatientLock");
@@ -573,16 +573,17 @@ Patient(int index){
 	docLineLock->Release();
 
 	int myDoorBoy = 0;
+	doorBoyStateLock->Acquire();
 	for(int i = 0; i < doorBoyCount; i++){
-		doorBoyStateLock->Acquire();
-		if(doorBoyState[i] == 2){
+		if(doorBoyState[i] == 3){
+			doorBoyState[i] == 4;
 			myDoorBoy = i;
 			break;
 		}
-		doorBoyStateLock->Release();
 	}
+	doorBoyStateLock->Release();
 	doorBoyTokenLock->Acquire();
-	doorBoyToken[myDoorBoy] = myToken; //Give doorboy my token
+	doorBoyToken[myDoorBoy] = myToken; //Give doorboy my tokeng
 	doorBoyTokenLock->Release();
 
 	doorBoyPatientLock->Acquire();
@@ -815,7 +816,7 @@ Door_Boy(int index){
 			printf("DoorBoy %d has signaled a Patient.\n",index);
 
 		  	doorBoyStateLock->Acquire();
-			doorBoyState[index] = 1; //Sets self to waiting for patient
+			doorBoyState[index] = 3; //Sets self to waiting for patient
 			doorBoyStateLock->Release();
 
 			docLineLock->Acquire();
@@ -1040,7 +1041,7 @@ Clerk(int index){
 		totalMedicineLock->Acquire();
 		totalMedicineCost += fee; //Add medicine fee to total count
 		totalMedicineLock->Release();
-		
+
 		clerkLock[index]->Release(); //Release clerk lock
 
 		//Take break check
