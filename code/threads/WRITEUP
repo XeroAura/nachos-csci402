@@ -18,6 +18,7 @@ Part 2 assumes that part 1 was done correctly.
 III. Design:
 - This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  This should include a description of classes, algorithms, etc.
 
+The hospital design was heavily based on the use of locks and conditions in order to keep the synchronization between the various members
 
 
 IV. Implementation:
@@ -61,4 +62,5 @@ VI. Discussion:
 - Explain your experiment result.
 
 VII. Miscellaneous:
-- Whatever else you want the grader know about your development.  You can create your own subsections headings here.
+
+Since the hospital manager does not stop running, even when the patients all leave, the output log will be filled with the outputs from it. Comment out lines # and # in order to leave out the money made by the hospital.
