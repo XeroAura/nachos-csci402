@@ -1038,9 +1038,9 @@ Clerk(int index){
 
 		medicineFeeLock->Acquire();
 		medicineFee[index] = fee; //Tell patient fee
+		medicineFeeLock->Release();
 		printf("PharmacyClerk %d gives Prescription %d from Patient with Token %d \n", index, prescription, token);
 		printf("PharmacyClerk %d tells Patient with Token %d they owe %d \n", index, token, fee);
-		medicineFeeLock->Release();
 
 		clerkCV[index]->Signal(clerkLock[index]);
 		clerkCV[index]->Wait(clerkLock[index]); //Wait for patient to give money and take prescription
@@ -1050,10 +1050,10 @@ Clerk(int index){
 		totalMedicineCost += fee; //Add medicine fee to total count
 		totalMedicineLock->Release();
 
+		clerkLineLock->Acquire();
 		clerkLock[index]->Release(); //Release clerk lock
 
 		//Take break check
-		clerkLineLock->Acquire();
 		if(clerkLineCount[index] == 0){ //If noone in line
 			clerkState[index] = 2; //Set to on-break
 			clerkLineLock->Release();
