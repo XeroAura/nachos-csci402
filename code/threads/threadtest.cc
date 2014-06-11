@@ -1272,6 +1272,15 @@ Problem2() {
 	printf("Enter how many clerks to have in the office (between 2 and 5):");
 	scanf("%d",&clerkCount);
 
+	printf("\n");
+	printf("Number of Receptionists = %d \n",recCount);
+	printf("Number of Doctors = %d \n",docCount);
+	printf("Number of DoorBoys = %d \n",doorBoyCount);
+	printf("Number of Cashiers = %d \n",cashierCount);
+	printf("Number of PharmacyClerks = %d \n",clerkCount);
+	printf("Number of Patients = %d \n",numPatients);
+	printf("\n");
+
 	char* name;
 	for (int i = 0; i < recCount; i++){
 		name = new char [20];
@@ -1319,14 +1328,6 @@ Problem2() {
 	t = new Thread("Manager");
 	t->Fork((VoidFunctionPtr) Manager, 1);
 
-	printf("\n");
-	printf("Number of Receptionists = %d \n",recCount);
-	printf("Number of Doctors = %d \n",docCount);
-	printf("Number of DoorBoys = %d \n",doorBoyCount);
-	printf("Number of Cashiers = %d \n",cashierCount);
-	printf("Number of PharmacyClerks = %d \n",clerkCount);
-	printf("Number of Patients = %d \n",numPatients);
-	printf("\n");
 }
 
 
