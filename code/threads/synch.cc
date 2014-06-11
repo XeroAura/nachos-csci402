@@ -140,7 +140,7 @@ Lock::~Lock() {
 //       atomically, so disable interrupts before acquiring. If the 
 //       thread already owns the lock, nothing happens. If the lock is
 //       in the FREE state, the lock  is acquired by the thread and set
-//       to 0. If the lock is not available, the thread is added to the
+//       to BUSY. If the lock is not available, the thread is added to the
 //       wait queue and put to sleep. 
 //----------------------------------------------------------------------
 
