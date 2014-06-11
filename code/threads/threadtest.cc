@@ -793,6 +793,10 @@ Door_Boy(int index){
 
 		        doorBoyDoctorCV->Wait(doorBoyDoctorLock); //Wait for doctor to call upon doorboy
 		        doorBoyDoctorLock->Release();
+
+		      	doorBoyStateLock->Acquire();
+		        doorBoyState[index] = 0; //Set state to free
+		        doorBoyStateLock->Release();
 		    }
 
 		    docReadyLock->Acquire(); //Acquires lock for doctor search
@@ -884,12 +888,11 @@ Doctor(int index){
 		docReadyCV[index]->Wait(docReadyLock); //Wait for patient to arrive
 	    docReadyLock->Release(); //Release doctor ready lock
 
-	    docLock[index]->Acquire(); //Start meeting with patient
-
 	    docTokenLock->Acquire();
 		int token = docToken[index]; //Get patient's token number
-		printf("Doctor %d is examining a Patient with Token %d \n",index, token);
 		docTokenLock->Release();
+
+		printf("Doctor %d is examining a Patient with Token %d \n",index, token);
 		
 		int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
 		for(int i = 0; i < yieldCount; i++){ //Check patient for that long
@@ -918,6 +921,7 @@ Doctor(int index){
 		consultationFee[token] = sickTest*25+25;
 		consultLock->Release();
 
+	    docLock[index]->Acquire(); //Start meeting with patient
 		printf("Doctor %d tells Patient with Token %d they can leave \n", index, token);
 		docCV[index]->Signal(docLock[index]);//Tell patient ok to go
 		docCV[index]->Wait(docLock[index]);
