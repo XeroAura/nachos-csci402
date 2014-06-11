@@ -459,7 +459,7 @@ Condition* docReadyCV[5]; //Condition variable for doctor readiness call
 int doorBoyCount = 5;
 
 Lock* doorBoyStateLock = new Lock("doorBoyStateLock");
-int doorBoyState[5] = {1,1,1,1,1}; //0 working, 1 on break, 2 waiting
+int doorBoyState[5] = {1,1,1,1,1}; //0 free, 1 busy, 2 onbreak, 9 waiting
 
 Condition* doorBoyPatientCV[5];
 Lock* doorBoyPatientLock = new Lock("doorBoyPatientLock");
@@ -721,6 +721,7 @@ Patient(int index){
 
 		clerkCV[lineIndex]->Signal(clerkLock[lineIndex]); //Pay clerk
 		printf("Patient %d is leaving PharmacyClerk %d\n", myToken, lineIndex);
+		clerkLock[lineIndex]->Release();
 	}
 	//Leave hospital
 	printf("Patient %d is leaving the Hospital\n", myToken);
@@ -771,7 +772,6 @@ Door_Boy(int index){
 		doorBoyStateLock->Acquire();
 		doorBoyState[index] = 0; //Set self to free
 		doorBoyStateLock->Release();
-
 		docLineLock->Acquire();
 	    if(docLineCount > 0){ //If there are patients in line
 	    	docLineLock->Release();
@@ -802,6 +802,7 @@ Door_Boy(int index){
 
 		    docReadyLock->Acquire(); //Acquires lock for doctor search
 			int docIndex = 0;
+
 			for(docIndex = 0; docIndex< docCount; docIndex++){ //Goes through each doctor
 				if(docState[docIndex] == 0){ //Finds first one ready
 					printf("DoorBoy %d has been told by Doctor %d to bring a Patient.\n", index, docIndex);
@@ -814,7 +815,7 @@ Door_Boy(int index){
 			printf("DoorBoy %d has signaled a Patient.\n",index);
 
 		  	doorBoyStateLock->Acquire();
-			doorBoyState[index] = 2; //Sets self to waiting for patient
+			doorBoyState[index] = 1; //Sets self to waiting for patient
 			doorBoyStateLock->Release();
 
 			docLineLock->Acquire();
@@ -853,7 +854,6 @@ Door_Boy(int index){
 			printf("DoorBoy %d is coming off break. \n",index);
 			doorBoyBreakLock->Release();
 	  	}
-
 	}
 }
 
@@ -917,6 +917,7 @@ Doctor(int index){
 		printf("Doctor %d is prescribing medicine type %d to the Patient with Token %d \n", index, sickTest, token);
 		docPrescriptionLock->Release();
 		
+	    docLock[index]->Acquire(); //Start meeting with patient
     	docCV[index]->Signal(docLock[index]); //Tells patient to take prescription
 		docCV[index]->Wait(docLock[index]); //Waits for patient to take prescription
 
@@ -925,14 +926,13 @@ Doctor(int index){
 		consultationFee[token] = sickTest*25+25;
 		consultLock->Release();
 
-	    docLock[index]->Acquire(); //Start meeting with patient
 		printf("Doctor %d tells Patient with Token %d they can leave \n", index, token);
 		docCV[index]->Signal(docLock[index]);//Tell patient ok to go
 		docCV[index]->Wait(docLock[index]);
 		docLock[index]->Release();
 		
 		int breakVal = rand()%100; //Generate break value
-		if(breakVal < 30){ //Take break for random time
+		if(breakVal > 0){ //Take break for random time
 			printf("Doctor %d tells a DoorBoy he is going on break \n", index);
 		    docReadyLock->Acquire(); //Acquire doctor ready lock
 		    docState[index] = 2; //Sets own state to ready
@@ -1036,20 +1036,24 @@ Clerk(int index){
 		clerkCV[index]->Signal(clerkLock[index]);
 		clerkCV[index]->Wait(clerkLock[index]); //Wait for patient to give money and take prescription
 		printf("Pharmacyclerk %d gets money from Patient with Token %d \n", index, token);
+
 		totalMedicineLock->Acquire();
 		totalMedicineCost += fee; //Add medicine fee to total count
 		totalMedicineLock->Release();
+		
+		clerkLock[index]->Release(); //Release clerk lock
 
 		//Take break check
 		clerkLineLock->Acquire();
 		if(clerkLineCount[index] == 0){ //If noone in line
 			clerkState[index] = 2; //Set to on-break
-			clerkBreakLock->Acquire();
+			clerkLineLock->Release();
+
 			printf("PharmacyClerk %d is going on break. \n",index);
-			cashierLineLock->Release();
+			clerkBreakLock->Acquire();
 			clerkBreakCV[index]->Wait(clerkBreakLock); //Set condition for manager to callback
-			printf("PharmacyClerk %d is coming off break. \n",index);
 			clerkBreakLock->Release();
+			printf("PharmacyClerk %d is coming off break. \n",index);
 		}
 		else{
 			clerkLineLock->Release();
@@ -1125,13 +1129,13 @@ Manager(){
 		//Get total consultation fee
 		totalFeeLock->Acquire();
 		int myConsultFee = totalConsultationFee;
-		printf("HospitalManager reports that total consultancy fees are %d\n", myConsultFee);
+		// printf("HospitalManager reports that total consultancy fees are %d\n", myConsultFee);
 		totalFeeLock->Release();
 
 		//Get total medicine fee
 		totalMedicineLock->Acquire();
 		int myMedicineFee = totalMedicineCost;
-		printf("HospitalManager reports total sales in pharmacy are %d\n", myMedicineFee);
+		// printf("HospitalManager reports total sales in pharmacy are %d\n", myMedicineFee);
 		totalMedicineLock->Release();
 	}
 }
