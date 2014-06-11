@@ -459,7 +459,7 @@ Condition* docReadyCV[5]; //Condition variable for doctor readiness call
 int doorBoyCount = 5;
 
 Lock* doorBoyStateLock = new Lock("doorBoyStateLock");
-int doorBoyState[5] = {1,1,1,1,1}; //0 free, 1 busy, 2 onbreak, 3 waiting for patient, 4 taken by patient, 9 waiting doctor
+int doorBoyState[5] = {1,1,1,1,1}; //0 free, 1 busy, 2 onbreak, 3 waiting for patient, 9 waiting doctor
 
 Condition* doorBoyPatientCV[5];
 Lock* doorBoyPatientLock = new Lock("doorBoyPatientLock");
@@ -576,12 +576,13 @@ Patient(int index){
 	doorBoyStateLock->Acquire();
 	for(int i = 0; i < doorBoyCount; i++){
 		if(doorBoyState[i] == 3){
-			doorBoyState[i] == 4;
+			doorBoyState[i] = 1;
 			myDoorBoy = i;
 			break;
 		}
 	}
 	doorBoyStateLock->Release();
+
 	doorBoyTokenLock->Acquire();
 	doorBoyToken[myDoorBoy] = myToken; //Give doorboy my tokeng
 	doorBoyTokenLock->Release();
@@ -592,8 +593,8 @@ Patient(int index){
 
 	doorBoyPatientRoomLock->Acquire();
 	int docIndex = doorBoyPatientRoom[myDoorBoy];
-	printf("Patient %d has been told by DoorBoy %d to go to Examining Room %d \n", myToken, myDoorBoy, docIndex);
 	doorBoyPatientRoomLock->Release();
+	printf("Patient %d has been told by DoorBoy %d to go to Examining Room %d \n", myToken, myDoorBoy, docIndex);
 
 	doorBoyPatientCV[myDoorBoy]->Signal(doorBoyPatientLock);
 	doorBoyPatientLock->Release();
@@ -813,8 +814,6 @@ Door_Boy(int index){
 	  		}
 			docReadyLock->Release();
 
-			printf("DoorBoy %d has signaled a Patient.\n",index);
-
 		  	doorBoyStateLock->Acquire();
 			doorBoyState[index] = 3; //Sets self to waiting for patient
 			doorBoyStateLock->Release();
@@ -822,9 +821,11 @@ Door_Boy(int index){
 			docLineLock->Acquire();
 			docLineCount--; //Decrements line length by one
 			docLineCV->Signal(docLineLock); //Signals patient
-			docLineLock->Release();
-
+			
 			doorBoyPatientLock->Acquire();
+			docLineLock->Release();
+			printf("DoorBoy %d has signaled a Patient.\n",index);
+
 			doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to arrive
 
 			doorBoyTokenLock->Acquire();
