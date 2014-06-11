@@ -153,7 +153,6 @@ void Lock::Acquire() {
   if (isFree){
     isFree = false;
     lockOwner = currentThread;
-    //    std::cout << getName() << ": The owner of " << getName() << " is " << lockOwner->getName() << std::endl;
   }else{
     waitList->push(currentThread);
     currentThread->Sleep();

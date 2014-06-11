@@ -418,6 +418,8 @@ ThreadTest()
 //Global variables
 
 int completedPatientThreads = 0; //for debugging
+int numPatients = 0;
+
 
 //Receptionist globals
 Lock* recLineLock = new Lock("recLineLock");
@@ -560,7 +562,6 @@ Patient(int index){
 	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist token taken
 	recLock[lineIndex]->Release(); //Release lock to receptionist
 	
-	completedPatientThreads++;
 	
 	/*
 	* Doorboy
@@ -728,6 +729,8 @@ Patient(int index){
 	}
 	//Leave hospital
 	printf("Patient %d is leaving the Hospital\n", myToken);
+  completedPatientThreads++;
+  printf("Total Patients: %d \n",completedPatientThreads);
 }
 
 void
@@ -1072,7 +1075,7 @@ Manager(){
 	while(true){
 		//Checks hospital is running randomly
 		//Randomly generate number and yield for other threads
-		int yield = rand()%50+50;
+		int yield = rand()%50+5000;
 		for(int i = 0; i<yield; i++){
 			currentThread->Yield();
 		}
@@ -1115,34 +1118,37 @@ Manager(){
 				cashierBreakLock->Acquire();
 				printf("HospitalManager signaled a Cashier to come off break\n");
 				cashierBreakCV[i]->Signal(cashierBreakLock); //Set cashier to off break
-				cashierBreakLock->Release();
-			}
-		}
-		cashierLineLock->Release();
+        totalFeeLock->Acquire();
+        cashierBreakLock->Release();
+            //Get total consultation fee
+        int myConsultFee = totalConsultationFee;
+        printf("HospitalManager reports that total consultancy fees are %d\n", myConsultFee);
+        totalFeeLock->Release();
+      }
+    }
+    cashierLineLock->Release();
 
 		//Wakes up clerk
-		clerkLineLock->Acquire();
-		for(int i = 0; i<clerkCount; i++){
-			if(clerkLineCount[i] > 0 && clerkState[i] == 2){
-				clerkBreakLock->Acquire();
-				printf("HospitalManager signaled a PharmacyClerk to come off break\n");
-				clerkBreakCV[i]->Signal(clerkBreakLock);
-				clerkBreakLock->Release();
-			}
-		}
-		clerkLineLock->Release();
+    clerkLineLock->Acquire();
+    for(int i = 0; i<clerkCount; i++){
+     if(clerkLineCount[i] > 0 && clerkState[i] == 2){
+      clerkBreakLock->Acquire();
+      printf("HospitalManager signaled a PharmacyClerk to come off break\n");
+      clerkBreakCV[i]->Signal(clerkBreakLock);
+      totalMedicineLock->Acquire();
+      clerkBreakLock->Release();
+          //Get total medicine fee
+      int myMedicineFee = totalMedicineCost;
+      printf("HospitalManager reports total sales in pharmacy are %d\n", myMedicineFee);
+      totalMedicineLock->Release();
 
-		//Get total consultation fee
-		totalFeeLock->Acquire();
-		int myConsultFee = totalConsultationFee;
-		// printf("HospitalManager reports that total consultancy fees are %d\n", myConsultFee);
-		totalFeeLock->Release();
+    }
+  }
+  clerkLineLock->Release();
+  if (completedPatientThreads == numPatients){
+    break;
+  }
 
-		//Get total medicine fee
-		totalMedicineLock->Acquire();
-		int myMedicineFee = totalMedicineCost;
-		// printf("HospitalManager reports total sales in pharmacy are %d\n", myMedicineFee);
-		totalMedicineLock->Release();
 	}
 }
 
@@ -1257,7 +1263,6 @@ Problem2() {
 	Setup();
 
 	Thread *t;
-	int numPatients;
 	printf("Problem 2 Start \n");
 	printf("Enter how many receptionists to have in the office (between 2 and 5): ");
 	scanf("%d",&recCount);
