@@ -436,7 +436,7 @@ int recCount = 5;
 Lock* docLock[5]; //Lock for doctor and patient meeting
 Condition* docCV[5]; //CV for doctor and patient meeting
 int docState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break, 3 waiting
-int docToken[5] = {0,0,0,0,0};
+int docToken[5] = {-1,-1,-1,-1,-1};
 Lock* docTokenLock = new Lock("docTokenLock");
 Lock * docPrescriptionLock = new Lock("dockPrescriptionLock");
 int docPrescription[5] = {0,0,0,0,0}; //1-4 represent problems
@@ -463,10 +463,10 @@ int doorBoyState[5] = {1,1,1,1,1}; //0 working, 1 on break, 2 waiting
 
 Condition* doorBoyPatientCV[5];
 Lock* doorBoyPatientLock = new Lock("doorBoyPatientLock");
-int doorBoyToken[5] = {0,0,0,0,0};
+int doorBoyToken[5] = {-1,-1,-1,-1,-1};
 Lock* doorBoyTokenLock = new Lock("doorBoyTokenLock");
 Lock* doorBoyPatientRoomLock = new Lock("doorBoyPatientRoomLock");
-int doorBoyPatientRoom[5] = {0,0,0,0,0};
+int doorBoyPatientRoom[5] = {-1,-1,-1,-1,-1};
 
 //Cashier globals
 Lock* consultLock = new Lock("consultLock"); //Lock for consultation fee map
@@ -779,6 +779,11 @@ Door_Boy(int index){
 	      	if(doctorDoorBoyCount > 0){ //Signal doctor to wake for patient
 		      	doctorDoorBoyCount--;
 		        doctorDoorBoyCV->Signal(doctorDoorBoyLock); //Wake doctor to treat patient
+
+		        docReadyLock->Acquire();
+	        	docState[index] = 0; //Set state to free
+	        	docReadyLock->Release();
+
 		        doctorDoorBoyLock->Release();
 		    }
 		    else{ //No doctors available  
@@ -792,11 +797,7 @@ Door_Boy(int index){
 		        doorBoyStateLock->Release();
 
 		        doorBoyDoctorCV->Wait(doorBoyDoctorLock); //Wait for doctor to call upon doorboy
-		        doorBoyDoctorLock->Release();
-
-		      	doorBoyStateLock->Acquire();
-		        doorBoyState[index] = 0; //Set state to free
-		        doorBoyStateLock->Release();
+		        doorBoyDoctorLock->Release();		      	
 		    }
 
 		    docReadyLock->Acquire(); //Acquires lock for doctor search
@@ -835,7 +836,7 @@ Door_Boy(int index){
 			doorBoyPatientRoomLock->Release();
 
 			doorBoyPatientCV[index]->Signal(doorBoyPatientLock); //Wake up patient to take room
-			printf("DoorBoy %d has told Patient %d to go to Examining Room %d\n", index, token, docIndex);
+			printf("DoorBoy %d has told Patient %d to go to Examining Room %d \n", index, token, docIndex);
 			doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to get room
 			doorBoyPatientLock->Release();
 	  	}
@@ -867,6 +868,9 @@ Doctor(int index){
 		if(doorBoyDoctorCount > 0){ //Signal doorboy to wake for patient
 			doorBoyDoctorCount--;
 			doorBoyDoctorCV->Signal(doorBoyDoctorLock); //Wake doorboy
+			doorBoyStateLock->Acquire();
+	        doorBoyState[index] = 0; //Set state to free
+	        doorBoyStateLock->Release();
 			doorBoyDoctorLock->Release();
 		}
 		else{ //No door boys available	
