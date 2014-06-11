@@ -50,7 +50,7 @@ void t1_t1() {
 	printf ("%s: working in CS\n",currentThread->getName());
 	for (int i = 0; i < 1000000; i++) ;
 		printf ("%s: Releasing Lock %s\n",currentThread->getName(),
-	t1_l1.getName());
+			t1_l1.getName());
 	t1_l1.Release();
 	t1_done.V();
 }
@@ -65,15 +65,15 @@ void t1_t2() {
 	t1_s2.V();  // Let t3 try to acquire the lock
 	
 	printf("%s: trying to acquire lock %s\n",currentThread->getName(),
-	t1_l1.getName());
+		t1_l1.getName());
 	t1_l1.Acquire();
 	
 	printf ("%s: Acquired Lock %s, working in CS\n",currentThread->getName(),
-	t1_l1.getName());
+		t1_l1.getName());
 	for (int i = 0; i < 10; i++)
 		;
 	printf ("%s: Releasing Lock %s\n",currentThread->getName(),
-	t1_l1.getName());
+		t1_l1.getName());
 	t1_l1.Release();
 	t1_done.V();
 }
@@ -89,7 +89,7 @@ void t1_t3() {
 	t1_s3.V();// Let t1 do it's stuff
 	for ( int i = 0; i < 3; i++ ) {
 		printf("%s: Trying to release Lock %s\n",currentThread->getName(),
-		t1_l1.getName());
+			t1_l1.getName());
 		t1_l1.Release();
 	}
 }
@@ -110,10 +110,10 @@ Semaphore t2_done("t2_done",0);     // So that TestSuite knows when Test 2 is
 void t2_t1() {
 	t2_l1.Acquire();
 	printf("%s: Lock %s acquired, signalling %s\n",currentThread->getName(),
-	t2_l1.getName(), t2_c1.getName());
+		t2_l1.getName(), t2_c1.getName());
 	t2_c1.Signal(&t2_l1);
 	printf("%s: Releasing Lock %s\n",currentThread->getName(),
-	t2_l1.getName());
+		t2_l1.getName());
 	t2_l1.Release();
 	t2_s1.V();// release t2_t2
 	t2_done.V();
@@ -127,10 +127,10 @@ void t2_t2() {
 	t2_s1.P();// Wait for t2_t1 to be done with the lock
 	t2_l1.Acquire();
 	printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-	t2_l1.getName(), t2_c1.getName());
+		t2_l1.getName(), t2_c1.getName());
 	t2_c1.Wait(&t2_l1);
 	printf("%s: Releasing Lock %s\n",currentThread->getName(),
-	t2_l1.getName());
+		t2_l1.getName());
 	t2_l1.Release();
 }
 // --------------------------------------------------
@@ -151,7 +151,7 @@ void t3_waiter() {
 	t3_l1.Acquire();
 	t3_s1.V();// Let the signaller know we're ready to wait
 	printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-	t3_l1.getName(), t3_c1.getName());
+		t3_l1.getName(), t3_c1.getName());
 	t3_c1.Wait(&t3_l1);
 	printf("%s: freed from %s\n",currentThread->getName(), t3_c1.getName());
 	t3_l1.Release();
@@ -172,7 +172,7 @@ void t3_signaller() {
 		t3_s1.P();
 	t3_l1.Acquire();
 	printf("%s: Lock %s acquired, signalling %s\n",currentThread->getName(),
-	t3_l1.getName(), t3_c1.getName());
+		t3_l1.getName(), t3_c1.getName());
 	t3_c1.Signal(&t3_l1);
 	printf("%s: Releasing %s\n",currentThread->getName(), t3_l1.getName());
 	t3_l1.Release();
@@ -197,7 +197,7 @@ void t4_waiter() {
 	t4_l1.Acquire();
 	t4_s1.V();// Let the signaller know we're ready to wait
 	printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-	t4_l1.getName(), t4_c1.getName());
+		t4_l1.getName(), t4_c1.getName());
 	t4_c1.Wait(&t4_l1);
 	printf("%s: freed from %s\n",currentThread->getName(), t4_c1.getName());
 	t4_l1.Release();
@@ -218,7 +218,7 @@ void t4_signaller() {
 		t4_s1.P();
 	t4_l1.Acquire();
 	printf("%s: Lock %s acquired, broadcasting %s\n",currentThread->getName(),
-	t4_l1.getName(), t4_c1.getName());
+		t4_l1.getName(), t4_c1.getName());
 	t4_c1.Broadcast(&t4_l1);
 	printf("%s: Releasing %s\n",currentThread->getName(), t4_l1.getName());
 	t4_l1.Release();
@@ -241,10 +241,10 @@ void t5_t1() {
 	t5_l1.Acquire();
 	t5_s1.V();// release t5_t2
 	printf("%s: Lock %s acquired, waiting on %s\n",currentThread->getName(),
-	t5_l1.getName(), t5_c1.getName());
+		t5_l1.getName(), t5_c1.getName());
 	t5_c1.Wait(&t5_l1);
 	printf("%s: Releasing Lock %s\n",currentThread->getName(),
-	t5_l1.getName());
+		t5_l1.getName());
 	t5_l1.Release();
 }
 
@@ -258,13 +258,13 @@ void t5_t2() {
 	t5_l1.Acquire();
 	t5_l2.Acquire();
 	printf("%s: Lock %s acquired, signalling %s\n",currentThread->getName(),
-	t5_l2.getName(), t5_c1.getName());
+		t5_l2.getName(), t5_c1.getName());
 	t5_c1.Signal(&t5_l2);
 	printf("%s: Releasing Lock %s\n",currentThread->getName(),
-	t5_l2.getName());
+		t5_l2.getName());
 	t5_l2.Release();
 	printf("%s: Releasing Lock %s\n",currentThread->getName(),
-	t5_l1.getName());
+		t5_l1.getName());
 	t5_l1.Release();
 }
 
@@ -419,7 +419,7 @@ ThreadTest()
 
 int completedPatientThreads = 0; //for debugging
 int numPatients = 0;
-
+int testNum = 0;
 
 //Receptionist globals
 Lock* recLineLock = new Lock("recLineLock");
@@ -737,7 +737,7 @@ Patient(int index){
 	//Leave hospital
 	printf("Patient %d is leaving the Hospital\n", myToken);
 	completedPatientThreads++;
-	// printf("Total Patients: %d \n",completedPatientThreads);
+	printf("Total Patients: %d \n",completedPatientThreads);
 }
 
 void
@@ -885,7 +885,7 @@ Doctor(int index){
 		docReadyLock->Acquire();
 		docState[index] = 0;
 		
-docLock[index]->Acquire();
+		docLock[index]->Acquire();
 		
 		docReadyLock->Release();
 		dbbLock->Acquire();
@@ -1306,32 +1306,11 @@ Setup(){
 }
 
 
-//Tests and test threads for part 2 of the first assignment
+//Initializing the threads for part 2 of the first assignment
 void
-Problem2() {
-	Setup();
-	
+InitializeThreads(){
 	Thread *t;
-	printf("Problem 2 Start \n");
-	// printf("Enter how many receptionists to have in the office (between 2 and 5): ");
-	// scanf("%d",&recCount);
-	// printf("Enter how many patients to have in the office (between 5 and 20): ");
-	// scanf("%d",&numPatients);
-	// printf("Enter how many doctors to have in the office (between 2 and 5):");
-	// scanf("%d",&docCount);
-	// printf("Enter how many door boys to have in the office (between 2 and 5):");
-	// scanf("%d",&doorBoyCount);
-	// printf("Enter how many cashiers to have in the office (between 2 and 5):");
-	// scanf("%d",&cashierCount);
-	// printf("Enter how many clerks to have in the office (between 2 and 5):");
-	// scanf("%d",&clerkCount);
-	recCount = 5;
-	docCount = 5;
-	doorBoyCount = 5;
-	cashierCount = 5;
-	clerkCount = 5;
-	numPatients = 20;
-	
+	char* name;
 	printf("\n");
 	printf("Number of Receptionists = %d \n",recCount);
 	printf("Number of Doctors = %d \n",docCount);
@@ -1340,38 +1319,35 @@ Problem2() {
 	printf("Number of PharmacyClerks = %d \n",clerkCount);
 	printf("Number of Patients = %d \n",numPatients);
 	printf("\n");
-	
-	char* name;
-	
-	
+
 	for (int i = 0; i < docCount; i++){
 		name = new char [20];
 		sprintf(name,"Doctor %d",i);
 		t = new Thread(name);
 		t->Fork((VoidFunctionPtr) Doctor,i);
 	}
-	
+
 	for (int i = 0; i < recCount; i++){
 		name = new char [20];
 		sprintf(name,"Receptionist %d",i);
 		t = new Thread(name);
 		t->Fork((VoidFunctionPtr) Receptionist,i);
 	}
-	
+
 	for (int i = 0; i < numPatients; i++){
 		name = new char [20];
 		sprintf(name,"Patient %d",i);
 		t = new Thread(name);
 		t->Fork((VoidFunctionPtr) Patient,i);
 	}
-	
+
 	for (int i = 0; i < doorBoyCount; i++){
 		name = new char [20];
 		sprintf(name,"Door Boy %d",i);
 		t = new Thread(name);
 		t->Fork((VoidFunctionPtr) Door_Boy,i);
 	}
-	
+
 	for (int i = 0; i < cashierCount; i++){
 		name = new char [20];
 		sprintf(name,"Cashier %d",i);
@@ -1385,11 +1361,69 @@ Problem2() {
 		t = new Thread(name);
 		t->Fork((VoidFunctionPtr) Clerk,i);
 	}
-	
-	
+
 	t = new Thread("Manager");
 	t->Fork((VoidFunctionPtr) Manager, 1);
+}
+
+//Tests and test threads for part 2 of the first assignment
+void
+Problem2() {
+	Setup();
 	
+	int menu = 0;
+	printf("Problem 2 Start \n");
+	printf("Please choose an option to test: \n");
+	printf("1: Default Simulation (tests all functions running with minimum required threads)\n");
+	printf("2: DoorBoy Break Check \n");
+	printf("3: Doctor Break Check \n");
+	printf("3: Custom Simulation \n");
+	scanf("%d",&menu);
+
+	recCount = 2;
+	docCount = 2;
+	doorBoyCount = 2;
+	cashierCount = 2;
+	clerkCount = 2;
+	numPatients = 5;
+
+	switch(menu){
+		case 1:
+		{	
+			testNum = 1;
+			InitializeThreads();
+			break;
+		}
+		case 2:
+		{
+			testNum = 2;
+			InitializeThreads();
+			break;
+		}
+		case 3:
+		{
+			testNum = 3;
+			printf("Enter how many receptionists to have in the office (between 2 and 5): ");
+			scanf("%d",&recCount);
+			printf("Enter how many patients to have in the office (between 5 and 20): ");
+			scanf("%d",&numPatients);
+			printf("Enter how many doctors to have in the office (between 2 and 5):");
+			scanf("%d",&docCount);
+			printf("Enter how many door boys to have in the office (between 2 and 5):");
+			scanf("%d",&doorBoyCount);
+			printf("Enter how many cashiers to have in the office (between 2 and 5):");
+			scanf("%d",&cashierCount);
+			printf("Enter how many clerks to have in the office (between 2 and 5):");
+			scanf("%d",&clerkCount);
+			InitializeThreads();
+			break;
+		}
+		default:
+		{
+			printf("Invalid option entered. Exiting the program. \n");
+			break;
+		}
+	}
 }
 
 
