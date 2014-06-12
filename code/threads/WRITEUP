@@ -22,9 +22,9 @@ Assumes that the Doctor going on break once is sufficient to test all three of t
 Assumes that a thread on break is equivalent to not existing, therefore making it easier to test what happens when all threads of a certain type are on break. 
 
 III. Design:
-
 The first part is heavily based on what Professor Crowley discussed in class lectures. 
 The code is basically an adapted version of what was provided for our use.
+The code includes safety features to ensure the correct procedures are occurring when calls to locks and condition variables happen.
 
 The hospital design was heavily based on the use of locks and conditions in order to keep the synchronization between the various members.
 The hospital management simulation code is all located under threadtest.cc.
@@ -34,9 +34,6 @@ Patients' code basically shows the steps a patient goes through when visiting th
 The patient only goes through the steps once and then dies (aka leaving the hospital).
 The other members of the hospital contain an endless while loop to allow repeated cycles through the steps.
 We designed the manager to keep track of the number of patients going through, so it can end the simulation when all patients are done.
-
-
-
 
 IV. Implementation:
 
