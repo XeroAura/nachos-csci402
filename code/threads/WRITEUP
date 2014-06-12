@@ -22,10 +22,9 @@ For testing purposes, assumes that testing how the line system between Patient a
 Assumes that the Doctor going on break once is sufficient to test all three of the doctor break-related tests. 
 
 III. Design:
-- This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  
-
 The first part is heavily based on what Professor Crowley discussed in class lectures. 
 The code is basically an adapted version of what was provided for our use.
+The code includes safety features to ensure the correct procedures are occurring when calls to locks and condition variables happen.
 
 The hospital design was heavily based on the use of locks and conditions in order to keep the synchronization between the various members.
 The hospital management simulation code is all located under threadtest.cc.
@@ -35,9 +34,6 @@ Patients' code basically shows the steps a patient goes through when visiting th
 The patient only goes through the steps once and then dies (aka leaving the hospital).
 The other members of the hospital contain an endless while loop to allow repeated cycles through the steps.
 We designed the manager to keep track of the number of patients going through, so it can end the simulation when all patients are done.
-
-
-
 
 IV. Implementation:
 
@@ -72,7 +68,6 @@ V. Testing:  (For each test case, you must show)
 
 VI. Discussion:
 + Experiment expectation.  (What you hope will happen.)
-
 
 + Experiment result.  (What actually happens.)
 
