@@ -18,11 +18,10 @@ II. Assumptions:
 Assuming that the base Nachos code is working as intended.
 Part 2 assumes that part 1 was done correctly.
 User input is as allowed by assignment requirements and instructions.
-For testing purposes, assumes that testing how the line system between Patient and Receptionist is all that is necessary since the code for that interaction and the interactions for Cashier and PharmacyClerk are identical. 
 Assumes that the Doctor going on break once is sufficient to test all three of the doctor break-related tests. 
+Assumes that a thread on break is equivalent to not existing, therefore making it easier to test what happens when all threads of a certain type are on break. 
 
 III. Design:
-- This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  
 
 The first part is heavily based on what Professor Crowley discussed in class lectures. 
 The code is basically an adapted version of what was provided for our use.
@@ -72,7 +71,8 @@ V. Testing:  (For each test case, you must show)
 
 VI. Discussion:
 + Experiment expectation.  (What you hope will happen.)
-
+In the first test, the patient will wait until the doorboy and the doctor signal to the patient, then get examined and leave.
+In the second test, the doorBoys will all leave and the patients will be left with nothing to do after meeting the receptionists, therefore ending the simulation.
 
 + Experiment result.  (What actually happens.)
 
