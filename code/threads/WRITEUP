@@ -78,10 +78,16 @@ VI. Discussion:
 + Experiment expectation.  (What you hope will happen.)
 In the first test, the patient will wait until the doorboy and the doctor signal to the patient, then get examined and leave.
 In the second test, the doorBoys will all go on break and the patients will be left with nothing to do after meeting the receptionists, therefore ending the simulation.
+In the third test,
+In the fourth test, the patients will wait for the receptionists, but since there are none, the simulation will end. 
+In the fifth test, the Doctor will tell the DoorBoy he is going on a break and state for how many milliseconds. The doctor will then leave permanently, and the simulation will end. 
+In the sixth test, the free jobs will go on break until they are woken up as needed by the Hospital Manager. 
+In the seventh test, the hospital manager will report the fees for consulting and pharmacy. The cost of medicine is 25 per person and the consulting fee is 40 per person. 
 
 
 
 + Experiment result.  (What actually happens.)
+The results of the experiments are all as expected, except for the sixth test. Only the DoorBoy is put on break before being woken up by the Manager, although all the jobs go on break when their work is done properly. 
 
 + Explanation
 - Explain your experiment result.
@@ -95,6 +101,7 @@ The manager can be temporarily muted by commenting out the section starting from
 V. Testing:  (For each test case, you must show)
 + How to test
 Call nachos with -T in order to launch the test suite provided to test part 1.
+Call nachos with -P2 -rs -#, with # being a number of your choice to test part 2. 
 
 + Test Output
 Starting Test 1.

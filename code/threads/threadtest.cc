@@ -627,7 +627,7 @@ Patient(int index){
 	docToken[docIndex] = myToken; //Give token to doctor
 	docTokenLock->Release();
 
-	if (testNum == 1 || testNum == 2 ||testNum == 8){	
+	if (testNum == 1 || testNum == 2 || testNum == 5 || testNum == 8){	
 		printf("Patient %d is waiting to be examined by the Doctor in ExaminingRoom %d \n", myToken, docIndex);
 	}
 	if(myToken == 0 || myToken == 1){
@@ -656,7 +656,7 @@ Patient(int index){
 		printf("Patient %d in Examining Room %d is waiting for the Doctor to come back from the Cashier \n", myToken, docIndex);
 	}
 	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to return from cashier
-	if (testNum == 8){
+	if (testNum == 5 ||testNum == 7 ||testNum == 8){
 		printf("Patient %d is leaving Examining Room %d\n", myToken, docIndex);
 	}	
 	docLock[docIndex]->Release();
@@ -771,7 +771,7 @@ Patient(int index){
 	//Leave hospital
 	printf("Patient %d is leaving the Hospital\n", myToken);
 	completedPatientThreads++;
-	printf("Total Patients: %d \n",completedPatientThreads);
+	// printf("Total Patients: %d \n",completedPatientThreads);
 }
 
 void
@@ -993,7 +993,7 @@ Doctor(int index){
 		int sickTest = rand()%5; //Generate if patient is sick
 		/* 0 not sick
 		1-4 sick */
-		if (testNum == 8){
+		if (testNum == 7){
 			sickTest = 1; //Making sickness static for test 8
 		}
 		if(testNum == 8){
@@ -1018,7 +1018,7 @@ Doctor(int index){
 		consultLock->Acquire();
 		consultationFee[token] = sickTest*20+20;
 		consultLock->Release();
-		if(testNum == 1 || testNum == 8){		
+		if(testNum == 1 || testNum == 5 || testNum == 7 ||testNum == 8){		
 			printf("Doctor %d tells Patient with Token %d they can leave \n", index, token);
 		}
 		docCV[index]->Signal(docLock[index]);//Tell patient ok to go
@@ -1198,6 +1198,9 @@ Manager(){
 		//Checks hospital is running randomly
 		//Randomly generate number and yield for other threads
 		int yield = rand()%50+50;
+		if (testNum == 7){
+			yield = rand()%50+5000;
+		}
 		for(int i = 0; i<yield; i++){
 			currentThread->Yield();
 		}
