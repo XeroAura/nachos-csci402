@@ -231,6 +231,24 @@ void Close_Syscall(int fd) {
     }
 }
 
+void Fork_Syscall(){
+
+}
+
+void Exec_Syscall(){
+
+}
+
+int Exit_Syscall(){
+
+  currentThread->Finish();
+  return 0;
+}
+
+void Yield_Syscall(){
+  currentThread->Yield();
+}
+
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
     int rv=0; 	// the return value from a syscall
@@ -267,6 +285,27 @@ void ExceptionHandler(ExceptionType which) {
 		DEBUG('a', "Close syscall.\n");
 		Close_Syscall(machine->ReadRegister(4));
 		break;
+
+      case SC_Fork:
+    DEBUG('a', "Fork syscall.\n");
+    Fork_Syscall(machine->ReadRegister(4));
+    break;
+
+      case SC_Exec:
+    DEBUG('a', "Exec syscall.\n");
+    Exec_Syscall(machine->ReadRegister(4));
+    break;
+
+      case SC_Exit:
+    DEBUG('a', "Exit syscall.\n");
+    rv = Exit_Syscall(machine->ReadRegister(4));
+    break;
+
+      case SC_Yield:
+    DEBUG('a', "Yield syscall.\n");
+    Yield_Syscall(machine->ReadRegister(4));
+    break;
+
 	}
 
 	// Put in the return value and increment the PC
