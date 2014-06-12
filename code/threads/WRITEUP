@@ -69,39 +69,8 @@ None
 
 V. Testing:  (For each test case, you must show)
 + How to test
-- How to run the test cases, the commands, the arguments and so on.
-
-+ Test Output
-- Describe the testing output. You don't have to dump all the output info. Just make sure your description can exactly reflect your output.
-
-VI. Discussion:
-+ Experiment expectation.  (What you hope will happen.)
-In the first test, the patient will wait until the doorboy and the doctor signal to the patient, then get examined and leave.
-In the second test, the doorBoys will all go on break and the patients will be left with nothing to do after meeting the receptionists, therefore ending the simulation.
-In the third test,
-In the fourth test, the patients will wait for the receptionists, but since there are none, the simulation will end. 
-In the fifth test, the Doctor will tell the DoorBoy he is going on a break and state for how many milliseconds. The doctor will then leave permanently, and the simulation will end. 
-In the sixth test, the free jobs will go on break until they are woken up as needed by the Hospital Manager. 
-In the seventh test, the hospital manager will report the fees for consulting and pharmacy. The cost of medicine is 25 per person and the consulting fee is 40 per person. 
-
-
-
-+ Experiment result.  (What actually happens.)
-The results of the experiments are all as expected, except for the sixth test. Only the DoorBoy is put on break before being woken up by the Manager, although all the jobs go on break when their work is done properly. 
-
-+ Explanation
-- Explain your experiment result.
-
-VII. Miscellaneous:
-The hospital manager outputs the total consultation fee and total medicine fees. These messages can obscure the more important messages.
-The manager can be temporarily muted by commenting out the section starting from around line 1173.
-
-
-
-V. Testing:  (For each test case, you must show)
-+ How to test
 Call nachos with -T in order to launch the test suite provided to test part 1.
-Call nachos with -P2 -rs -#, with # being a number of your choice to test part 2. 
+Call nachos with -P2 -rs -#, with # being a number of your choice to test part 2. Then enter the number that corresponds with the test you want to conduct. 
 
 + Test Output
 Starting Test 1.
@@ -156,6 +125,28 @@ Error: Incorrect lock used.
 t5_t2: Releasing Lock t5_l2
 t5_t2: Releasing Lock t5_l1
 
+Part 2:
+Problem 2 Start
+Please choose an option to test:
+1: Patient-DoorBoy-Doctor Interaction Test
+2: DoorBoy Break Test
+3: Patient Line-Choosing Test
+4: Patient Line-Waiting Test
+5: Doctor Break Test
+6: Job Break and Hospital Manager Test
+7: Hospital Fee Test
+8: Custom Simulation
+
+2-1: Shows outputs for DoorBoy, Patient, and Doctor interaction only
+2-2: Shows outputs for DoorBoy and Patient only
+2-3: Shows outputs for Patient, Receptionist, Cashier, and PharmacyClerk. Additionally prints information about the line length.
+2-4: Shows outputs for Receptionist and patient only
+2-5: Shows outputs for Patient and Doctor only
+2-6: Shows outputs pertaining to breaks and Patient outputs only
+2-7: Shows patient coming in and leaving, and prints fees only
+2-8: Prompts user for number of each job, and prints entire script without omissions
+
+
 VI. Discussion:
 + Experiment expectation.  (What you hope will happen.)
 In part 1:
@@ -165,6 +156,17 @@ Test 3 shows what happens when multiple threads wait on the same condition varia
 Test 4 shows what happens when multiple threads wait on the same condition variable and a broadcast is sent. The broadcast should work up all the threads that wait on it.
 Test 5 shows what happens when a condition variable is signaled with a different lock then the one used by the other thread to wait with. The output should show an error message about this and the first thread should not complete.
 
+Part 2:
+In the first test, the patient will wait until the doorboy and the doctor signal to the patient, then get examined and leave.
+In the second test, the doorBoys will all go on break and the patients will be left with nothing to do after meeting the receptionists, therefore ending the simulation.
+In the third test,
+In the fourth test, the patients will wait for the receptionists, but since there are none, the simulation will end. 
+In the fifth test, the Doctor will tell the DoorBoy he is going on a break and state for how many milliseconds. The doctor will then leave permanently, and the simulation will end. 
+In the sixth test, the free jobs will go on break until they are woken up as needed by the Hospital Manager. 
+In the seventh test, the hospital manager will report the fees for consulting and pharmacy. The cost of medicine is 25 per person and the consulting fee is 40 per person. 
+
+
+
 + Experiment result.  (What actually happens.)
 In part 1:
 Test 1: The first thread acquires lock t1_l1. Threads 2 and 3 try to acquire and release the lock t1_l1. Error messages appear for each saying only the owner can acquire the lock. The first thread releases the lock. The 2nd thread then acquires the lock.
@@ -173,6 +175,9 @@ Test 3: Waiters 0-5 acquire the lock t3_l1 and all wait on the CV t3_c1 in seque
 Test 4: Waiters 0-5 acquire the lock t4_l1 and all wait on t4_c1. The signaler acquires the lock and broadcasts onto t4_c1. Each waiter is freed from t4_c1.
 Test 5: The first thread waits on CV t5_c1 using lock t5_l1. The second thread acquires t5_l2 and tries to use it to signal the CV. The error message appears saying the wrong lock is used.
 
+In part 2:
+Test 1:
+
 + Explanation
 In part 1:
 Test 1: This test works because the error messages appeared when the access violation occurred instead of ending the test. The first thread can still release the lock afterwards for it to be acquired by another.
@@ -180,3 +185,20 @@ Test 2: This test works because the 2nd thread is shown to not continue when the
 Test 3: This test works because only the first waiter is freed from the CV instead of any other or all.
 Test 4: This test works because every waiter wakes up after a broadcast is called on the CV by the signaler.
 Test 5: This test is shown to work because the error messages occur when trying to signal using the wrong lock. The waiting thread is not woken up, which shows the access violation was caught and annulled.
+
+In part 2:
+Test 1: Works because the patient must wait for the doorBoy to signal it to go to a doctor, and the doorBoy can only signal once it receives an OK from the doctor.
+Test 2: Works because without the doorBoy to let them pass, the Patients are stuck in place. 
+Test 3: 
+Test 4: This test works because the patient needs the token from the receptionist to pass, but there are no receptionists so the patient cannot continue. 
+Test 5: This test works because although the patients that were served pass successfully, the doctors  do not come back and the remaining patients cannot continue without a diagnosis.
+Test 6: The test works because the hospital manager checks every line to make sure there aren't any waiting patients, and notifies the corresponding worker if there is. Since the code that handles breaks is separate from the core function, it causes no problem to any job's core operation. 
+Test 7: The test works because the sickness is held constant so we can accurately track how many times the fee is paid. Since the shared data is securely controlled by locks, even with race conditions nothing abnormal happens to the fees. 
+
+The sixth test deviates a little because with the exception of the DoorBoy, the jobs will attempt to serve at least one person before going on break, similar to a do-while loop. 
+
+VII. Miscellaneous:
+The hospital manager outputs the total consultation fee and total medicine fees. These messages can obscure the more important messages.
+The manager can be temporarily muted by commenting out the section starting from around line 1173.
+
+

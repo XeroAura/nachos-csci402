@@ -1498,8 +1498,8 @@ Problem2() {
 	printf("3: Patient Line-Choosing Test\n");
 	printf("4: Patient Line-Waiting Test\n");
 	printf("5: Doctor Break Test\n");
-	printf("6: Hospital Fee Test\n");
-	printf("7: Misc. Job Break Test\n");	
+	printf("6: Job Break and Hospital Manager Test\n");
+	printf("7: Hospital Fee\n");	
 	printf("8: Custom Simulation \n");
 	scanf("%d",&menu);
 
