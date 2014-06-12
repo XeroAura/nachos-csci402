@@ -543,10 +543,13 @@ Patient(int index){
 			break;
 		}
 	}
-	if (testNum == 4 || testNum == 5 || testNum == 9 || testNum == 10){
+	if (testNum == 3 || testNum == 4 || testNum == 8){
 		printf("Patient %d is waiting on Receptionist %d. \n", index, lineIndex);
 	}
 	if(shortest > -1 && (recState[lineIndex] == 1 || recState[lineIndex] == 2)){ //All Receptionists are busy, wait in line
+		if (testNum == 3){
+			printf("The line Patient %d is entering is currently %d people long. \n",index, clerkLineCount[lineIndex]);
+		}
 		recLineCount[lineIndex]++; //Increment shortest line length
 		recLineCV[lineIndex]->Wait(recLineLock); //Wait till called
 		recLineCount[lineIndex]--; //Decrement after being woken
@@ -556,7 +559,7 @@ Patient(int index){
 	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist ready
 	recCV[lineIndex]->Wait(recLock[lineIndex]); //Wait for receptionist to reply
 	int myToken = recTokens[lineIndex]; //Take token from receptionist
-	if (testNum == 4 || testNum == 5 || testNum == 9 || testNum == 10){	
+	if ( testNum == 3  || testNum == 8){	
 		printf("Patient %d has recieved Token %d from Receptionist %d \n",index, myToken, lineIndex);
 	}
 	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist token taken
@@ -569,11 +572,11 @@ Patient(int index){
 	* Doorboy
 	*/
 	doorBoyLineCount++; //Increments line count by one
-	if (testNum == 1 || testNum == 2 || testNum == 9 || testNum == 10){
+	if (testNum == 1 || testNum == 2 || testNum == 8){
 		printf("Patient %d is waiting on a DoorBoy \n",index);
 	}
 	doorBoyLineCV->Wait(doorBoyLineLock); //Wait for doorboy to call
-	if (testNum == 1 || testNum == 2 || testNum == 9 || testNum == 10){
+	if (testNum == 1 || testNum == 2 || testNum == 8){
 		printf("Patient %d was signaled by a DoorBoy\n", index);
 	}
 	
@@ -599,7 +602,7 @@ Patient(int index){
 	doorBoyPatientRoomLock->Acquire();
 	int docIndex = doorBoyPatientRoom[myDoorBoy];
 	doorBoyPatientRoomLock->Release();
-	if (testNum == 1 || testNum == 2 ||  testNum == 7 || testNum == 9 || testNum == 10){
+	if (testNum == 1 || testNum == 2 || testNum == 8){
 		printf("Patient %d has been told by DoorBoy %d to go to Examining Room %d \n", myToken, myDoorBoy, docIndex);		
 	}
 	
@@ -611,7 +614,7 @@ Patient(int index){
 	/*
 	* Doctor
 	*/
-	if (testNum == 1 || testNum == 2 ||  testNum == 6 || testNum == 9 || testNum == 10){
+	if (testNum == 1 || testNum == 2 || testNum == 8){
 		printf("Patient %d is going to Examining Room %d \n", myToken, docIndex);
 	}
 	docState[docIndex] = 1; //Set doctor to busy
@@ -624,7 +627,7 @@ Patient(int index){
 	docToken[docIndex] = myToken; //Give token to doctor
 	docTokenLock->Release();
 
-	if (testNum == 1 || testNum == 2 ||  testNum == 6 || testNum == 9 || testNum == 10){	
+	if (testNum == 1 || testNum == 2 ||testNum == 8){	
 		printf("Patient %d is waiting to be examined by the Doctor in ExaminingRoom %d \n", myToken, docIndex);
 	}
 	if(myToken == 0 || myToken == 1){
@@ -638,7 +641,7 @@ Patient(int index){
 	
 	docPrescriptionLock->Acquire();
 	int myPrescription = docPrescription[docIndex]; //Takes prescription
-	if (testNum == 8 || testNum == 10){
+	if (testNum == 8){
 		if(myPrescription == 0){
 			printf("Patient %d is not sick in Examining Room %d \n", myToken, docIndex);
 		}
@@ -649,11 +652,11 @@ Patient(int index){
 	}
 	docPrescriptionLock->Release();
 	docCV[docIndex]->Signal(docLock[docIndex]); //Notifies doctor that patient took prescrip.
-	if (testNum == 10){
+	if (testNum == 8){
 		printf("Patient %d in Examining Room %d is waiting for the Doctor to come back from the Cashier \n", myToken, docIndex);
 	}
 	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to return from cashier
-	if (testNum == 10){
+	if (testNum == 8){
 		printf("Patient %d is leaving Examining Room %d\n", myToken, docIndex);
 	}	
 	docLock[docIndex]->Release();
@@ -677,13 +680,16 @@ Patient(int index){
 		}
 	}
 	if(shortest > -1 && (cashierState[lineIndex] == 1 || cashierState[lineIndex] == 2)){ //All cashier are busy, wait in line
+		if (testNum == 3){
+			printf("The line Patient %d is entering is currently %d people long. \n",index, clerkLineCount[lineIndex]);
+		}
 		cashierLineCount[lineIndex]++; //Increment shortest line length
 		cashierLineCV[lineIndex]->Wait(cashierLineLock); //Wait till called
 		cashierLineCount[lineIndex]--; //Decrement after being woken
 	}
 	cashierLineLock->Release(); //Release lock on line
 	cashierLock[lineIndex]->Acquire(); //Acquire lock to cashier
-	if (testNum == 4 || testNum == 5 || testNum == 10){
+	if ( testNum == 3 || testNum == 8){
 		printf("Patient %d is waiting to see Cashier %d\n", myToken, lineIndex);
 	}
 	cashierTokenLock->Acquire();
@@ -695,11 +701,11 @@ Patient(int index){
 	cashierFeeLock->Acquire();
 	int myFee = cashierFee[lineIndex]; //Get fee from cashier
 	cashierFeeLock->Release();
-	if (testNum == 7 || testNum == 10){
+	if (testNum == 8){
 		printf("Patient %d is paying their consultancy fees of %d\n", myToken, myFee);
 	}
 	cashierCV[lineIndex]->Signal(cashierLock[lineIndex]); //Give cashier cash
-	if (testNum == 10){	
+	if (testNum == 8){	
 		printf("Patient %d is leaving Cashier %d\n", myToken, lineIndex);
 	}
 	cashierLock[lineIndex]->Release();
@@ -723,6 +729,9 @@ Patient(int index){
 			}
 		}
 		if(shortest > -1 && (clerkState[lineIndex] == 1|| clerkState[lineIndex] == 2)){ //All clerk are busy, wait in line
+			if (testNum == 3){
+				printf("The line Patient %d is entering is currently %d people long. \n",index, clerkLineCount[lineIndex]);
+			}
 			clerkLineCount[lineIndex]++; //Increment shortest line length
 			clerkLineCV[lineIndex]->Wait(clerkLineLock); //Wait till called
 			clerkLineCount[lineIndex]--; //Decrement after being woken
@@ -740,20 +749,20 @@ Patient(int index){
 		clerkPrescriptionLock->Release();
 		
 		clerkCV[lineIndex]->Signal(clerkLock[lineIndex]); //Wake clerk up
-		if(testNum == 10){
+		if(testNum == 3 || testNum == 8){
 			printf("Patient %d is waiting to see PharmacyClerk %d\n", myToken, lineIndex);
 		}
 		clerkCV[lineIndex]->Wait(clerkLock[lineIndex]);
 		
 		medicineFeeLock->Acquire();
 		int myMedicineFee = medicineFee[lineIndex]; //Receive fee and meds from clerk
-		if(testNum == 10){
+		if(testNum == 8){
 			printf("Patient %d is paying their prescription fees of %d\n", myToken, myMedicineFee);
 		}
 		medicineFeeLock->Release();
 		
 		clerkCV[lineIndex]->Signal(clerkLock[lineIndex]); //Pay clerk
-		if(testNum == 10){
+		if(testNum == 3 || testNum == 8){
 			printf("Patient %d is leaving PharmacyClerk %d\n", myToken, lineIndex);
 		}
 		clerkLock[lineIndex]->Release();
@@ -771,7 +780,7 @@ Receptionist(int index){
 		recLineLock->Acquire(); //Acquire line lock
 		recState[index]=0; //Set self to not busy
 		if(recLineCount[index] > 0) { //Check to see if anyone in line
-			if(testNum == 10){
+			if(testNum == 8){
 				printf("Receptionist %d has signaled a Patient. \n",index);
 			}
 			recLineCV[index]->Signal(recLineLock); //Signal first person in line
@@ -782,7 +791,7 @@ Receptionist(int index){
 		recCV[index]->Wait(recLock[index]); //Wait for patient to arrive
 		tokenLock->Acquire(); //Acquire token lock
 		recTokens[index]=nextToken; //Provide token to patient
-		if(testNum == 10){
+		if(testNum == 8){
 			printf("Receptionist %d gives Token %d to a Patient. \n",index,nextToken);
 		}
 		nextToken++; //Increment token count
@@ -794,14 +803,14 @@ Receptionist(int index){
 		//Take break check
 		recLineLock->Acquire();
 		if(recLineCount[index] == 0){ //If noone in line
-			if(testNum == 10){
+			if(testNum == 8){
 				printf("Receptionist %d is going on break. \n",index);
 			}
 			recState[index] = 2; //Set to on-break
 			receptionistBreakLock->Acquire();
 			recLineLock->Release();
 			receptionistBreakCV[index]->Wait(receptionistBreakLock); //Set condition for manager to callback
-			if(testNum == 10){
+			if(testNum == 8){
 				printf("Receptionist %d is coming off break. \n",index);
 			}
 			receptionistBreakLock->Release();
@@ -845,8 +854,9 @@ Door_Boy(int index){
 					doctorDoorBoyCV[docNum]->Signal(dbbLock); //Wake doctor to treat
 				}
 				else{ //Wait for doctor
-					if(testNum == 1 || testNum == 10){}
+					if(testNum == 1 || testNum == 8){
 						printf("DoorBoy %d is waiting for a Doctor\n", index);
+					}
 					doorBoyDoctorCount++;
 					
 					doorBoyLineLock->Acquire();
@@ -863,8 +873,9 @@ Door_Boy(int index){
 				int docIndex = 0;
 			for(int i = 0; i < docCount; i++){ //Goes through each doctor
 				if(docState[i] == 0){ //Finds first one ready
-					if(testNum == 1 || testNum == 10){}
+					if(testNum == 1 || testNum == 8){
 						printf("DoorBoy %d has been told by Doctor %d to bring a Patient.\n", index, docIndex);
+					}
 					docState[i] = 3; //Claims doctor as own
 					docIndex = i;
 					break;
@@ -880,7 +891,7 @@ Door_Boy(int index){
 			
 			doorBoyPatientLock->Acquire();
 			doorBoyLineLock->Release();
-			if(testNum == 1 || testNum == 10){			
+			if(testNum == 1 || testNum == 8){			
 				printf("DoorBoy %d has signaled a Patient.\n",index);
 			}
 			doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to arrive
@@ -888,7 +899,7 @@ Door_Boy(int index){
 			doorBoyTokenLock->Acquire();
 			int token = doorBoyToken[index]; //Get token from patient
 			doorBoyTokenLock->Release();
-			if(testNum == 1 || testNum == 10){
+			if(testNum == 1 || testNum == 8){
 				printf("DoorBoy %d has received Token %d from Patient %d\n", index, token, token);
 			}
 			doorBoyPatientRoomLock->Acquire();
@@ -896,7 +907,7 @@ Door_Boy(int index){
 			doorBoyPatientRoomLock->Release();
 			
 			doorBoyPatientCV[index]->Signal(doorBoyPatientLock); //Wake up patient to take room
-			if(testNum == 1 || testNum == 10){
+			if(testNum == 1 || testNum == 8){
 				printf("DoorBoy %d has told Patient %d to go to Examining Room %d \n", index, token, docIndex);
 			}
 			doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to get room
@@ -905,13 +916,13 @@ Door_Boy(int index){
 		}
 		else{ //Noone in line
 			doorBoyState[index] = 2;
-			if(testNum == 1 || testNum == 2 || testNum == 10){
+			if(testNum == 1 || testNum == 2 || testNum == 6 || testNum == 8){
 				printf("DoorBoy %d is going on break because there are no Patients. \n",index);
 			}
 			doorBoyLineLock->Release();
 			doorBoyBreakLock->Acquire();
 			doorBoyBreakCV[index]->Wait(doorBoyBreakLock); //Set condition for manager to callback
-			if(testNum == 1 || testNum == 2 || testNum == 10){
+			if(testNum == 1 || testNum == 2 || testNum == 6 || testNum == 8){
 				printf("DoorBoy %d is coming off break. \n",index);
 			}
 			
@@ -960,7 +971,7 @@ Doctor(int index){
 			doctorDoorBoyCV[index]->Wait(dbbLock);
 			//printf("~~~~~Doctor %d has awakened!\n", index);
 		}
-		if(testNum == 1 || testNum == 10){
+		if(testNum == 1 || testNum == 8){
 			printf("Doctor %d has told a DoorBoy to bring a Patient to Examining Room %d \n",index, index);
 		}
 		dbbLock->Release();
@@ -972,7 +983,7 @@ Doctor(int index){
 		docTokenLock->Acquire();
 		int token = docToken[index]; //Get patient's token number
 		docTokenLock->Release();
-		if(testNum == 1 || testNum == 10){
+		if(testNum == 1 || testNum == 8){
 			printf("Doctor %d is examining a Patient with Token %d \n",index, token);
 		}
 		int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
@@ -985,7 +996,7 @@ Doctor(int index){
 		if (testNum == 8){
 			sickTest = 1; //Making sickness static for test 8
 		}
-		if(testNum == 10){
+		if(testNum == 8){
 			if(sickTest == 0){
 				printf("Doctor %d has determined that the Patient with Token %d is not sick\n", index, token);
 			}
@@ -995,7 +1006,7 @@ Doctor(int index){
 		}
 		docPrescriptionLock->Acquire();
 		docPrescription[index] = sickTest; //Tells patient illness and prescription
-		if(testNum == 10){
+		if(testNum == 8){
 			printf("Doctor %d is prescribing medicine type %d to the Patient with Token %d \n", index, sickTest, token);
 		}
 		docPrescriptionLock->Release();
@@ -1007,33 +1018,33 @@ Doctor(int index){
 		consultLock->Acquire();
 		consultationFee[token] = sickTest*20+20;
 		consultLock->Release();
-		if(testNum == 1 || testNum == 10){		
+		if(testNum == 1 || testNum == 8){		
 			printf("Doctor %d tells Patient with Token %d they can leave \n", index, token);
 		}
 		docCV[index]->Signal(docLock[index]);//Tell patient ok to go
 		docLock[index]->Release();
 		
 		int breakVal = rand()%100; //Generate break value
-		if(breakVal > 30 || (testNum == 6)){ //Take break for random time
-			if (testNum == 6 || testNum == 10){
+		if(breakVal > 30 || (testNum == 5)){ //Take break for random time
+			if (testNum == 5 || testNum == 8){
 				printf("Doctor %d tells a DoorBoy he is going on break \n", index);
 			}
 			docReadyLock->Acquire(); //Acquire doctor ready lock
 			docState[index] = 2; //Sets own state to ready
 			docReadyLock->Release();
 			int breakTimeVal = rand()%11+5; //Random between 5 and 15
-			if (testNum == 6){
+			if (testNum == 5){
 				printf("Doctor %d is going on break for %d milliseconds. \n",index, breakTimeVal);
 			}
 			for(int i = 0; i < breakTimeVal; i++){
 				currentThread->Yield();
 			}
-			if (testNum == 6 || testNum == 10){
+			if (testNum == 5 || testNum == 8){
 				printf("Doctor %d tells a DoorBoy he is coming off break \n", index);
 			}
 		}
-		if (testNum == 6){
-			printf("To simulate test 6, Doctor %d is quitting. \n",index);
+		if (testNum == 5){
+			printf("To simulate test 5, Doctor %d is quitting. \n",index);
 			break;
 		}
 	}
@@ -1047,7 +1058,7 @@ Cashier(int index){
 		
 		if(cashierLineCount[index] > 0) { //Check to see if anyone in line
 			cashierLineCV[index]->Signal(cashierLineLock); //Signal first person in line
-			if (testNum == 4 || testNum == 5 || testNum == 9 || testNum == 10){
+			if (testNum == 3 || testNum == 8){
 				printf("Cashier %d has signaled a Patient \n", index);
 			}
 			cashierState[index]=1; //Set self to busy
@@ -1060,7 +1071,7 @@ Cashier(int index){
 		
 		cashierTokenLock->Acquire();
 		int token = cashierToken[index]; //Get token from patient
-		if (testNum == 4 || testNum == 5 || testNum == 9 || testNum == 10){
+		if (testNum == 3 || testNum == 8){
 
 			printf("Cashier %d gets Token %d from a Patient \n", index, token);
 		}
@@ -1075,11 +1086,11 @@ Cashier(int index){
 		cashierFeeLock->Release();
 		
 		cashierCV[index]->Signal(cashierLock[index]); //Tell patient fee
-		if (testNum == 4 || testNum == 5 || testNum == 8 || testNum == 9 || testNum == 10){
+		if (testNum == 3 || testNum == 8){
 			printf("Cashier %d tells Patient with Token %d they owe %d \n", index, token, fee);
 		}
 		cashierCV[index]->Wait(cashierLock[index]); //Wait for patient to give money
-		if (testNum == 4 || testNum == 5 || testNum == 8 || testNum == 9 || testNum == 10){
+		if (testNum == 3 || testNum == 8){
 
 			printf("Cashier %d receives fees from Patient with Token %d \n", index, token);
 		}		
@@ -1092,14 +1103,14 @@ Cashier(int index){
 		//Take break check
 		cashierLineLock->Acquire();	
 		if(cashierLineCount[index] == 0){ //If noone in line
-			if (testNum == 9 || testNum == 10){
+			if (testNum == 6 || testNum == 8){
 				printf("Cashier %d is going on break \n", index);
 			}
 			cashierState[index] = 2; //Set to on-break
 			cashierBreakLock->Acquire();
 			cashierLineLock->Release();
 			cashierBreakCV[index]->Wait(cashierBreakLock); //Set condition for manager to callback
-			if (testNum == 9 || testNum == 10){
+			if (testNum == 6 || testNum == 8){
 				printf("Cashier %d is coming off break \n", index);
 			}
 			cashierBreakLock->Release();
@@ -1117,7 +1128,7 @@ Clerk(int index){
 		clerkState[index]=0; //Set self to not busy
 		
 		if(clerkLineCount[index] > 0) { //Check to see if anyone in line
-			if (testNum == 4 || testNum == 5 || testNum == 9 || testNum == 10){
+			if (testNum == 3 || testNum == 8){
 				printf("PharmacyClerk %d has signaled a Patient. \n",index);
 			}
 			clerkLineCV[index]->Signal(clerkLineLock); //Signal first person in line
@@ -1134,7 +1145,7 @@ Clerk(int index){
 		
 		clerkPrescriptionLock->Acquire();
 		int prescription = clerkPrescription[index]; //Get prescription from patient
-		if (testNum == 4 || testNum == 5 || testNum == 9 || testNum == 10){
+		if (testNum == 3 || testNum == 8){
 			printf("PharmacyClerk %d gets Prescription %d from Patient with Token %d \n", index, prescription, token);
 		}
 		clerkPrescriptionLock->Release();
@@ -1145,13 +1156,13 @@ Clerk(int index){
 		medicineFeeLock->Acquire();
 		medicineFee[index] = fee; //Tell patient fee
 		medicineFeeLock->Release();
-		if (testNum == 4 || testNum == 5 || testNum == 8 || testNum == 9 || testNum == 10){
+		if (testNum == 3 || testNum == 8){
 			printf("PharmacyClerk %d gives Prescription %d from Patient with Token %d \n", index, prescription, token);
 			printf("PharmacyClerk %d tells Patient with Token %d they owe %d \n", index, token, fee);
 		}
 		clerkCV[index]->Signal(clerkLock[index]);
 		clerkCV[index]->Wait(clerkLock[index]); //Wait for patient to give money and take prescription
-		if (testNum == 4 || testNum == 5 || testNum == 8 || testNum == 9 || testNum == 10){
+		if (testNum == 3 || testNum == 8){
 			printf("Pharmacyclerk %d gets money from Patient with Token %d \n", index, token);
 		}
 		totalMedicineLock->Acquire();
@@ -1165,13 +1176,13 @@ Clerk(int index){
 		if(clerkLineCount[index] == 0){ //If noone in line
 			clerkState[index] = 2; //Set to on-break
 			clerkLineLock->Release();
-			if (testNum == 9 || testNum == 10){
+			if (testNum == 6 || testNum == 8){
 				printf("PharmacyClerk %d is going on break. \n",index);
 			}
 			clerkBreakLock->Acquire();
 			clerkBreakCV[index]->Wait(clerkBreakLock); //Set condition for manager to callback
 			clerkBreakLock->Release();
-			if (testNum == 9 || testNum == 10){
+			if (testNum == 6 || testNum == 8){
 				printf("PharmacyClerk %d is coming off break. \n",index);
 			}
 		}
@@ -1203,7 +1214,7 @@ Manager(){
 				if(recState[i] == 2 ){
 					receptionistBreakLock->Acquire();
 					//Set receptionist to off break
-					if (testNum == 7 || testNum == 10){
+					if (testNum == 6 || testNum == 8){
 						printf("HospitalManager signaled a Receptionist to come off break\n");
 					}
 					receptionistBreakCV[i]->Signal(receptionistBreakLock);
@@ -1222,7 +1233,7 @@ Manager(){
 				if(doorBoyState[i] == 2){
 					doorBoyBreakLock->Acquire();
 					//Set door boy to off break
-					if (testNum == 7 || testNum == 10){
+					if (testNum == 6 || testNum == 8){
 						printf("HospitalManager signaled a DoorBoy to come off break\n");
 					}
 					doorBoyBreakCV[i]->Signal(doorBoyBreakLock);
@@ -1237,7 +1248,7 @@ Manager(){
 	for( int i = 0; i < cashierCount; i++){
 			if(cashierLineCount[i] > 0 && cashierState[i] == 2){ //Check if any patient in line
 				cashierBreakLock->Acquire();
-				if (testNum == 7 || testNum == 10){
+				if (testNum == 6 || testNum == 8){
 					printf("HospitalManager signaled a Cashier to come off break\n");
 				}
 				cashierBreakCV[i]->Signal(cashierBreakLock); //Set cashier to off break
@@ -1254,7 +1265,7 @@ Manager(){
 		for(int i = 0; i<clerkCount; i++){
 			if(clerkLineCount[i] > 0 && clerkState[i] == 2){
 				clerkBreakLock->Acquire();
-				if (testNum == 7 || testNum == 10){
+				if (testNum == 6 || testNum == 8){
 					printf("HospitalManager signaled a PharmacyClerk to come off break\n");
 				}
 				clerkBreakCV[i]->Signal(clerkBreakLock);
@@ -1270,21 +1281,20 @@ Manager(){
 		if (testNum == 7){
 			totalFeeLock->Acquire();
 			int myConsultFee = totalConsultationFee;
-			if (testNum == 8 || testNum == 10){
-				printf("HospitalManager reports that total consultancy fees are %d\n", myConsultFee);
-			}
+			printf("HospitalManager reports that total consultancy fees are %d\n", myConsultFee);
 			totalFeeLock->Release();
 
 			totalMedicineLock->Acquire();
 			int myMedicineFee = totalMedicineCost;
-			if (testNum == 8 || testNum == 10){
-				printf("HospitalManager reports total sales in pharmacy are %d\n", myMedicineFee);
-			}
+			printf("HospitalManager reports total sales in pharmacy are %d\n", myMedicineFee);
 			totalMedicineLock->Release();
 		}
 		/* 
 		* COMMENT OUT BETWEEM TO REMOVE SPAM FROM HOSPITAL MANAGER 
 		*/
+		if (testNum == 2 || testNum == 4 || testNum == 5 || testNum == 6){
+			break;
+		}
 
 		if (completedPatientThreads == numPatients){
 			// printf("No patients left, Manager leaving \n");
@@ -1439,13 +1449,6 @@ InitializeThreads(){
 		t->Fork((VoidFunctionPtr) Receptionist,i);
 	}
 
-	for (int i = 0; i < numPatients; i++){
-		name = new char [20];
-		sprintf(name,"Patient %d",i);
-		t = new Thread(name);
-		t->Fork((VoidFunctionPtr) Patient,i);
-	}
-
 	for (int i = 0; i < doorBoyCount; i++){
 		name = new char [20];
 		sprintf(name,"Door Boy %d",i);
@@ -1469,6 +1472,14 @@ InitializeThreads(){
 
 	t = new Thread("Manager");
 	t->Fork((VoidFunctionPtr) Manager, 1);
+
+	for (int i = 0; i < numPatients; i++){
+		name = new char [20];
+		sprintf(name,"Patient %d",i);
+		t = new Thread(name);
+		t->Fork((VoidFunctionPtr) Patient,i);
+	}
+
 }
 
 //Tests and test threads for part 2 of the first assignment
@@ -1481,14 +1492,12 @@ Problem2() {
 	printf("Please choose an option to test: \n");
 	printf("1: Patient-DoorBoy-Doctor Interaction Test\n");
 	printf("2: DoorBoy Break Test \n");
-	printf("3: Patient-Doctor Interaction Test \n");
-	printf("4: Patient Line-Choosing Test\n");
-	printf("5: Patient Line-Waiting Test\n");
-	printf("6: Doctor Break Test\n");
-	printf("7: Hospital Manager Test\n");
-	printf("8: Hospital Fee Test\n");
-	printf("9: Misc. Job Break Test\n");	
-	printf("10: Custom Simulation \n");
+	printf("3: Patient Line-Choosing Test\n");
+	printf("4: Patient Line-Waiting Test\n");
+	printf("5: Doctor Break Test\n");
+	printf("6: Hospital Fee Test\n");
+	printf("7: Misc. Job Break Test\n");	
+	printf("8: Custom Simulation \n");
 	scanf("%d",&menu);
 
 	recCount = 2;
@@ -1524,27 +1533,58 @@ Problem2() {
 			InitializeThreads();
 			break;
 		}
-		case 4:
+		case 3:
 		{
+			testNum = 3;
+			recCount = 1;
+			docCount = 2;
+			doorBoyCount = 2;	
+			cashierCount = 1;
+			clerkCount = 1;
+			numPatients = 5;
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 3\n");
+			printf("Patients always choose the shortest line with the Cashier, PharmacyClerk and Receptionist. \n \n");		
+			InitializeThreads();
+			break;
+		}
+		case 4:
+		{	
+			recCount = 0;
+			cashierCount = 0;
+			clerkCount = 0;
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 4\n");
+			printf("If there is no Cashier/PharmacyClerk/Receptionist the patient must wait in line. \n \n");		
 			testNum = 4;
 			InitializeThreads();
 			break;
 		}
 		case 5:
 		{
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 5\n");
+			printf("Doctors go on break at random intervals. \nWhen the Doctor is at break no patient gets in to that examining room. \nIf all Doctors are on break, all Patients wait.\n");
 			testNum = 5;
+			numPatients = 10;
 			InitializeThreads();
 			break;
 		}
 		case 6:
 		{
 			testNum = 6;
-			numPatients = 10;
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 6\n");
+			printf("DoorBoy/Cashier/PharmacyClerk gett signaled by hospital manager when patients are waiting.\n");			
+			printf("DoorBoy/PharmacyClerk/Receptionist/Cashier go on break if their line is empty. \n");
 			InitializeThreads();
 			break;
 		}
 		case 7:
 		{
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 7\n");
+			printf("The total sales of medicines and the total consultation fees never get affected by race conditions. \n");
 			testNum = 7;
 			InitializeThreads();
 			break;
@@ -1552,18 +1592,6 @@ Problem2() {
 		case 8:
 		{
 			testNum = 8;
-			InitializeThreads();
-			break;
-		}
-		case 9:
-		{
-			testNum = 9;
-			InitializeThreads();
-			break;
-		}
-		case 10:
-		{
-			testNum = 10;
 			printf("Enter how many receptionists to have in the office (between 2 and 5): ");
 			scanf("%d",&recCount);
 			printf("Enter how many patients to have in the office (between 5 and 20): ");

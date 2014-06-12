@@ -20,6 +20,7 @@ Part 2 assumes that part 1 was done correctly.
 User input is as allowed by assignment requirements and instructions.
 Assumes that the Doctor going on break once is sufficient to test all three of the doctor break-related tests. 
 Assumes that a thread on break is equivalent to not existing, therefore making it easier to test what happens when all threads of a certain type are on break. 
+Assumes the line algorithm for Receptionist, Cashier, and Pharmacy Clerk are identical.
 
 III. Design:
 The first part is heavily based on what Professor Crowley discussed in class lectures. 
@@ -69,7 +70,9 @@ V. Testing:  (For each test case, you must show)
 VI. Discussion:
 + Experiment expectation.  (What you hope will happen.)
 In the first test, the patient will wait until the doorboy and the doctor signal to the patient, then get examined and leave.
-In the second test, the doorBoys will all leave and the patients will be left with nothing to do after meeting the receptionists, therefore ending the simulation.
+In the second test, the doorBoys will all go on break and the patients will be left with nothing to do after meeting the receptionists, therefore ending the simulation.
+
+
 
 + Experiment result.  (What actually happens.)
 
