@@ -18,6 +18,8 @@ II. Assumptions:
 Assuming that the base Nachos code is working as intended.
 Part 2 assumes that part 1 was done correctly.
 User input is as allowed by assignment requirements and instructions.
+For testing purposes, assumes that testing how the line system between Patient and Receptionist is all that is necessary since the code for that interaction and the interactions for Cashier and PharmacyClerk are identical. 
+Assumes that the Doctor going on break once is sufficient to test all three of the doctor break-related tests. 
 
 III. Design:
 - This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  
