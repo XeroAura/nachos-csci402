@@ -548,7 +548,7 @@ Patient(int index){
 	}
 	if(shortest > -1 && (recState[lineIndex] == 1 || recState[lineIndex] == 2)){ //All Receptionists are busy, wait in line
 		if (testNum == 3){
-			printf("The line Patient %d is entering is currently %d people long. \n",index, clerkLineCount[lineIndex]);
+			printf("The line Patient %d is entering is for receptionist %d and is currently %d people long. \n",index, lineIndex, recLineCount[lineIndex]);
 		}
 		recLineCount[lineIndex]++; //Increment shortest line length
 		recLineCV[lineIndex]->Wait(recLineLock); //Wait till called
@@ -681,7 +681,7 @@ Patient(int index){
 	}
 	if(shortest > -1 && (cashierState[lineIndex] == 1 || cashierState[lineIndex] == 2)){ //All cashier are busy, wait in line
 		if (testNum == 3){
-			printf("The line Patient %d is entering is currently %d people long. \n",index, clerkLineCount[lineIndex]);
+			printf("The line Patient %d is entering belongs to Cashier %d and is currently %d people long. \n",index, lineIndex,cashierLineCount[lineIndex]);
 		}
 		cashierLineCount[lineIndex]++; //Increment shortest line length
 		cashierLineCV[lineIndex]->Wait(cashierLineLock); //Wait till called
@@ -730,7 +730,7 @@ Patient(int index){
 		}
 		if(shortest > -1 && (clerkState[lineIndex] == 1|| clerkState[lineIndex] == 2)){ //All clerk are busy, wait in line
 			if (testNum == 3){
-				printf("The line Patient %d is entering is currently %d people long. \n",index, clerkLineCount[lineIndex]);
+				printf("The line Patient %d is entering is for Pharmacy Clerk %d and is currently %d people long. \n",index, lineIndex, clerkLineCount[lineIndex]);
 			}
 			clerkLineCount[lineIndex]++; //Increment shortest line length
 			clerkLineCV[lineIndex]->Wait(clerkLineLock); //Wait till called
@@ -1539,12 +1539,12 @@ Problem2() {
 		case 3:
 		{
 			testNum = 3;
-			recCount = 1;
+			recCount = 2;
 			docCount = 2;
 			doorBoyCount = 2;	
-			cashierCount = 1;
-			clerkCount = 1;
-			numPatients = 5;
+			cashierCount = 2;
+			clerkCount = 2;
+			numPatients = 6;
 			printf("-----------------------------------------------------------------------\n");
 			printf("Test 3\n");
 			printf("Patients always choose the shortest line with the Cashier, PharmacyClerk and Receptionist. \n \n");		
