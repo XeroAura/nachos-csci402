@@ -245,3 +245,16 @@ void AddrSpace::RestoreState()
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
 }
+
+#ifdef CHANGED
+struct ProcessEntry {
+    int threadCount;
+    AddressSpace* as;
+    ThreadEntry threads[100];
+};
+
+struct ThreadEntry {
+    int firstStackPage;
+    Thread* myThread;
+};
+#endif
