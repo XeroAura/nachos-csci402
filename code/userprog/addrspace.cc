@@ -247,6 +247,8 @@ void AddrSpace::RestoreState()
 }
 
 #ifdef CHANGED
+Table ProcessTable;
+
 struct ProcessEntry {
     int threadCount;
     AddressSpace* as;
