@@ -29,6 +29,8 @@
 #define SC_Close	8
 #define SC_Fork		9
 #define SC_Yield	10
+
+#ifdef CHANGED
 #define SC_CreateLock 11
 #define SC_DestroyLock 12
 #define SC_Acquire 13
@@ -38,6 +40,7 @@
 #define SC_Wait 17
 #define SC_Signal 18
 #define SC_Broadcast 19
+#endif
 
 #define MAXFILENAME 256
 
@@ -134,6 +137,28 @@ void Fork(void (*func)());
  * or not. 
  */
 void Yield();		
+
+#ifdef CHANGED
+/* System call to acquire a lock to enter a critical section of code */
+void Acquire();
+
+/* System call to release a lock to leave a critical section of code */
+void Release();
+
+/* System call to wait on a condition to be met, and put the current 
+ * thread to sleep. 
+ */
+void Wait();
+
+/* System call to wake up a thread that is waiting on this condition */
+void Signal();
+
+/* System call to wake up all threads waiting on this condition */
+void Broadcast();
+
+
+#endif
+
 
 #endif /* IN_ASM */
 
