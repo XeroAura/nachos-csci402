@@ -24,11 +24,54 @@
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
+<<<<<<< HEAD
 #include "synch.h"
+=======
+#include "addrspace.h"
+>>>>>>> ddb7ed9def6a71ae4578cec84f4b5d12c9dd1baa
 #include <stdio.h>
 #include <iostream>
 
 using namespace std;
+
+#ifdef CHANGED
+struct ThreadEntry {
+    int firstStackPage;
+    Thread* myThread;
+}; 
+
+struct ProcessEntry {
+    int threadCount;
+    AddrSpace* as;
+    ThreadEntry threads[MaxThreadsPerProcess];
+};
+
+ProcessEntry processTable[10] = {};
+//Create function to create new entries
+ProcessEntry createProcessEntry(Thread* th, AddrSpace* addrs){
+	//Create the first thread for process
+	ThreadEntry thread1;
+	thread1.firstStackPage = 0;
+	thread1.myThread = th;
+
+	//Create process entry
+	ProcessEntry entry;
+	entry.threadCount = 0;
+	entry.as = addrs;
+	entry.threads[0] = thread1
+	return entry;
+}
+
+ThreadEntry createThreadEntry(ProcessEntry* pe, Thread* th, ){
+	ThreadEntry te;
+	te.firstStackPage = ;
+	te.myThead = th;
+	pe.threads[pe.threadCount] = te;
+	pe.threadCount++;
+	return te;
+}
+
+#endif
 
 int copyin(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes from the current thread's virtual address vaddr.
@@ -284,7 +327,6 @@ void Exec_Syscall(unsigned int vaddr){
 	OpenFile* f;
 	f = fileSystem->Open(addr);
 	// Store its openfile pointer.
-
 
 	// Create new addresspace for this executable file.
 	Thread *t = new Thread(""); //Create a new thread
