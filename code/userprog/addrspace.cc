@@ -120,10 +120,26 @@ SwapHeader (NoffHeader *noffH)
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
     NoffHeader noffH;
     unsigned int i, size;
+    
+    #ifdef CHANGED
+    BitMap memoryBitMap = new BitMap(NUMPHYSPAGES); //Create new bitmap and lock to keep track of open physical pages
+    Lock bitMapLock = new Lock("bitMaplock");;
+
+    int ppn = memoryBitMap->Find(); //Use BitMap Find to get an unused page of memory
+    if(ppn == -1){ //No open pages
+        
+    }
+
+    // - Copy from the executable to the memory, one page at a time
+    #endif
 
     // Don't allocate the input or output to disk files
     fileTable.Put(0);
     fileTable.Put(0);
+
+    #ifdef CHANGED
+    //executable->ReadAt( ppn*PageSize, PageSize, where to start reading (40+vpn*PageSize));
+    #endif
 
     executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
     if ((noffH.noffMagic != NOFFMAGIC) && 
@@ -247,6 +263,7 @@ void AddrSpace::RestoreState()
 }
 
 #ifdef CHANGED
+
 struct ProcessEntry {
     int threadCount;
     AddressSpace* as;

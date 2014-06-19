@@ -234,7 +234,7 @@ void Close_Syscall(int fd) {
 #ifdef CHANGED
 
 struct forkInfo{
-
+	int stackLoc;
 };
 
 void fork_thread(int value){
@@ -251,7 +251,7 @@ void fork_thread(int value){
 	machine->Run();
 }
 
-void Fork_Syscall(unsigned int vaddr, VoidFunctionPtr func){
+void Fork_Syscall(unsigned int vaddr){
 	//Create new thread
 	Thread* t = new Thread("");
 
@@ -261,6 +261,7 @@ void Fork_Syscall(unsigned int vaddr, VoidFunctionPtr func){
 	//Multiprogramming: Update process table
 
 	forkInfo tmp;
+	tmp->stackLoc = 0;
 
 	t->Fork(fork_thread, (int) &tmp);
 }
@@ -270,10 +271,27 @@ struct execInfo{
 };
 
 void exec_thread(int value){
+	//Initialize the register by using currentThread->space.
 
+    currentThread->space->RestoreState();
+	machine->Run();
 }
 
-void Exec_Syscall(){
+void Exec_Syscall(unsigned int vaddr){
+	int addr = vaddr; //Convert VA to physical address
+
+	OpenFile* f;
+    f = fileSystem->Open(addr);
+	// Store its openfile pointer.
+
+
+	// Create new addresspace for this executable file.
+	Thread *t = new Thread(""); //Create a new thread
+
+	// Allocate the space created to this thread's space.
+	// Update the process table and related data structures.
+	
+	machine->WriteRegister(2, ); // Write the space ID to the register 2.
 
 	execInfo tmp;
 	t->Fork(exec_thread, (int) &execInfo);
