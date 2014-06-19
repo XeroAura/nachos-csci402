@@ -38,9 +38,24 @@ class AddrSpace {
 
  private:
     TranslationEntry *pageTable;	// Assume linear page table translation
-					// for now!
+					// for now!'
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
 };
+
+#ifdef CHANGED
+Table processTable;
+
+struct ProcessEntry {
+    int threadCount;
+    AddrSpace* as;
+    ThreadEntry threads[100];
+};
+
+struct ThreadEntry {
+    int firstStackPage;
+    Thread* myThread;
+};
+#endif
 
 #endif // ADDRSPACE_H

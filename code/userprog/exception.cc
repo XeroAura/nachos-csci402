@@ -24,6 +24,7 @@
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
+#include "addrspace.h"
 #include <stdio.h>
 #include <iostream>
 
@@ -283,7 +284,6 @@ void Exec_Syscall(unsigned int vaddr){
 	OpenFile* f;
     f = fileSystem->Open(addr);
 	// Store its openfile pointer.
-
 
 	// Create new addresspace for this executable file.
 	Thread *t = new Thread(""); //Create a new thread
