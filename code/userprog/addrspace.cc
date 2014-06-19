@@ -158,17 +158,21 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		if(ppn == -1){ //No open pages
 			
 		}
+		else{
+			pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+			pageTable[i].physicalPage = ppn;
+			pageTable[i].valid = TRUE;
+			//pageTable[i].use = FALSE;
+			pageTable[i].dirty = FALSE;
+			pageTable[i].readOnly = FALSE;  // if the code segment was entirely on
+			// a separate page, we could set its
+			// pages to be read-only
+			if(executable->ReadAt(ppn*PageSize, PageSize, 40+i*PageSize) != 0){ //Read in executable
+				pageTable[i].use = TRUE
+			else
+				pageTable[i].use = FALSE;
+		}
 		
-		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
-		pageTable[i].physicalPage = ppn;
-		pageTable[i].valid = TRUE;
-		pageTable[i].use = FALSE;
-		pageTable[i].dirty = FALSE;
-		pageTable[i].readOnly = FALSE;  // if the code segment was entirely on
-		// a separate page, we could set its
-		// pages to be read-only
-		
-		executable->ReadAt(ppn*PageSize, PageSize, 40+i*PageSize);
 	}
 	
 	
