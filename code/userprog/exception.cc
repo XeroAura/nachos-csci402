@@ -289,6 +289,26 @@ void Yield_Syscall(){
   currentThread->Yield();
 }
 
+#ifdef CHANGED
+int CreateLock_Syscall(){
+	return 0;
+}
+
+void DestroyLock_Syscall(){
+	return;
+}
+
+int CreateCondition_Syscall(){
+	return 0;
+}
+
+void DestroyCondition_Syscall(){
+	return;
+}
+
+#endif
+
+
 bool inputValidate(unsigned int vaddr){
 	if( true ){ //Check if vaddr is within bounds
 		return true;

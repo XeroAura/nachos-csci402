@@ -156,7 +156,21 @@ void Signal();
 /* System call to wake up all threads waiting on this condition */
 void Broadcast();
 
+/* System call to create a lock, returns an int to the index position of the kernel 
+ * structure array of actual locks. 
+ */
+int CreateLock();
 
+/* System call to destroy a lock. */
+void DestroyLock();
+
+/* System call to create a condition variable, returns an int to the index position 
+ * of the kernel structure array of actual condition variables. 
+ */
+int CreateCondition();
+
+/* System call to destroy a condition variable. */
+void DestroyCondition();
 #endif
 
 
