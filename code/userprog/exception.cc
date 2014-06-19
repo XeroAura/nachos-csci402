@@ -24,11 +24,8 @@
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
-<<<<<<< HEAD
 #include "synch.h"
-=======
 #include "addrspace.h"
->>>>>>> ddb7ed9def6a71ae4578cec84f4b5d12c9dd1baa
 #include <stdio.h>
 #include <iostream>
 
