@@ -17,10 +17,13 @@
 #include "filesys.h"
 #include "table.h"
 
-#define UserStackSize		1024 	// increase this as necessary!
-
 #define MaxOpenFiles 256
 #define MaxChildSpaces 256
+
+#ifdef CHANGED
+#define MaxThreadsPerProccess 50
+#define UserStackSize (SectorSize* MaxThreadsPerProccess) //1024 increase this as necessary!
+#endif
 
 class AddrSpace {
   public:
@@ -42,20 +45,5 @@ class AddrSpace {
     unsigned int numPages;		// Number of pages in the virtual 
 					// address space
 };
-
-#ifdef CHANGED
-Table processTable;
-
-struct ProcessEntry {
-    int threadCount;
-    AddrSpace* as;
-    ThreadEntry threads[100];
-};
-
-struct ThreadEntry {
-    int firstStackPage;
-    Thread* myThread;
-};
-#endif
 
 #endif // ADDRSPACE_H
