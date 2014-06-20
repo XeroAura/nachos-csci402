@@ -104,7 +104,7 @@ int copyin(unsigned int vaddr, int len, char *buf) {
     // Return the number of bytes so written, or -1 if an error
     // occors.  Errors can generally mean a bad virtual address was
     // passed in.
-   	bool result;
+   	bool result; 
     int n=0;			// The number of bytes copied in
 
     while ( n >= 0 && n < len) {
