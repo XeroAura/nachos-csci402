@@ -242,6 +242,7 @@ struct ThreadEntry { //Struct to represent a thread
 
 struct ProcessEntry { //Struct to represent a process
     int threadCount;
+    int spaceID;
     AddrSpace* as;
     ThreadEntry threads[MaxThreadsPerProcess];
 };
@@ -249,6 +250,7 @@ struct ProcessEntry { //Struct to represent a process
 int maxProcess = 10;
 ProcessEntry processTable[maxProcess] = {};
 Lock* processTableLock = new Lock("processTableLock");
+int spaceIDCount = 1;
 
 ThreadEntry createThreadEntry(Thread* th, int stackPage){
     ThreadEntry te = new ThreadEntry();
@@ -271,7 +273,7 @@ ProcessEntry createProcessEntry(Thread* th, AddrSpace* addrs){
 
 struct forkInfo{
 	int vaddr;
-	int stackLoc;
+	int pageLocl;
 };
 
 void fork_thread(int value){
@@ -282,7 +284,7 @@ void fork_thread(int value){
 	machine->WriteRegister(NextPCReg, vaddr+4);
 
 	//Write to stack register the starting point of the stack for this thread
-	machine->WriteRegister(StackReg, numPages * PageSize - 16);
+	machine->WriteRegister(StackReg, ); //numPages * PageSize - 16
 
 	currentThread->space->RestoreState();
 
@@ -291,23 +293,26 @@ void fork_thread(int value){
 
 void Fork_Syscall(unsigned int vaddr){
 	Thread* t = new Thread("forkThread"); //Create new thread
-
 	t->space = currentThread->space; //Allocate the addrspace to the thread being forked, same as current thread's
 
+	forkInfo tmp;
+	tmp.vaddr = vaddr;
+
+	//Find 8 pages of stack to give to thread?
+
 	//Multiprogramming: Update process table
-	ThreadEntry te = createThreadEntry(t, vaddr);
+	ThreadEntry te = createThreadEntry(t, ); //Give first stack page?
 	processTableLock->Acquire();
 	for(int i = 0; i < maxProcess; i++){
 		if(processTable[i].as == currentThread->space){ //What value is empty brackets initialized to?
 			processTable[i].threads[threadCount] = te;
+			tmp.pageLoc = threadCount;
 			processTable[i].threadCount++;
 			break;
 		}
 	}
 	processTableLock->Release();
 
-	forkInfo tmp;
-	tmp.vaddr = vaddr;
 
 	t->Fork(fork_thread, (int) &tmp);
 }
@@ -326,14 +331,20 @@ void exec_thread(int value){
 void Exec_Syscall(unsigned int vaddr){
 	int addr = vaddr; //Convert VA to physical address
 
-	OpenFile* f;
-	f = fileSystem->Open(addr);
+	OpenFile* f = fileSystem->Open(addr);
 	// Store its openfile pointer.
+	if (f == NULL) {
+		printf("Unable to open file %s\n", addr);
+		return;
+    }
 
 	// Create new addresspace for this executable file.
-	Thread *t = new Thread(""); //Create a new thread
+	AddrSpace *space;
+    space = new AddrSpace(f);
 
-	// Allocate the space created to this thread's space.
+	Thread *t = new Thread(""); //Create a new thread
+	t->space = space; // Allocate the space created to this thread's space.
+
 	// Update the process table and related data structures.
 	
 	machine->WriteRegister(2, ); // Write the space ID to the register 2.
