@@ -234,48 +234,49 @@ void Close_Syscall(int fd) {
 }
 
 #ifdef CHANGED
-struct ThreadEntry {
+struct ThreadEntry { //Struct to represent a thread
     int firstStackPage;
     Thread* myThread;
+    TestStruct() : firstStackPage(-1), myThread(NULL) {}
 }; 
 
-struct ProcessEntry {
+struct ProcessEntry { //Struct to represent a process
     int threadCount;
     AddrSpace* as;
     ThreadEntry threads[MaxThreadsPerProcess];
 };
 
-ProcessEntry processTable[10] = {};
-//Create function to create new entries
-ProcessEntry createProcessEntry(Thread* th, AddrSpace* addrs){
-    //Create the first thread for process
-    ThreadEntry thread1;
-    thread1.firstStackPage = 0;
-    thread1.myThread = th;
+int maxProcess = 10;
+ProcessEntry processTable[maxProcess] = {};
+Lock* processTableLock = new Lock("processTableLock");
 
-    //Create process entry
-    ProcessEntry entry;
-    entry.threadCount = 0;
-    entry.as = addrs;
-    entry.threads[0] = thread1
-    return entry;
-}
-
-ThreadEntry createThreadEntry(ProcessEntry* pe, Thread* th, ){
-    ThreadEntry te;
-    te.firstStackPage = ;
+ThreadEntry createThreadEntry(Thread* th, int stackPage){
+    ThreadEntry te = new ThreadEntry();
+    te.firstStackPage = stackPage;
     te.myThead = th;
-    pe.threads[pe.threadCount] = te;
-    pe.threadCount++;
     return te;
 }
 
+ProcessEntry createProcessEntry(Thread* th, AddrSpace* addrs){
+    //Create the first thread for process
+    ThreadEntry thread1 = createThreadEntry(th, 0);
+
+    //Create process entry
+    ProcessEntry entry = {};
+    entry.threadCount = 0;
+    entry.as = addrs;
+    entry.threads[0] = thread1;
+    return entry;
+}
+
 struct forkInfo{
+	int vaddr;
 	int stackLoc;
 };
 
 void fork_thread(int value){
 	forkInfo *m = (forkInfo*) value;
+	int vaddr = m->vaddr;
 
 	machine->WriteRegister(PCReg, vaddr);
 	machine->WriteRegister(NextPCReg, vaddr+4);
@@ -289,16 +290,24 @@ void fork_thread(int value){
 }
 
 void Fork_Syscall(unsigned int vaddr){
-	//Create new thread
-	Thread* t = new Thread("");
+	Thread* t = new Thread("forkThread"); //Create new thread
 
-	//Allocate the addrspace to the thread being forked, same as current thread's
-	t->space = currentThread->space;
+	t->space = currentThread->space; //Allocate the addrspace to the thread being forked, same as current thread's
 
 	//Multiprogramming: Update process table
+	ThreadEntry te = createThreadEntry(t, vaddr);
+	processTableLock->Acquire();
+	for(int i = 0; i < maxProcess; i++){
+		if(processTable[i].as == currentThread->space){ //What value is empty brackets initialized to?
+			processTable[i].threads[threadCount] = te;
+			processTable[i].threadCount++;
+			break;
+		}
+	}
+	processTableLock->Release();
 
 	forkInfo tmp;
-	tmp->stackLoc = 0;
+	tmp.vaddr = vaddr;
 
 	t->Fork(fork_thread, (int) &tmp);
 }
