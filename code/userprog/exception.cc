@@ -244,7 +244,7 @@ struct ProcessEntry { //Struct to represent a process
     int threadCount;
     int spaceID;
     AddrSpace* as;
-    ThreadEntry threads[100];
+    ProcessEntry() : threadCount(0), spaceID(-1), as(NULL) {}
 };
 
 ProcessEntry processTable[10] = {};
@@ -282,7 +282,7 @@ void fork_thread(int value){
 	machine->WriteRegister(NextPCReg, vaddr+4);
 
 	//Write to stack register the starting point of the stack for this thread
-	machine->WriteRegister(StackReg, 0 ); //numPages * PageSize - 16
+	machine->WriteRegister(StackReg, stackStart); //numPages * PageSize - 16
 
 	currentThread->space->RestoreState();
 
@@ -297,24 +297,26 @@ void Fork_Syscall(unsigned int vaddr){
 	tmp.vaddr = vaddr;
 
 	//Find 8 pages of stack to give to thread?
-
-	tmp.pageLoc = 0;
-
-	//Multiprogramming: Update process table
-	ThreadEntry te = createThreadEntry(t, 0); //Give first stack page?
-	processTableLock->Acquire();
-	for(int i = 0; i < 10; i++){
-		if(processTable[i].as == currentThread->space){ //What value is empty brackets initialized to?
-			processTable[i].threads[processTable[i].threadCount] = te;
-			tmp.pageLoc = processTable[i].threadCount;
-			processTable[i].threadCount++;
-			break;
-		}
-	}
-	processTableLock->Release();
-
-
-	t->Fork(fork_thread, (int) &tmp);
+    int pageLoc = t->space->AllocatePages();
+    if(pageLoc != -1) {
+	    tmp.pageLoc = pageLoc;
+        //Multiprogramming: Update process table
+        ThreadEntry te = createThreadEntry(t, pageLoc); //Give first stack page?
+        processTableLock->Acquire();
+        for(int i = 0; i < 10; i++){
+            if(processTable[i].as == currentThread->space){
+                processTable[i].threads[processTable[i].threadCount] = te;
+                tmp.pageLoc = processTable[i].threadCount;
+                processTable[i].threadCount++;
+                break;
+            }
+        }
+        processTableLock->Release();
+        t->Fork(fork_thread, (int) &tmp);
+    }
+    else //Should never happen...
+        printf("Out of pages to allocate for new thread stack.");
+	
 }
 
 struct execInfo{
@@ -330,7 +332,18 @@ void exec_thread(int value){
 
 void Exec_Syscall(unsigned int vaddr, char *filename){
 	//Convert VA to physical address
-	int addr = vaddr; 
+    int addr = -1;
+    // for(int i = 0; i < numPages; i++){
+    //     if(pageTable[i].virtualPage == vaddr){
+    //         addr = pageTable[i].physicalPage;
+    //         break;
+    //     }
+    // }
+    
+    if(addr == -1){
+        printf("Can't find physical address for vaddr in exec_syscall");
+        return;
+    }
 
 	OpenFile* f = fileSystem->Open(filename);
 	if (f == NULL) {
@@ -348,9 +361,13 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 	t->space = space; // Allocate the space created to this thread's space.
 
 	// Update the process table and related data structures.
+    processTableLock->Acquire();
 
-	// Write the space ID to the register 2.
-	machine->WriteRegister(2, 0); 
+    int id = spaceIDCount++;
+    processTableLock->Release();
+
+    // Write the space ID to the register 2?
+	machine->WriteRegister(2, id);
 
 	execInfo tmp;
 	t->Fork(exec_thread, (int) &tmp);
@@ -471,12 +488,11 @@ void Broadcast_Syscall(int index){
 	return;
 }
 
-void 
-
-bool validateAddress(unsigned int vaddr){
+bool
+validateAddress(unsigned int vaddr){
 	if(vaddr == NULL)
 		return false;
-	if( vaddr > 0 && vaddr <  ){ //Check if vaddr is within bounds
+	if( vaddr > 0 && vaddr < 500 ){ //Check if vaddr is within bounds?
 		return true;
 	}
 	return false;
@@ -528,17 +544,17 @@ void ExceptionHandler(ExceptionType which) {
 
     		case SC_Exec:
     		DEBUG('a', "Exec syscall.\n");
-    		Exec_Syscall(machine->ReadRegister(4));
+    		Exec_Syscall(machine->ReadRegister(4), (char*) machine->ReadRegister(5) );
     		break;
 
     		case SC_Exit:
     		DEBUG('a', "Exit syscall.\n");
-    		rv = Exit_Syscall(machine->ReadRegister(4));
+    		rv = Exit_Syscall();
     		break;
 
     		case SC_Yield:
     		DEBUG('a', "Yield syscall.\n");
-    		Yield_Syscall(machine->ReadRegister(4));
+    		Yield_Syscall();
     		break;
 
             case SC_CreateLock:

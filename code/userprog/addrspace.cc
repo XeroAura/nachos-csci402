@@ -207,8 +207,11 @@ AddrSpace::AllocatePages(){ //Function to allocate 8 pages on the stack for a ne
 				}
 			}
 			if(straight == TRUE){
+				for(int j = i; j < i+8; j++){
+					pageTable[j].use = TRUE;
+				}
+				stackPageStart = i+8;				
 				pageTableLock->Release();
-
 				return i;
 			}
 		}
