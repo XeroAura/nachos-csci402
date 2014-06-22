@@ -29,23 +29,7 @@
 #include <stdio.h>
 #include <iostream>
 
-
 using namespace std;
-int MAX_CVS = 250;
-int MAX_LOCKS = 250;
-
-struct KernelLock{
-    Lock* lock; 
-    AddrSpace* as; 
-    bool isToBeDestroyed; 
-}; 
-KernelLock kLocks[MAX_LOCKS]; //Set MAX_LOCKS to what you need 
-int nextLockIndex = 0; 
-
-Lock* lockTableLock = new Lock("lockTableLock"); 
-
-
-
 
 int copyin(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes from the current thread's virtual address vaddr.
@@ -275,7 +259,7 @@ ThreadEntry createThreadEntry(Thread* th, int stackPage){
 }
 
 ProcessEntry createProcessEntry(Thread* th, AddrSpace* addrs){
-    ThreadEntry thread1 = createThreadEntry(th, 0); //Create the first threadentry for process
+    ThreadEntry thread1 = createThreadEntry(th, ); //Create the first threadentry for process
 
     ProcessEntry entry = {}; //Create process entry
     entry.threadCount = 0;
@@ -298,7 +282,7 @@ void fork_thread(int value){
 	machine->WriteRegister(NextPCReg, vaddr+4);
 
 	//Write to stack register the starting point of the stack for this thread
-	machine->WriteRegister(StackReg, stackStart); //numPages * PageSize - 16
+	machine->WriteRegister(StackReg, stackStart * PageSize - 16); //numPages * PageSize - 16
 
 	currentThread->space->RestoreState();
 
@@ -355,7 +339,7 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
     //         break;
     //     }
     // }
-    
+
     if(addr == -1){
         printf("Can't find physical address for vaddr in exec_syscall");
         return;
@@ -378,8 +362,9 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 
 	// Update the process table and related data structures.
     processTableLock->Acquire();
-
-    int id = spaceIDCount++;
+    int id = spaceIDCount;
+    spaceIDCount++;
+    processTable[id] = 
     processTableLock->Release();
 
     // Write the space ID to the register 2?
@@ -399,6 +384,16 @@ void Yield_Syscall(){
 	currentThread->Yield();
 }
 
+int MAX_LOCKS = 250;
+struct KernelLock{ 
+	Lock* lock; 
+	AddrSpace* as; 
+	bool isToBeDestroyed; 
+}; 
+KernelLock kLocks[MAX_LOCKS]; //Set MAX_LOCKS to what you need 
+int nextLockIndex = 0; 
+
+Lock* lockTableLock = new Lock("lockTableLock"); 
 
 
 int CreateLock_Syscall(char* debugName){
@@ -416,9 +411,9 @@ int CreateLock_Syscall(char* debugName){
 }
 
 void DestroyLock_Syscall(int index){
-	kLocks[index].isToBeDestroyed = true;
-	if (kLocks[index].isToBeDestroyed && kLocks[index].lock->isFree){
-		delete kLocks[index].lock;
+	kLocks[index]->isToBeDestroyed = true;
+	if (kLocks[index]->isToBeDestroyed && kLocks[index]->lock->isFree){
+		delete kLocks[index]->lock;
 		delete kLocks[index];
 		kLocks[index] = NULL;
 	}
@@ -443,7 +438,7 @@ struct KernelCV{ 
 	AddrSpace* as; 
 	bool isToBeDestroyed; 
 };
-KernelCV kCV[MAX_CVS]; //Set MAX_LOCKS to what you need 
+KernelCV kCV[MAX_LOCKS]; //Set MAX_LOCKS to what you need 
 int nextCVIndex = 0; 
 
 Lock* CVTableLock = new Lock("CVTableLock"); 
