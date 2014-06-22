@@ -121,6 +121,8 @@ SwapHeader (NoffHeader *noffH)
 
 BitMap memoryBitMap = new BitMap(NUMPHYSPAGES); //Create new bitmap and lock to keep track of open physical pages
 Lock bitMapLock = new Lock("bitMapLock");
+Lock pageTableLock = new Lock("pageTableLock");
+int stackPageStart = 0;
 
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	NoffHeader noffH;
@@ -149,6 +151,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	
 	DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
 	// first, set up the translation
+	pageTableLock->Acquire();
 	pageTable = new TranslationEntry[numPages];
 	for (i = 0; i < numPages; i++) {
 		
@@ -156,25 +159,26 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		int ppn = memoryBitMap->Find(); //Use BitMap Find to get an unused page of memory
 		bitMapLock->Release();
 		if(ppn == -1){ //No open pages
-			
+			printf("Out of physical pages to add to page table.");
 		}
 		else{
 			pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
 			pageTable[i].physicalPage = ppn;
 			pageTable[i].valid = TRUE;
-			//pageTable[i].use = FALSE;
 			pageTable[i].dirty = FALSE;
 			pageTable[i].readOnly = FALSE;  // if the code segment was entirely on
 			// a separate page, we could set its
 			// pages to be read-only
 			if(executable->ReadAt(ppn*PageSize, PageSize, 40+i*PageSize) != 0){ //Read in executable
 				pageTable[i].use = TRUE
+				stackPageStart++;
+			}
 			else
 				pageTable[i].use = FALSE;
 		}
 		
 	}
-	
+	pageTableLock->Release();
 	
 	// then, copy in the code and data segments into memory
 	// Copy from the executable to the memory, one page at a time
@@ -188,7 +192,32 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	// }
 	
 }
+
+int
+AddrSpace::AllocatePages(){ //Function to allocate 8 pages on the stack for a new thread
+	bool straight = true;
+	pageTableLock->Acquire();
+	for(int i = stackPageStart; i < numPages; i++){
+		if(pageTable[i].use == FALSE){
+			for(int x = i; x<i+8; x++){
+				if(pageTable[x].use = TRUE){
+					straight = false;
+					break;
+				}
+			}
+			if(straight == TRUE){
+				pageTableLock->Release();
+
+				return i;
+			}
+		}
+	}
+	pageTableLock->Release();
+	return -1;
+}
+
 #endif
+
 
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace

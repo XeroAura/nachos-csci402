@@ -260,11 +260,9 @@ ThreadEntry createThreadEntry(Thread* th, int stackPage){
 }
 
 ProcessEntry createProcessEntry(Thread* th, AddrSpace* addrs){
-    //Create the first thread for process
-    ThreadEntry thread1 = createThreadEntry(th, 0);
+    ThreadEntry thread1 = createThreadEntry(th, 0); //Create the first threadentry for process
 
-    //Create process entry
-    ProcessEntry entry = {};
+    ProcessEntry entry = {}; //Create process entry
     entry.threadCount = 0;
     entry.as = addrs;
     entry.threads[0] = thread1;
@@ -273,12 +271,13 @@ ProcessEntry createProcessEntry(Thread* th, AddrSpace* addrs){
 
 struct forkInfo{
 	int vaddr;
-	int pageLocl;
+	int pageLoc;
 };
 
 void fork_thread(int value){
 	forkInfo *m = (forkInfo*) value;
 	int vaddr = m->vaddr;
+	int stackStart = m->pageLoc;
 
 	machine->WriteRegister(PCReg, vaddr);
 	machine->WriteRegister(NextPCReg, vaddr+4);
@@ -299,6 +298,8 @@ void Fork_Syscall(unsigned int vaddr){
 	tmp.vaddr = vaddr;
 
 	//Find 8 pages of stack to give to thread?
+
+	tmp.pageLoc = ;
 
 	//Multiprogramming: Update process table
 	ThreadEntry te = createThreadEntry(t, ); //Give first stack page?
@@ -328,26 +329,29 @@ void exec_thread(int value){
 	machine->Run();
 }
 
-void Exec_Syscall(unsigned int vaddr){
-	int addr = vaddr; //Convert VA to physical address
+void Exec_Syscall(unsigned int vaddr, char *filename){
+	//Convert VA to physical address
+	int addr = vaddr; 
 
-	OpenFile* f = fileSystem->Open(addr);
-	// Store its openfile pointer.
+	OpenFile* f = fileSystem->Open(filename);
 	if (f == NULL) {
-		printf("Unable to open file %s\n", addr);
+		printf("Unable to open file %s\n", filename);
 		return;
     }
 
-	// Create new addresspace for this executable file.
-	AddrSpace *space;
+	AddrSpace *space; // Create new addresspace for this executable file.
     space = new AddrSpace(f);
+
+	// Store its openfile pointer?
+	space->fileTable.Put(f);
 
 	Thread *t = new Thread(""); //Create a new thread
 	t->space = space; // Allocate the space created to this thread's space.
 
 	// Update the process table and related data structures.
-	
-	machine->WriteRegister(2, ); // Write the space ID to the register 2.
+
+	// Write the space ID to the register 2.
+	machine->WriteRegister(2, ); 
 
 	execInfo tmp;
 	t->Fork(exec_thread, (int) &execInfo);
@@ -470,8 +474,10 @@ void Broadcast_Syscall(int index){
 
 void 
 
-bool inputValidate(unsigned int vaddr){
-	if( true ){ //Check if vaddr is within bounds
+bool validateAddress(unsigned int vaddr){
+	if(vaddr == NULL)
+		return false;
+	if( vaddr > 0 && vaddr <  ){ //Check if vaddr is within bounds
 		return true;
 	}
 	return false;
