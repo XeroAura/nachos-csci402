@@ -29,7 +29,23 @@
 #include <stdio.h>
 #include <iostream>
 
+
 using namespace std;
+int MAX_CVS = 250;
+int MAX_LOCKS = 250;
+
+struct KernelLock{
+    Lock* lock; 
+    AddrSpace* as; 
+    bool isToBeDestroyed; 
+}; 
+KernelLock kLocks[MAX_LOCKS]; //Set MAX_LOCKS to what you need 
+int nextLockIndex = 0; 
+
+Lock* lockTableLock = new Lock("lockTableLock"); 
+
+
+
 
 int copyin(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes from the current thread's virtual address vaddr.
@@ -367,16 +383,6 @@ void Yield_Syscall(){
 	currentThread->Yield();
 }
 
-int MAX_LOCKS = 250;
-struct KernelLock{ 
-	Lock* lock; 
-	AddrSpace* as; 
-	bool isToBeDestroyed; 
-}; 
-KernelLock kLocks[MAX_LOCKS]; //Set MAX_LOCKS to what you need 
-int nextLockIndex = 0; 
-
-Lock* lockTableLock = new Lock("lockTableLock"); 
 
 
 int CreateLock_Syscall(char* debugName){
@@ -394,9 +400,9 @@ int CreateLock_Syscall(char* debugName){
 }
 
 void DestroyLock_Syscall(int index){
-	kLocks[index]->isToBeDestroyed = true;
-	if (kLocks[index]->isToBeDestroyed && kLocks[index]->lock->isFree){
-		delete kLocks[index]->lock;
+	kLocks[index].isToBeDestroyed = true;
+	if (kLocks[index].isToBeDestroyed && kLocks[index].lock->isFree){
+		delete kLocks[index].lock;
 		delete kLocks[index];
 		kLocks[index] = NULL;
 	}
@@ -421,7 +427,7 @@ struct KernelCV{ 
 	AddrSpace* as; 
 	bool isToBeDestroyed; 
 };
-KernelCV kCV[MAX_LOCKS]; //Set MAX_LOCKS to what you need 
+KernelCV kCV[MAX_CVS]; //Set MAX_LOCKS to what you need 
 int nextCVIndex = 0; 
 
 Lock* CVTableLock = new Lock("CVTableLock"); 
