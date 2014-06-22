@@ -31,18 +31,11 @@
 
 
 using namespace std;
-int MAX_CVS = 250;
-int MAX_LOCKS = 250;
+const int MAX_CVS = 250;
+const int MAX_LOCKS = 250;
 
-struct KernelLock{
-    Lock* lock; 
-    AddrSpace* as; 
-    bool isToBeDestroyed; 
-}; 
-KernelLock kLocks[MAX_LOCKS]; //Set MAX_LOCKS to what you need 
-int nextLockIndex = 0; 
 
-Lock* lockTableLock = new Lock("lockTableLock"); 
+Lock* lockTableLock = new Lock("lockTableLock");
 
 
 
@@ -382,9 +375,19 @@ void Yield_Syscall(){
 	currentThread->Yield();
 }
 
+struct KernelLock{
+    Lock* lock;
+    AddrSpace* as;
+    bool isToBeDestroyed;
+};
+KernelLock* kLocks[MAX_LOCKS];
+int nextLockIndex = 0;
 
 
-int CreateLock_Syscall(char* debugName){
+
+int CreateLock_Syscall(int debugInt){
+    char* debugName = new char[10];
+    sprintf(debugName, "Lock %d",debugInt);
 	KernelLock* tempLock = new KernelLock;
 	tempLock->as = currentThread->space;
 	tempLock->isToBeDestroyed = false;
@@ -399,9 +402,9 @@ int CreateLock_Syscall(char* debugName){
 }
 
 void DestroyLock_Syscall(int index){
-	kLocks[index].isToBeDestroyed = true;
-	if (kLocks[index].isToBeDestroyed && kLocks[index].lock->isFree){
-		delete kLocks[index].lock;
+	kLocks[index]->isToBeDestroyed = true;
+	if (kLocks[index]->isToBeDestroyed && kLocks[index]->lock->getFree()){
+		delete kLocks[index]->lock;
 		delete kLocks[index];
 		kLocks[index] = NULL;
 	}
@@ -415,29 +418,31 @@ void Acquire_Syscall(int index){
 
 void Release_Syscall(int index){
 	kLocks[index]->lock->Release();
-	if (kLocks[index]->lock->isFree && kLocks[index]->isToBeDestroyed){
+	if (kLocks[index]->lock->getFree() && kLocks[index]->isToBeDestroyed){
 		DestroyLock_Syscall(index);
 	}
 	return;
 }
 
-struct KernelCV{ 
-	Condition* condition; 
-	AddrSpace* as; 
-	bool isToBeDestroyed; 
+struct KernelCV{
+	Condition* condition;
+	AddrSpace* as;
+	bool isToBeDestroyed;
 };
-KernelCV kCV[MAX_CVS]; //Set MAX_LOCKS to what you need 
-int nextCVIndex = 0; 
+KernelCV* kCV[MAX_CVS]; //Set MAX_LOCKS to what you need 
+int nextCVIndex = 0;
 
-Lock* CVTableLock = new Lock("CVTableLock"); 
+Lock* CVTableLock = new Lock("CVTableLock");
 
 
-int CreateCondition_Syscall(char* debugName){
+int CreateCondition_Syscall(int debugInt){
+    char* debugName = new char[20];
+    sprintf(debugName, "Condition %d",debugInt);
 	KernelCV* tempCV = new KernelCV;
 	tempCV->as = currentThread->space;
 	tempCV->isToBeDestroyed = false;
-	tempCV->condition = new Lock(debugName);
-	lockTableLock->Acquire();
+	tempCV->condition = new Condition(debugName);
+	CVTableLock->Acquire();
 	if (nextCVIndex < MAX_LOCKS){
 		kCV[nextCVIndex] = tempCV;
 		nextCVIndex++;
@@ -448,7 +453,7 @@ int CreateCondition_Syscall(char* debugName){
 
 void DestroyCondition_Syscall(int index){
 	kCV[index]->isToBeDestroyed = true;
-	if (kCV[index]->isToBeDestroyed && kCV[index]->condition->waitingLock == NULL){
+	if (kCV[index]->isToBeDestroyed && kCV[index]->condition->getLock() == NULL){
 		delete kCV[index]->condition;
 		delete kCV[index];
 		kCV[index] = NULL;
@@ -456,28 +461,27 @@ void DestroyCondition_Syscall(int index){
 	return;
 }
 
-void Wait_Syscall(int index){
-	kCV[index]->condition->Wait();
+void Wait_Syscall(int index, KernelLock &cvLock){
+	kCV[index]->condition->Wait(cvLock.lock);
 	return;
 }
 
-void Signal_Syscall(int index){
-	kCV[index]->condition->Signal();
-	if (kCV[index]->isToBeDestroyed && kCV[index]->condition->waitingLock == NULL){
-		DestroyCondition_Syscall();
+void Signal_Syscall(int index, KernelLock &cvLock){
+	kCV[index]->condition->Signal(cvLock.lock);
+	if (kCV[index]->isToBeDestroyed && kCV[index]->condition->getLock() == NULL){
+		DestroyCondition_Syscall(index);
 	}
 	return;
 }
 
-void Broadcast_Syscall(int index){
-	kCV[index]->condition->Broadcast();
+void Broadcast_Syscall(int index, KernelLock &cvLock){
+	kCV[index]->condition->Broadcast(cvLock.lock);
 	if (kCV[index]->isToBeDestroyed){
-		DestroyCondition_Syscall();
+		DestroyCondition_Syscall(index);
 	}
 	return;
 }
 
-void 
 
 bool validateAddress(unsigned int vaddr){
 	if(vaddr == NULL)
