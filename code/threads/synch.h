@@ -70,6 +70,7 @@ class Lock {
     ~Lock();				// deallocate lock
     char* getName() { return name; }	// debugging assist
     char* getOwner() {return lockOwner->getName();} //debugging assist
+    bool getFree() {return isFree;}
     void Acquire(); // these are the only operations on a lock
     void Release(); // they are both *atomic*
 
@@ -129,7 +130,7 @@ class Condition {
 					// "no one waiting"
     ~Condition();			// deallocate the condition
     char* getName() { return (name); }
-    
+    Lock* getLock() {return waitingLock;}
     void Wait(Lock *conditionLock); 	// these are the 3 operations on 
 					// condition variables; releasing the 
 					// lock and going to sleep are 
