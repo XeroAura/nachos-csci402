@@ -23,6 +23,8 @@
 #include "synch.h"
 
 extern "C" { int bzero(char *, int); };
+int NUMPHYSPAGES = 8;
+
 
 Table::Table(int s) : map(s), table(0), lock(0), size(s) {
 	table = new void *[size];
@@ -118,14 +120,13 @@ SwapHeader (NoffHeader *noffH)
 //----------------------------------------------------------------------
 
 #ifdef CHANGED
-
-BitMap memoryBitMap = new BitMap(NUMPHYSPAGES); //Create new bitmap and lock to keep track of open physical pages
-Lock bitMapLock = new Lock("bitMapLock");
+BitMap* memoryBitMap = new BitMap(NUMPHYSPAGES); //Create new bitmap and lock to keep track of open physical pages
+Lock* bitMapLock = new Lock("bitMapLock");
 
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	NoffHeader noffH;
-	unsigned int i, size;
-	
+	unsigned int i;
+	unsigned int size;
 	// Don't allocate the input or output to disk files
 	fileTable.Put(0);
 	fileTable.Put(0);
@@ -137,12 +138,12 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	ASSERT(noffH.noffMagic == NOFFMAGIC);
 	
 	size = noffH.code.size + noffH.initData.size + noffH.uninitData.size ;
-	numPages = divRoundUp(size, PageSize) + 400 //divRoundUp(UserStackSize,PageSize);
+	numPages = divRoundUp(size, PageSize) + 400; //<-- added in this semicolon  //divRoundUp(UserStackSize,PageSize);
 	// we need to increase the size
 	// to leave room for the stack
 	size = numPages * PageSize;
 	
-	ASSERT(numPages <= NumPhysPages);	// check we're not trying
+	ASSERT(numPages <= NUMPHYSPAGES);	// check we're not trying
 	// to run anything too big --
 	// at least until we have
 	// virtual memory
@@ -168,8 +169,8 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 			// a separate page, we could set its
 			// pages to be read-only
 			if(executable->ReadAt(ppn*PageSize, PageSize, 40+i*PageSize) != 0){ //Read in executable
-				pageTable[i].use = TRUE
-			else
+				pageTable[i].use = TRUE;
+			} else
 				pageTable[i].use = FALSE;
 		}
 		
