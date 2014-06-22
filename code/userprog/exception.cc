@@ -542,15 +542,60 @@ void ExceptionHandler(ExceptionType which) {
     		Yield_Syscall(machine->ReadRegister(4));
     		break;
 
+            case SC_CreateLock:
+            DEBUG('a', "Create Lock syscall.\n");
+            rv = CreateLock_Syscall(machine->ReadRegister(4));
+            break;
+
+            case SC_DestroyLock:
+            DEBUG('a', "Destroy Lock syscall.\n");
+            
+            break;
+
+            case SC_Acquire:
+            DEBUG('a', "Lock Acquire syscall.\n");
+
+            break;
+
+            case SC_Release:
+            DEBUG('a', "Lock Release syscall.\n");
+
+            break;
+
+            case SC_CreateCondition:
+            DEBUG('a', "Create Condition syscall.\n");
+
+            break;
+
+            case SC_DestroyCondition:
+            DEBUG('a', "Destroy Condition syscall.\n");
+
+            break;
+
+            case SC_Wait:
+            DEBUG('a', "Wait syscall.\n");
+
+            break;
+
+            case SC_Signal:
+            DEBUG('a', "Signal syscall.\n");
+
+            break;
+
+            case SC_Broadcast:
+            DEBUG('a', "Broadcast syscall.\n");
+
+            break;
+
 	    #endif
-    	}
+        }
 
 	// Put in the return value and increment the PC
-    	machine->WriteRegister(2,rv);
-    	machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
-    	machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
-    	machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
-    	return;
+        machine->WriteRegister(2,rv);
+        machine->WriteRegister(PrevPCReg,machine->ReadRegister(PCReg));
+        machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
+        machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
+        return;
     } else {
     	cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
     	interrupt->Halt();
