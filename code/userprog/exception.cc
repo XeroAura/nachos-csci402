@@ -33,6 +33,9 @@ using namespace std;
 const int MAX_CVS = 250;
 const int MAX_LOCKS = 250;
 Lock* lockTableLock = new Lock("lockTableLock");
+extern ProcessEntry processTable[10];
+extern int processTableCount;
+extern Lock* processTableLock;
 
 
 int copyin(unsigned int vaddr, int len, char *buf) {
@@ -292,6 +295,7 @@ void Fork_Syscall(unsigned int vaddr){
 
 struct execInfo{
     int vaddr;
+    int pageAddr;
 };
 
 void exec_thread(int value){
@@ -303,7 +307,7 @@ void exec_thread(int value){
     machine->WriteRegister(NextPCReg, vaddr+4);
 
     //Write to stack register the starting point of the stack for this thread
-    //machine->WriteRegister(StackReg, pageLoc * PageSize - 16); //numPages * PageSize - 16
+    machine->WriteRegister(StackReg, m->pageAddr); //numPages * PageSize - 16
 
 	currentThread->space->RestoreState();
 	machine->Run();
@@ -329,18 +333,21 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
     processTableLock->Acquire();
 
     ThreadEntry* te = new ThreadEntry();
-    te->firstStackPage = 0;
+
+    int pageAddr = space->AllocatePages();
+    te->firstStackPage = pageAddr;
     te->myThread = t;
     ProcessEntry* pe = new ProcessEntry();
     pe->threadCount = 1;
     pe->as = space;
     pe->threads[0] = te;
-
     processTable[processTableCount] = *pe;
     processTableCount++;
     processTableLock->Release();
 
 	execInfo* tmp;
+    tmp->pageAddr = pageAddr;
+    tmp->vaddr = vaddr;
 
 	t->Fork(exec_thread, (int) tmp);
 }

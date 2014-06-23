@@ -17,6 +17,10 @@
 
 #define QUANTUM 100
 
+extern ProcessEntry processTable[10];
+extern int processTableCount;
+extern Lock* processTableLock;
+
 //----------------------------------------------------------------------
 // StartProcess
 // 	Run a user program.  Open the executable, load it into

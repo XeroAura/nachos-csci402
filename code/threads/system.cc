@@ -35,6 +35,11 @@ Machine *machine;	// user program memory and registers
 PostOffice *postOffice;
 #endif
 
+#ifdef CHANGED
+ProcessEntry processTable[10]; //Process table
+int processTableCount;
+Lock* processTableLock; //Lock for process table
+#endif
 
 // External definition, to allow us to take a pointer to this function
 extern void Cleanup();
@@ -164,7 +169,6 @@ Initialize(int argc, char **argv)
 #endif
 
 #ifdef CHANGED
-processTable[10]; //Process table
 processTableCount = 1; //Counter
 processTableLock = new Lock("processTableLock"); //Lock for process table
 #endif    

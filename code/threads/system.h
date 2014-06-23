@@ -66,9 +66,9 @@ struct ProcessEntry { //Struct to represent a process
     };
 };
 
-ProcessEntry processTable[10]; //Process table
-int processTableCount = 1;
-Lock* processTableLock; //Lock for process table
+extern ProcessEntry processTable[10]; //Process table
+extern int processTableCount;
+extern Lock* processTableLock; //Lock for process table
 #endif
 
 #endif // SYSTEM_H
