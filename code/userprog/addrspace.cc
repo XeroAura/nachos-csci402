@@ -23,7 +23,6 @@
 #include "synch.h"
 
 extern "C" { int bzero(char *, int); };
-int NUMPHYSPAGES = 8;
 
 Table::Table(int s) : map(s), table(0), lock(0), size(s) {
 	table = new void *[size];
@@ -120,7 +119,7 @@ SwapHeader (NoffHeader *noffH)
 
 #ifdef CHANGED
 
-BitMap* memoryBitMap = new BitMap(NUMPHYSPAGES); //Create new bitmap and lock to keep track of open physical pages
+BitMap* memoryBitMap = new BitMap(NumPhysPages); //Create new bitmap and lock to keep track of open physical pages
 Lock* bitMapLock = new Lock("bitMapLock");
 Lock* pageTableLock = new Lock("pageTableLock");
 int stackPageStart = 0;
@@ -145,7 +144,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	// to leave room for the stack
 	size = numPages * PageSize;
 	
-	ASSERT(numPages <= NUMPHYSPAGES);	// check we're not trying
+//	ASSERT(numPages <= NumPhysPages);	// check we're not trying
 	// to run anything too big --
 	// at least until we have
 	// virtual memory
@@ -160,7 +159,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		int ppn = memoryBitMap->Find(); //Use BitMap Find to get an unused page of memory
 		bitMapLock->Release();
 		if(ppn == -1){ //No open pages
-			printf("Out of physical pages to add to page table.");
+			printf("Out of physical pages to add to page table. \n");
 		}
 		else{
 			pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #

@@ -1,4 +1,4 @@
-// machine.h 
+ // machine.h 
 //	Data structures for simulating the execution of user programs
 //	running on top of Nachos.
 //
@@ -34,7 +34,7 @@ using namespace std;
 					// the disk sector size, for
 					// simplicity
 
-#define NumPhysPages    32
+#define NumPhysPages    500
 #define MemorySize 	(NumPhysPages * PageSize)
 #define TLBSize		4		// if there is a TLB, make it small
 
