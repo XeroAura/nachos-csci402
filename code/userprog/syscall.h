@@ -18,6 +18,10 @@
 /* system call codes -- used by the stubs to tell the kernel which system call
  * is being asked for
  */
+
+/* Leaving out the ifdef statement since it causes errors
+*/
+ 	
 #define SC_Halt		0
 #define SC_Exit		1
 #define SC_Exec		2
@@ -30,7 +34,6 @@
 #define SC_Fork		9
 #define SC_Yield	10
 
-#ifdef CHANGED
 #define SC_CreateLock 11
 #define SC_DestroyLock 12
 #define SC_Acquire 13
@@ -40,7 +43,6 @@
 #define SC_Wait 17
 #define SC_Signal 18
 #define SC_Broadcast 19
-#endif
 
 #define MAXFILENAME 256
 
