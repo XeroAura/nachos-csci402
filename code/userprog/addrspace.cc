@@ -118,16 +118,20 @@ SwapHeader (NoffHeader *noffH)
 //----------------------------------------------------------------------
 
 #ifdef CHANGED
-
+//Stuff for page table
 BitMap* memoryBitMap = new BitMap(NumPhysPages); //Create new bitmap and lock to keep track of open physical pages
 Lock* bitMapLock = new Lock("bitMapLock");
-Lock* pageTableLock = new Lock("pageTableLock");
-int stackPageStart = 0;
 
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	NoffHeader noffH;
 	unsigned int i;
 	unsigned int size;
+
+	pageBitMap = new BitMap(50);
+	pageBitMapLock = new Lock("pageBitMapLock");
+
+	pageTableLock = new Lock("pageTableLock");
+
 	// Don't allocate the input or output to disk files
 	fileTable.Put(0);
 	fileTable.Put(0);
@@ -139,12 +143,13 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	ASSERT(noffH.noffMagic == NOFFMAGIC);
 	
 	size = noffH.code.size + noffH.initData.size + noffH.uninitData.size ;
+	executablePageCount = divRoundUp(size, PageSize);
 	numPages = divRoundUp(size, PageSize) + 400; //<-- added in this semicolon  //divRoundUp(UserStackSize,PageSize);
 	// we need to increase the size
 	// to leave room for the stack
 	size = numPages * PageSize;
 	
-//	ASSERT(numPages <= NumPhysPages);	// check we're not trying
+	ASSERT(numPages <= NumPhysPages);	// check we're not trying
 	// to run anything too big --
 	// at least until we have
 	// virtual memory
@@ -165,16 +170,12 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 			pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
 			pageTable[i].physicalPage = ppn;
 			pageTable[i].valid = TRUE;
+			pageTable[i].use = TRUE;
 			pageTable[i].dirty = FALSE;
 			pageTable[i].readOnly = FALSE;  // if the code segment was entirely on
 			// a separate page, we could set its
 			// pages to be read-only
-			if(executable->ReadAt(&(machine->mainMemory[ppn*PageSize]), PageSize, 40+i*PageSize) != 0){ //Read in executable
-				pageTable[i].use = TRUE;
-				stackPageStart++;
-			}
-			else
-				pageTable[i].use = FALSE;
+			executable->ReadAt(&(machine->mainMemory[ppn*PageSize]), PageSize, 40+i*PageSize); //Read in executable
 		}
 		
 	}
@@ -195,28 +196,11 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 
 int
 AddrSpace::AllocatePages(){ //Function to allocate 8 pages on the stack for a new thread
-	bool straight = true;
-	pageTableLock->Acquire();
-	for(int i = stackPageStart; i < numPages; i++){
-		if(pageTable[i].use == FALSE){
-			for(int x = i; x<i+8; x++){
-				if(pageTable[x].use = TRUE){
-					straight = false;
-					break;
-				}
-			}
-			if(straight == TRUE){
-				for(int j = i; j < i+8; j++){
-					pageTable[j].use = TRUE;
-				}
-				stackPageStart = i+8;				
-				pageTableLock->Release();
-				return i;
-			}
-		}
-	}
-	pageTableLock->Release();
-	return -1;
+	pageBitMapLock->Acquire();
+	int pageStart = pageBitMap->Find();
+	pageStart = (executablePageCount + pageStart*8) * PageSize; 
+	pageBitMapLock->Release();
+	return pageStart;
 }
 
 #endif
@@ -262,7 +246,10 @@ AddrSpace::InitRegisters()
 	// Set the stack register to the end of the address space, where we
 	// allocated the stack; but subtract off a bit, to make sure we don't
 	// accidentally reference off the end!
-	machine->WriteRegister(StackReg, numPages * PageSize - 16);
+	#ifdef CHANGED
+	int stackStart = AllocatePages();
+	machine->WriteRegister(StackReg, stackStart);
+	#endif
 	DEBUG('a', "Initializing stack register to %x\n", numPages * PageSize - 16);
 }
 

@@ -39,9 +39,16 @@ class AddrSpace {
     void RestoreState();        // info on a context switch
     Table fileTable;            // Table of openfiles
 
-    int AllocatePages();
-    
+    int AllocatePages(); //Returns start address of 8 pages for stack
+
+    int executablePageCount; //Counter for which page its on
+    OpenFile* file;
+
     private:
+    BitMap* pageBitMap; //Create new bitmap and lock to keep track of open physical pages
+    Lock* pageBitMapLock; //Lock for page bitmap
+
+    Lock* pageTableLock; //Lock for pageTable
     TranslationEntry *pageTable;    // Assume linear page table translation
     // for now!'
     unsigned int numPages;      // Number of pages in the virtual

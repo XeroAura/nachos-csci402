@@ -17,6 +17,10 @@
 
 #define QUANTUM 100
 
+extern ProcessEntry processTable[10];
+extern int processTableCount;
+extern Lock* processTableLock;
+
 //----------------------------------------------------------------------
 // StartProcess
 // 	Run a user program.  Open the executable, load it into
@@ -41,6 +45,21 @@ StartProcess(char *filename)
 
     space->InitRegisters();		// set the initial register values
     space->RestoreState();		// load page table register
+
+    #ifdef CHANGED
+    processTableLock->Acquire();
+    ThreadEntry* te = new ThreadEntry();
+    te->myThread = currentThread;
+    te->firstStackPage = space->executablePageCount*PageSize;
+
+    ProcessEntry* pe = new ProcessEntry();
+    pe->threadCount = 1;
+    pe->as = space;
+
+    processTable[0] = *pe;
+    processTableLock->Release();
+    #endif
+
 
     machine->Run();			// jump to the user progam
     ASSERT(FALSE);			// machine->Run never returns;

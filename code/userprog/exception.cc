@@ -33,6 +33,10 @@ using namespace std;
 const int MAX_CVS = 250;
 const int MAX_LOCKS = 250;
 Lock* lockTableLock = new Lock("lockTableLock");
+extern ProcessEntry processTable[10];
+extern int processTableCount;
+extern Lock* processTableLock;
+
 
 int copyin(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes from the current thread's virtual address vaddr.
@@ -61,9 +65,9 @@ int copyin(unsigned int vaddr, int len, char *buf) {
 
    	delete paddr;
    	return len;
-   }
+}
 
-   int copyout(unsigned int vaddr, int len, char *buf) {
+int copyout(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes to the current thread's virtual address vaddr.
     // Return the number of bytes so written, or -1 if an error
     // occors.  Errors can generally mean a bad virtual address was
@@ -237,42 +241,22 @@ void Close_Syscall(int fd) {
 }
 
 #ifdef CHANGED
-struct ThreadEntry { //Struct to represent a thread
-    int firstStackPage;
-    Thread* myThread;
-    ThreadEntry() : firstStackPage(-1), myThread(NULL) {}
-}; 
-
-struct ProcessEntry { //Struct to represent a process
-    int threadCount;
-    int spaceID;
-    AddrSpace* as;
-    ThreadEntry* threads[50];
-    ProcessEntry() : threadCount(0), spaceID(-1), as(NULL) {
-        for(int i = 0; i < 50; i++)
-            threads[i] = new ThreadEntry();
-    }
-};
-
-ProcessEntry processTable[10] = {};
-Lock* processTableLock = new Lock("processTableLock");
-int spaceIDCount = 1;
 
 struct forkInfo{
 	int vaddr;
-	int pageLoc;
+	int pageAddr;
 };
 
 void fork_thread(int value){
 	forkInfo *m = (forkInfo*) value;
 	int vaddr = m->vaddr;
-	int pageLoc = m->pageLoc;
+	int pageLoc = m->pageAddr;
 
 	machine->WriteRegister(PCReg, vaddr);
 	machine->WriteRegister(NextPCReg, vaddr+4);
 
 	//Write to stack register the starting point of the stack for this thread
-	machine->WriteRegister(StackReg, pageLoc * PageSize - 16); //numPages * PageSize - 16
+	machine->WriteRegister(StackReg, pageLoc); //numPages * PageSize - 16
 
 	currentThread->space->RestoreState();
 	machine->Run();
@@ -282,28 +266,27 @@ void Fork_Syscall(unsigned int vaddr){
 	Thread* t = new Thread("forkThread"); //Create new thread
 	t->space = currentThread->space; //Allocate the addrspace to the thread being forked, same as current thread's
 
-	forkInfo tmp;
-	tmp.vaddr = vaddr;
+	forkInfo* tmp;
+	tmp->vaddr = vaddr;
 
 	//Find 8 pages of stack to give to thread?
-    int pageLoc = t->space->AllocatePages();
-    if(pageLoc != -1) {
-	    tmp.pageLoc = pageLoc;
+    int pageAddr = t->space->AllocatePages();
+    if(pageAddr != -1) {
+	    tmp->pageAddr = pageAddr;
         //Multiprogramming: Update process table
-        ThreadEntry te; //Give first stack page?
-        te.myThread = t;
-        te.firstStackPage = pageLoc;
+        ThreadEntry* te = new ThreadEntry(); //Give first stack page?
+        te->myThread = t;
+        te->firstStackPage = pageAddr;
         processTableLock->Acquire();
         for(int i = 0; i < 10; i++){
             if(processTable[i].as == currentThread->space){
-                processTable[i].threads[processTable[i].threadCount] = &te;
-                tmp.pageLoc = processTable[i].threadCount;
+                processTable[i].threads[processTable[i].threadCount] = te;
                 processTable[i].threadCount++;
                 break;
             }
         }
         processTableLock->Release();
-        t->Fork(fork_thread, (int) &tmp);
+        t->Fork(fork_thread, (int) tmp);
     }
     else //Should never happen...
         printf("Out of pages to allocate for new thread stack.");
@@ -312,6 +295,7 @@ void Fork_Syscall(unsigned int vaddr){
 
 struct execInfo{
     int vaddr;
+    int pageAddr;
 };
 
 void exec_thread(int value){
@@ -323,7 +307,7 @@ void exec_thread(int value){
     machine->WriteRegister(NextPCReg, vaddr+4);
 
     //Write to stack register the starting point of the stack for this thread
-    //machine->WriteRegister(StackReg, pageLoc * PageSize - 16); //numPages * PageSize - 16
+    machine->WriteRegister(StackReg, m->pageAddr); //numPages * PageSize - 16
 
 	currentThread->space->RestoreState();
 	machine->Run();
@@ -331,18 +315,6 @@ void exec_thread(int value){
 
 void Exec_Syscall(unsigned int vaddr, char *filename){
 	//Convert VA to physical address
-    int addr = -1;
-    // for(int i = 0; i < numPages; i++){
-    //     if(pageTable[i].virtualPage == vaddr){
-    //         addr = pageTable[i].physicalPage;
-    //         break;
-    //     }
-    // }
-
-    if(addr == -1){
-        printf("Can't find physical address for vaddr in exec_syscall");
-        return;
-    }
 
 	OpenFile* f = fileSystem->Open(filename);
 	if (f == NULL) {
@@ -352,8 +324,7 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 
 	AddrSpace *space = new AddrSpace(f); // Create new addresspace for this executable file.
 
-	// Store its openfile pointer?
-	space->fileTable.Put(f);
+    space->file = f; // Store its openfile pointer
 
 	Thread *t = new Thread(""); //Create a new thread
 	t->space = space; // Allocate the space created to this thread's space.
@@ -363,21 +334,38 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 
 
     processTableLock->Acquire();
-    int id = spaceIDCount;
-    spaceIDCount++;
-    // processTable[id] = 
+
+    ThreadEntry* te = new ThreadEntry();
+
+    int pageAddr = space->AllocatePages();
+    te->firstStackPage = pageAddr;
+    te->myThread = t;
+    ProcessEntry* pe = new ProcessEntry();
+    pe->threadCount = 1;
+    pe->as = space;
+    pe->threads[0] = te;
+    processTable[processTableCount] = *pe;
+    processTableCount++;
     processTableLock->Release();
 
-    // Write the space ID to the register 2?
-	machine->WriteRegister(2, id);
+	execInfo* tmp;
+    tmp->pageAddr = pageAddr;
+    tmp->vaddr = vaddr;
 
-	execInfo tmp;
-	t->Fork(exec_thread, (int) &tmp);
+	t->Fork(exec_thread, (int) tmp);
 }
 
 int Exit_Syscall(){
 
-	currentThread->Finish();
+    // 1. Last thread in the last process
+    //     a. interrupt->Halt()
+    // 2. Last thread in a process - not the last process
+    //     a. Reclaim all memory (Use pageTable - All valid entries)
+    //     b. Reclaim all locks/CVs that were allocated to that process
+    // 3. Not last thread in a process
+    //     a. Reclaim 8 stack pages
+
+    currentThread->Finish();
 	return 0;
 }
 
@@ -500,6 +488,24 @@ void Broadcast_Syscall(int index, KernelLock &cvLock){
 	return;
 }
 
+void MyWrite_Syscall(unsigned int vaddr, int len, int one, int two){
+    char *buf = new char[len+1];    // Kernel buffer to put the name in
+    if (!buf) return;
+    if( copyin(vaddr,len,buf) == -1 ) {
+        printf("%s","Bad pointer passed to Create\n");
+        delete buf;
+        return;
+    }
+    buf[len]='\0';
+
+    int a = one/100;
+    int b = one%100;
+    int c = two/100;
+    int d = two%100;
+    printf(buf, a, b, c, d);
+    return;
+}
+
 bool
 validateAddress(unsigned int vaddr){
 	if(vaddr == NULL)
@@ -549,6 +555,10 @@ void ExceptionHandler(ExceptionType which) {
     		break;
 
 		#ifdef CHANGED
+            case SC_MyWrite:
+            DEBUG('a', "MyWrite syscall.\n");
+            MyWrite_Syscall(machine->ReadRegister(4), machine->ReadRegister(5),machine->ReadRegister(6), machine->ReadRegister(7));
+            break;
     		case SC_Fork:
     		DEBUG('a', "Fork syscall.\n");
     		Fork_Syscall(machine->ReadRegister(4));

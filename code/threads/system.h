@@ -49,4 +49,26 @@ extern SynchDisk   *synchDisk;
 extern PostOffice* postOffice;
 #endif
 
+#ifdef CHANGED
+struct ThreadEntry { //Struct to represent a thread
+    int firstStackPage;
+    Thread* myThread;
+    ThreadEntry() : firstStackPage(-1), myThread(NULL) {};
+}; 
+
+struct ProcessEntry { //Struct to represent a process
+    int threadCount;
+    AddrSpace* as;
+    ThreadEntry* threads[50];
+    ProcessEntry() : threadCount(0), as(NULL) {
+        for(int i = 0; i < 50; i++)
+            threads[i] = new ThreadEntry();
+    };
+};
+
+extern ProcessEntry processTable[10]; //Process table
+extern int processTableCount;
+extern Lock* processTableLock; //Lock for process table
+#endif
+
 #endif // SYSTEM_H
