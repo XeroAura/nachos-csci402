@@ -118,7 +118,7 @@ SwapHeader (NoffHeader *noffH)
 //----------------------------------------------------------------------
 
 #ifdef CHANGED
-
+//Stuff for page table
 BitMap* memoryBitMap = new BitMap(NumPhysPages); //Create new bitmap and lock to keep track of open physical pages
 Lock* bitMapLock = new Lock("bitMapLock");
 Lock* pageTableLock = new Lock("pageTableLock");

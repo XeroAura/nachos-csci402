@@ -34,6 +34,7 @@ const int MAX_CVS = 250;
 const int MAX_LOCKS = 250;
 Lock* lockTableLock = new Lock("lockTableLock");
 
+
 int copyin(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes from the current thread's virtual address vaddr.
     // Return the number of bytes so read, or -1 if an error occors.
@@ -237,26 +238,25 @@ void Close_Syscall(int fd) {
 }
 
 #ifdef CHANGED
+
 struct ThreadEntry { //Struct to represent a thread
     int firstStackPage;
     Thread* myThread;
-    ThreadEntry() : firstStackPage(-1), myThread(NULL) {}
+    ThreadEntry() : firstStackPage(-1), myThread(NULL) {};
 }; 
 
 struct ProcessEntry { //Struct to represent a process
     int threadCount;
-    int spaceID;
     AddrSpace* as;
     ThreadEntry* threads[50];
-    ProcessEntry() : threadCount(0), spaceID(-1), as(NULL) {
+    ProcessEntry() : threadCount(0), as(NULL) {
         for(int i = 0; i < 50; i++)
             threads[i] = new ThreadEntry();
-    }
+    };
 };
 
-ProcessEntry processTable[10] = {};
-Lock* processTableLock = new Lock("processTableLock");
-int spaceIDCount = 1;
+ProcessEntry processTable[10]; //Process table
+Lock* processTableLock; //Lock for process table
 
 struct forkInfo{
 	int vaddr;
@@ -360,15 +360,12 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 
 	// Update the process table and related data structures.
     processTableLock->Acquire();
-    int id = spaceIDCount;
-    spaceIDCount++;
 
     ThreadEntry* te = new ThreadEntry();
     te->firstStackPage = 0;
     te->myThread = t;
     ProcessEntry* pe = new ProcessEntry();
     pe->threadCount = 1;
-    pe->spaceID = id;
     pe->as = space;
     pe->threads[0] = te;
 
@@ -383,8 +380,16 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 }
 
 int Exit_Syscall(){
-    
-	currentThread->Finish();
+
+    // 1. Last thread in the last process
+    //     a. interrupt->Halt()
+    // 2. Last thread in a process - not the last process
+    //     a. Reclaim all memory (Use pageTable - All valid entries)
+    //     b. Reclaim all locks/CVs that were allocated to that process
+    // 3. Not last thread in a process
+    //     a. Reclaim 8 stack pages
+
+    currentThread->Finish();
 	return 0;
 }
 
