@@ -7,7 +7,7 @@
 //
 #include "copyright.h"
 #include "system.h"
-
+#include "synch.h"
 // This defines *all* of the global data structures used by Nachos.
 // These are all initialized and de-allocated by this file.
 
@@ -162,6 +162,12 @@ Initialize(int argc, char **argv)
 #ifdef NETWORK
     postOffice = new PostOffice(netname, rely, 10);
 #endif
+
+#ifdef CHANGED
+processTable[10]; //Process table
+processTableCount = 1; //Counter
+processTableLock = new Lock("processTableLock"); //Lock for process table
+#endif    
 }
 
 //----------------------------------------------------------------------

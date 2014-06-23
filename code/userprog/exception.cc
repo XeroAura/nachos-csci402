@@ -62,9 +62,9 @@ int copyin(unsigned int vaddr, int len, char *buf) {
 
    	delete paddr;
    	return len;
-   }
+}
 
-   int copyout(unsigned int vaddr, int len, char *buf) {
+int copyout(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes to the current thread's virtual address vaddr.
     // Return the number of bytes so written, or -1 if an error
     // occors.  Errors can generally mean a bad virtual address was
@@ -239,40 +239,21 @@ void Close_Syscall(int fd) {
 
 #ifdef CHANGED
 
-struct ThreadEntry { //Struct to represent a thread
-    int firstStackPage;
-    Thread* myThread;
-    ThreadEntry() : firstStackPage(-1), myThread(NULL) {};
-}; 
-
-struct ProcessEntry { //Struct to represent a process
-    int threadCount;
-    AddrSpace* as;
-    ThreadEntry* threads[50];
-    ProcessEntry() : threadCount(0), as(NULL) {
-        for(int i = 0; i < 50; i++)
-            threads[i] = new ThreadEntry();
-    };
-};
-
-ProcessEntry processTable[10]; //Process table
-Lock* processTableLock; //Lock for process table
-
 struct forkInfo{
 	int vaddr;
-	int pageLoc;
+	int pageAddr;
 };
 
 void fork_thread(int value){
 	forkInfo *m = (forkInfo*) value;
 	int vaddr = m->vaddr;
-	int pageLoc = m->pageLoc;
+	int pageLoc = m->pageAddr;
 
 	machine->WriteRegister(PCReg, vaddr);
 	machine->WriteRegister(NextPCReg, vaddr+4);
 
 	//Write to stack register the starting point of the stack for this thread
-	machine->WriteRegister(StackReg, pageLoc * PageSize - 16); //numPages * PageSize - 16
+	machine->WriteRegister(StackReg, pageLoc); //numPages * PageSize - 16
 
 	currentThread->space->RestoreState();
 	machine->Run();
@@ -282,28 +263,27 @@ void Fork_Syscall(unsigned int vaddr){
 	Thread* t = new Thread("forkThread"); //Create new thread
 	t->space = currentThread->space; //Allocate the addrspace to the thread being forked, same as current thread's
 
-	forkInfo tmp;
-	tmp.vaddr = vaddr;
+	forkInfo* tmp;
+	tmp->vaddr = vaddr;
 
 	//Find 8 pages of stack to give to thread?
-    int pageLoc = t->space->AllocatePages();
-    if(pageLoc != -1) {
-	    tmp.pageLoc = pageLoc;
+    int pageAddr = t->space->AllocatePages();
+    if(pageAddr != -1) {
+	    tmp->pageAddr = pageAddr;
         //Multiprogramming: Update process table
         ThreadEntry* te = new ThreadEntry(); //Give first stack page?
         te->myThread = t;
-        te->firstStackPage = pageLoc;
+        te->firstStackPage = pageAddr;
         processTableLock->Acquire();
         for(int i = 0; i < 10; i++){
             if(processTable[i].as == currentThread->space){
                 processTable[i].threads[processTable[i].threadCount] = te;
-                tmp.pageLoc = processTable[i].threadCount;
                 processTable[i].threadCount++;
                 break;
             }
         }
         processTableLock->Release();
-        t->Fork(fork_thread, (int) &tmp);
+        t->Fork(fork_thread, (int) tmp);
     }
     else //Should never happen...
         printf("Out of pages to allocate for new thread stack.");
@@ -331,18 +311,6 @@ void exec_thread(int value){
 
 void Exec_Syscall(unsigned int vaddr, char *filename){
 	//Convert VA to physical address
-    int addr = -1;
-    // for(int i = 0; i < numPages; i++){
-    //     if(pageTable[i].virtualPage == vaddr){
-    //         addr = pageTable[i].physicalPage;
-    //         break;
-    //     }
-    // }
-
-    if(addr == -1){
-        printf("Can't find physical address for vaddr in exec_syscall");
-        return;
-    }
 
 	OpenFile* f = fileSystem->Open(filename);
 	if (f == NULL) {
@@ -352,8 +320,7 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 
 	AddrSpace *space = new AddrSpace(f); // Create new addresspace for this executable file.
 
-	// Store its openfile pointer?
-	space->fileTable.Put(f);
+    space->file = f; // Store its openfile pointer
 
 	Thread *t = new Thread(""); //Create a new thread
 	t->space = space; // Allocate the space created to this thread's space.
@@ -369,14 +336,13 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
     pe->as = space;
     pe->threads[0] = te;
 
-    processTable[id] = *pe;
+    processTable[processTableCount] = *pe;
+    processTableCount++;
     processTableLock->Release();
 
-    // Write the space ID to the register 2?
-	machine->WriteRegister(2, id);
+	execInfo* tmp;
 
-	execInfo tmp;
-	t->Fork(exec_thread, (int) &tmp);
+	t->Fork(exec_thread, (int) tmp);
 }
 
 int Exit_Syscall(){

@@ -43,13 +43,17 @@ StartProcess(char *filename)
     space->RestoreState();		// load page table register
 
     #ifdef CHANGED
-    // processTableLock->Acquire();
-    // ProcessEntry* pe = new ProcessEntry();
-    // pe->threadCount = 1;
-    // pe->as = space;
+    processTableLock->Acquire();
+    ThreadEntry* te = new ThreadEntry();
+    te->myThread = currentThread;
+    te->firstStackPage = space->executablePageCount*PageSize;
 
-    // processTable[0] = *pe;
-    // processTableLock->Release();
+    ProcessEntry* pe = new ProcessEntry();
+    pe->threadCount = 1;
+    pe->as = space;
+
+    processTable[0] = *pe;
+    processTableLock->Release();
     #endif
 
 
