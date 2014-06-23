@@ -247,29 +247,16 @@ struct ProcessEntry { //Struct to represent a process
     int threadCount;
     int spaceID;
     AddrSpace* as;
-    ProcessEntry() : threadCount(0), spaceID(-1), as(NULL) {}
+    ThreadEntry* threads[50];
+    ProcessEntry() : threadCount(0), spaceID(-1), as(NULL) {
+        for(int i = 0; i < 50; i++)
+            threads[i] = new ThreadEntry();
+    }
 };
 
 ProcessEntry processTable[10] = {};
 Lock* processTableLock = new Lock("processTableLock");
 int spaceIDCount = 1;
-
-ThreadEntry createThreadEntry(Thread* th, int stackPage){
-    ThreadEntry* te = new ThreadEntry();
-    te->firstStackPage = stackPage;
-    te->myThread = th;
-    return *te;
-}
-
-ProcessEntry createProcessEntry(Thread* th, AddrSpace* addrs){
-    ThreadEntry thread1 = createThreadEntry(th, ); //Create the first threadentry for process
-
-    ProcessEntry entry = {}; //Create process entry
-    entry.threadCount = 0;
-    entry.as = addrs;
-    entry.threads[0] = thread1;
-    return entry;
-}
 
 struct forkInfo{
 	int vaddr;
@@ -279,16 +266,15 @@ struct forkInfo{
 void fork_thread(int value){
 	forkInfo *m = (forkInfo*) value;
 	int vaddr = m->vaddr;
-	int stackStart = m->pageLoc;
+	int pageLoc = m->pageLoc;
 
 	machine->WriteRegister(PCReg, vaddr);
 	machine->WriteRegister(NextPCReg, vaddr+4);
 
 	//Write to stack register the starting point of the stack for this thread
-	machine->WriteRegister(StackReg, stackStart * PageSize - 16); //numPages * PageSize - 16
+	machine->WriteRegister(StackReg, pageLoc * PageSize - 16); //numPages * PageSize - 16
 
 	currentThread->space->RestoreState();
-
 	machine->Run();
 }
 
@@ -304,11 +290,13 @@ void Fork_Syscall(unsigned int vaddr){
     if(pageLoc != -1) {
 	    tmp.pageLoc = pageLoc;
         //Multiprogramming: Update process table
-        ThreadEntry te = createThreadEntry(t, pageLoc); //Give first stack page?
+        ThreadEntry te; //Give first stack page?
+        te.myThread = t;
+        te.firstStackPage = pageLoc;
         processTableLock->Acquire();
         for(int i = 0; i < 10; i++){
             if(processTable[i].as == currentThread->space){
-                processTable[i].threads[processTable[i].threadCount] = te;
+                processTable[i].threads[processTable[i].threadCount] = &te;
                 tmp.pageLoc = processTable[i].threadCount;
                 processTable[i].threadCount++;
                 break;
@@ -323,11 +311,19 @@ void Fork_Syscall(unsigned int vaddr){
 }
 
 struct execInfo{
-
+    int vaddr;
 };
 
 void exec_thread(int value){
+    execInfo *m = (execInfo*) value;
+    int vaddr = m->vaddr;
+
 	//Initialize the register by using currentThread->space.
+    machine->WriteRegister(PCReg, vaddr);
+    machine->WriteRegister(NextPCReg, vaddr+4);
+
+    //Write to stack register the starting point of the stack for this thread
+    //machine->WriteRegister(StackReg, pageLoc * PageSize - 16); //numPages * PageSize - 16
 
 	currentThread->space->RestoreState();
 	machine->Run();
@@ -354,8 +350,7 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 		return;
     }
 
-	AddrSpace *space; // Create new addresspace for this executable file.
-    space = new AddrSpace(f);
+	AddrSpace *space = new AddrSpace(f); // Create new addresspace for this executable file.
 
 	// Store its openfile pointer?
 	space->fileTable.Put(f);
@@ -364,10 +359,13 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 	t->space = space; // Allocate the space created to this thread's space.
 
 	// Update the process table and related data structures.
+
+
+
     processTableLock->Acquire();
     int id = spaceIDCount;
     spaceIDCount++;
-    processTable[id] = 
+    // processTable[id] = 
     processTableLock->Release();
 
     // Write the space ID to the register 2?
