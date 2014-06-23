@@ -290,13 +290,13 @@ void Fork_Syscall(unsigned int vaddr){
     if(pageLoc != -1) {
 	    tmp.pageLoc = pageLoc;
         //Multiprogramming: Update process table
-        ThreadEntry te; //Give first stack page?
-        te.myThread = t;
-        te.firstStackPage = pageLoc;
+        ThreadEntry* te = new ThreadEntry(); //Give first stack page?
+        te->myThread = t;
+        te->firstStackPage = pageLoc;
         processTableLock->Acquire();
         for(int i = 0; i < 10; i++){
             if(processTable[i].as == currentThread->space){
-                processTable[i].threads[processTable[i].threadCount] = &te;
+                processTable[i].threads[processTable[i].threadCount] = te;
                 tmp.pageLoc = processTable[i].threadCount;
                 processTable[i].threadCount++;
                 break;
@@ -359,13 +359,20 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 	t->space = space; // Allocate the space created to this thread's space.
 
 	// Update the process table and related data structures.
-
-
-
     processTableLock->Acquire();
     int id = spaceIDCount;
     spaceIDCount++;
-    // processTable[id] = 
+
+    ThreadEntry* te = new ThreadEntry();
+    te->firstStackPage = 0;
+    te->myThread = t;
+    ProcessEntry* pe = new ProcessEntry();
+    pe->threadCount = 1;
+    pe->spaceID = id;
+    pe->as = space;
+    pe->threads[0] = te;
+
+    processTable[id] = *pe;
     processTableLock->Release();
 
     // Write the space ID to the register 2?
@@ -376,7 +383,7 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 }
 
 int Exit_Syscall(){
-
+    
 	currentThread->Finish();
 	return 0;
 }
