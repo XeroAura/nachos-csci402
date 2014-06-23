@@ -248,6 +248,10 @@ AddrSpace::InitRegisters()
 	// accidentally reference off the end!
 	#ifdef CHANGED
 	int stackStart = AllocatePages();
+	if(stackStart == -1){
+		printf("Unable to allocate stack pages in InitRegisters()!");
+		ASSERT(FALSE);
+	}
 	machine->WriteRegister(StackReg, stackStart);
 	#endif
 	DEBUG('a', "Initializing stack register to %x\n", numPages * PageSize - 16);

@@ -289,7 +289,7 @@ void Fork_Syscall(unsigned int vaddr){
         t->Fork(fork_thread, (int) tmp);
     }
     else //Should never happen...
-        printf("Out of pages to allocate for new thread stack.");
+        printf("Unable to allocate pages for stack in Fork.");
 	
 }
 
@@ -330,14 +330,15 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 	t->space = space; // Allocate the space created to this thread's space.
 
 	// Update the process table and related data structures.
-
-
-
     processTableLock->Acquire();
 
     ThreadEntry* te = new ThreadEntry();
 
     int pageAddr = space->AllocatePages();
+    if(pageAddr == -1){
+        printf("Unable to allocate stack pages for exec");
+        return;
+    }
     te->firstStackPage = pageAddr;
     te->myThread = t;
     ProcessEntry* pe = new ProcessEntry();
@@ -359,14 +360,20 @@ int Exit_Syscall(){
 
     // 1. Last thread in the last process
     //     a. interrupt->Halt()
+    if(){
+        
+    }
+
     // 2. Last thread in a process - not the last process
     //     a. Reclaim all memory (Use pageTable - All valid entries)
+    //          memoryBitMap->Clear(ppn);
     //     b. Reclaim all locks/CVs that were allocated to that process
+
     // 3. Not last thread in a process
     //     a. Reclaim 8 stack pages
 
     currentThread->Finish();
-	return 0;
+	return 1; //Return 0 if last process, 1 if more processes
 }
 
 void Yield_Syscall(){
