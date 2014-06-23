@@ -290,13 +290,13 @@ void Fork_Syscall(unsigned int vaddr){
     if(pageLoc != -1) {
 	    tmp.pageLoc = pageLoc;
         //Multiprogramming: Update process table
-        ThreadEntry* te = new ThreadEntry(); //Give first stack page?
-        te->myThread = t;
-        te->firstStackPage = pageLoc;
+        ThreadEntry te; //Give first stack page?
+        te.myThread = t;
+        te.firstStackPage = pageLoc;
         processTableLock->Acquire();
         for(int i = 0; i < 10; i++){
             if(processTable[i].as == currentThread->space){
-                processTable[i].threads[processTable[i].threadCount] = te;
+                processTable[i].threads[processTable[i].threadCount] = &te;
                 tmp.pageLoc = processTable[i].threadCount;
                 processTable[i].threadCount++;
                 break;
@@ -359,20 +359,13 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 	t->space = space; // Allocate the space created to this thread's space.
 
 	// Update the process table and related data structures.
+
+
+
     processTableLock->Acquire();
     int id = spaceIDCount;
     spaceIDCount++;
-
-    ThreadEntry* te = new ThreadEntry();
-    te->firstStackPage = 0;
-    te->myThread = t;
-    ProcessEntry* pe = new ProcessEntry();
-    pe->threadCount = 1;
-    pe->spaceID = id;
-    pe->as = space;
-    pe->threads[0] = te;
-
-    processTable[id] = *pe;
+    // processTable[id] = 
     processTableLock->Release();
 
     // Write the space ID to the register 2?
@@ -383,7 +376,7 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 }
 
 int Exit_Syscall(){
-    
+
 	currentThread->Finish();
 	return 0;
 }
@@ -411,12 +404,22 @@ int CreateLock_Syscall(int debugInt){
 	if (nextLockIndex < MAX_LOCKS){
 		kLocks[nextLockIndex] = tempLock;
 		nextLockIndex++;
-	}
+	} else {
+        printf("ERROR: Maximum number of locks reached. Current number of locks is %d. \n", nextLockIndex);
+    }
 	lockTableLock->Release();
 	return nextLockIndex-1;
 }
 
 void DestroyLock_Syscall(int index){
+    if (kLocks[index] == NULL){
+        printf("ERROR: No lock exists here.\n");
+        return;
+    }
+    if (index > MAX_LOCKS){
+        printf("ERROR: The entered index exceeds the maximum allowed locks. \n");
+        return;
+    }
 	kLocks[index]->isToBeDestroyed = true;
 	if (kLocks[index]->isToBeDestroyed && kLocks[index]->lock->getFree()){
 		delete kLocks[index]->lock;

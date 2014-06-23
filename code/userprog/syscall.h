@@ -21,7 +21,7 @@
 
 /* Leaving out the ifdef statement since it causes errors
 */
- 	
+
 #define SC_Halt		0
 #define SC_Exit		1
 #define SC_Exec		2
@@ -142,37 +142,37 @@ void Yield();
 
 #ifdef CHANGED
 /* System call to acquire a lock to enter a critical section of code */
-void Acquire();
+void Acquire(int index);
 
 /* System call to release a lock to leave a critical section of code */
-void Release();
+void Release(int index);
 
 /* System call to wait on a condition to be met, and put the current 
  * thread to sleep. 
  */
-void Wait();
+void Wait(int index);
 
 /* System call to wake up a thread that is waiting on this condition */
-void Signal();
+void Signal(int index);
 
 /* System call to wake up all threads waiting on this condition */
-void Broadcast();
+void Broadcast(int index);
 
 /* System call to create a lock, returns an int to the index position of the kernel 
  * structure array of actual locks. 
  */
-int CreateLock();
+int CreateLock(int debugInt);
 
 /* System call to destroy a lock. */
-void DestroyLock();
+void DestroyLock(int index);
 
 /* System call to create a condition variable, returns an int to the index position 
  * of the kernel structure array of actual condition variables. 
  */
-int CreateCondition();
+int CreateCondition(int debugInt);
 
 /* System call to destroy a condition variable. */
-void DestroyCondition();
+void DestroyCondition(int index);
 #endif
 
 
