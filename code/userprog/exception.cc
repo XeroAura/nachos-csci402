@@ -475,6 +475,24 @@ void Broadcast_Syscall(int index, KernelLock &cvLock){
 	return;
 }
 
+void MyWrite_Syscall(unsigned int vaddr, int len, int one, int two){
+    char *buf = new char[len+1];    // Kernel buffer to put the name in
+    if (!buf) return;
+    if( copyin(vaddr,len,buf) == -1 ) {
+        printf("%s","Bad pointer passed to Create\n");
+        delete buf;
+        return;
+    }
+    buf[len]='\0';
+
+    int a = one/100;
+    int b = one%100;
+    int c = two/100;
+    int d = two%100;
+    printf(buf, a, b, c, d);
+    return;
+}
+
 bool
 validateAddress(unsigned int vaddr){
 	if(vaddr == NULL)
@@ -524,6 +542,10 @@ void ExceptionHandler(ExceptionType which) {
     		break;
 
 		#ifdef CHANGED
+            case SC_MyWrite:
+            DEBUG('a', "MyWrite syscall.\n");
+            MyWrite_Syscall(machine->ReadRegister(4), machine->ReadRegister(5),machine->ReadRegister(6), machine->ReadRegister(7));
+            break;
     		case SC_Fork:
     		DEBUG('a', "Fork syscall.\n");
     		Fork_Syscall(machine->ReadRegister(4));

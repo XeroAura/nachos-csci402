@@ -44,6 +44,8 @@
 #define SC_Signal 18
 #define SC_Broadcast 19
 
+#define SC_MyWrite  20
+
 #define MAXFILENAME 256
 
 #ifndef IN_ASM

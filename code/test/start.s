@@ -201,6 +201,11 @@ Broadcast:
 	syscall
 	j	$31
 	.end Broadcast
+MyWrite:
+	addiu $2,$0,SC_MyWrite
+	syscall
+	j	$31
+	.end MyWrite
 	
 /* dummy function to keep gcc happy */
         .globl  __main
