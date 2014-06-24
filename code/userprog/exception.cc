@@ -389,6 +389,8 @@ int Exit_Syscall(){
 
     if(processTable[slot].threadCount == 1){ //Last thread in process
         processTable[slot].as->EmptyPages();
+        ProcessEntry* blank = new ProcessEntry();
+        processTable[slot] = *blank;
         //Clear locks/CVS here!
         currentThread->Finish();
         return 0;
@@ -399,6 +401,7 @@ int Exit_Syscall(){
     for(int j = 0; j< processTable[slot].threadCount; j++){
         if(currentThread == processTable[slot].threads[j]->myThread){
             processTable[slot].as->Empty8Pages(processTable[slot].threads[j]->firstStackPage);
+            processTable[slot].threads[j] = new ThreadEntry();
             currentThread->Finish();
             return 1;
             break;
