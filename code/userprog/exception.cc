@@ -356,6 +356,16 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 	t->Fork(exec_thread, (int) tmp);
 }
 
+bool
+validateAddress(unsigned int vaddr){
+    if(vaddr == NULL)
+        return false;
+    if( vaddr > 0 && vaddr < 500 ){ //Check if vaddr is within bounds?
+        return true;
+    }
+    return false;
+}
+
 int Exit_Syscall(){
 
     // 1. Last thread in the last process
@@ -513,15 +523,6 @@ void MyWrite_Syscall(unsigned int vaddr, int len, int one, int two){
     return;
 }
 
-bool
-validateAddress(unsigned int vaddr){
-	if(vaddr == NULL)
-		return false;
-	if( vaddr > 0 && vaddr < 500 ){ //Check if vaddr is within bounds?
-		return true;
-	}
-	return false;
-}
 #endif
 
 void ExceptionHandler(ExceptionType which) {

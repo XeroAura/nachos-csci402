@@ -145,6 +145,7 @@ void Yield();
 #ifdef CHANGED
 
 void Exec(void (*func)(), char *buffer);
+
 int Exit();
 
 /* System call to acquire a lock to enter a critical section of code */
