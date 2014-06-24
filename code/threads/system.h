@@ -63,7 +63,7 @@ struct ProcessEntry { //Struct to represent a process
     ProcessEntry() : threadCount(0), as(NULL) {
         for(int i = 0; i < 50; i++)
             threads[i] = new ThreadEntry();
-    };
+    }
 };
 
 extern ProcessEntry processTable[10]; //Process table
