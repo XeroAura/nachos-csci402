@@ -440,12 +440,12 @@ int CreateLock_Syscall(int debugInt){
 }
 
 void DestroyLock_Syscall(int index){
-    if (kLocks[index] == NULL){
-        printf("ERROR: No lock exists here.\n");
+    if (index >= MAX_LOCKS){
+        printf("ERROR: The entered index exceeds the maximum allowed locks (%d). \n", MAX_LOCKS);
         return;
     }
-    if (index > MAX_LOCKS){
-        printf("ERROR: The entered index exceeds the maximum allowed locks. \n");
+    if (kLocks[index] == NULL){
+        printf("ERROR: No lock exists here.\n");
         return;
     }
 	kLocks[index]->isToBeDestroyed = true;
@@ -617,7 +617,7 @@ void ExceptionHandler(ExceptionType which) {
 
             case SC_DestroyLock:
             DEBUG('a', "Destroy Lock syscall.\n");
-            
+            DestroyLock_Syscall(machine->ReadRegister(4));            
             break;
 
             case SC_Acquire:
