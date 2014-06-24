@@ -277,7 +277,7 @@ void Fork_Syscall(unsigned int vaddr){
 	//Find 8 pages of stack to give to thread?
     int pageAddr = t->space->AllocatePages();
     if(pageAddr != -1) {
-     tmp->pageAddr = pageAddr;
+       tmp->pageAddr = pageAddr;
         //Multiprogramming: Update process table
         ThreadEntry* te = new ThreadEntry(); //Give first stack page?
         te->myThread = t;
@@ -385,18 +385,18 @@ int CreateLock_Syscall(int debugInt){
     tempLock->lock = new Lock(debugName);
     lockTableLock->Acquire();
     if (nextLockIndex < MAX_LOCKS){
-      kLocks[nextLockIndex] = tempLock;
-      nextLockIndex++;
-  } else {
-    printf("ERROR: Maximum number of locks reached. Current number of locks is %d. \n", nextLockIndex);
-}
+        kLocks[nextLockIndex] = tempLock;
+        nextLockIndex++;
+    } else {
+        printf("ERROR: Maximum number of locks reached. Current number of locks is %d. \n", nextLockIndex);
+    }
 lockTableLock->Release();
 return nextLockIndex-1;
 }
 
 void DestroyLock_Syscall(int index){
     if (index >= MAX_LOCKS){
-        printf("ERROR: The entered index exceeds the maximum allowed locks. \n");
+        printf("ERROR: The attempted index exceeds the maximum number of locks. \n");
         return;
     }
     if (index < 0){
@@ -427,8 +427,6 @@ void Acquire_Syscall(int index){
 }
 
 void Release_Syscall(int index){
-    //check if index is less than the size of the array
-    //check if lock at index belongs to current thread
     printf("Releasing lock %d\n", index);
     if (index >= 0 && index < MAX_LOCKS){ //checks if index is valid
         if (kLocks[index]->lock != NULL){ //checks if the lock exists
@@ -455,11 +453,13 @@ int CreateCondition_Syscall(int debugInt){
     tempCV->condition = new Condition(debugName);
     CVTableLock->Acquire();
     if (nextCVIndex < MAX_LOCKS){
-      kCV[nextCVIndex] = tempCV;
-      nextCVIndex++;
-  }
-  CVTableLock->Release();
-  return nextCVIndex-1;
+        kCV[nextCVIndex] = tempCV;
+        nextCVIndex++;
+    } else {
+        printf("ERROR: Maximum number of CV's reached. \n");
+    }
+    CVTableLock->Release();
+    return nextCVIndex-1;
 }
 
 void DestroyCondition_Syscall(int index){
@@ -475,13 +475,13 @@ void DestroyCondition_Syscall(int index){
         printf("ERROR: No lock exists here.\n");
         return;
     }
-	kCV[index]->isToBeDestroyed = true;
-	if (kCV[index]->isToBeDestroyed && kCV[index]->condition->getLock() == NULL){
-		delete kCV[index]->condition;
-		delete kCV[index];
-		kCV[index] = NULL;
-	}
-	return;
+    kCV[index]->isToBeDestroyed = true;
+    if (kCV[index]->isToBeDestroyed && kCV[index]->condition->getLock() == NULL){
+      delete kCV[index]->condition;
+      delete kCV[index];
+      kCV[index] = NULL;
+  }
+  return;
 }
 
 void Wait_Syscall(int index, int lockIndex){
@@ -610,14 +610,14 @@ void ExceptionHandler(ExceptionType which) {
             case SC_Write:
             DEBUG('a', "Write syscall.\n");
             Write_Syscall(machine->ReadRegister(4),
-               machine->ReadRegister(5),
-               machine->ReadRegister(6));
+             machine->ReadRegister(5),
+             machine->ReadRegister(6));
             break;
             case SC_Read:
             DEBUG('a', "Read syscall.\n");
             rv = Read_Syscall(machine->ReadRegister(4),
-               machine->ReadRegister(5),
-               machine->ReadRegister(6));
+             machine->ReadRegister(5),
+             machine->ReadRegister(6));
             break;
             case SC_Close:
             DEBUG('a', "Close syscall.\n");
@@ -686,12 +686,13 @@ void ExceptionHandler(ExceptionType which) {
 
             case SC_Signal:
             DEBUG('a', "Signal syscall.\n");
+            Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
 
             case SC_Broadcast:
             DEBUG('a', "Broadcast syscall.\n");
+            Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
-
 	    #endif
         }
 

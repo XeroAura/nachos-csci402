@@ -26,7 +26,7 @@
 __start:
 	jal	main
 	move	$4,$0		
-	jal	Signal	 /* if we return from main, Signal(0) */
+	jal	Exit	 /* if we return from main, Exit(0) */
 	.end __start
 
 /* -------------------------------------------------------------
@@ -216,4 +216,3 @@ MyWrite:
 __main:
         j       $31
         .end    __main
-
