@@ -37,7 +37,7 @@ PostOffice *postOffice;
 #endif
 
 #ifdef CHANGED
-ProcessEntry processTable[10]; //Process table
+ProcessEntry* processTable[10]; //Process table
 int processTableCount;
 Lock* processTableLock; //Lock for process table
 
@@ -177,6 +177,9 @@ Initialize(int argc, char **argv)
 #ifdef CHANGED
 processTableCount = 1; //Counter
 processTableLock = new Lock("processTableLock"); //Lock for process table
+for(int i = 0; i < 10; i++){
+    processTable[i] = new ProcessEntry();
+}
 
 for (int i = 0; i < MAX_LOCKS; i++){
     kLocks[i] = new KernelLock();

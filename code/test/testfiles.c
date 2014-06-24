@@ -4,6 +4,10 @@
 
 #include "syscall.h"
 
+void test(){
+  Write("test\n", 5, ConsoleOutput);
+  Exit(0);
+}
 
  int main() {
   OpenFileId fd;

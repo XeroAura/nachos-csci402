@@ -34,7 +34,7 @@ int nextLockIndex = 0;
 Lock* lockTableLock = new Lock("lockTableLock");
 int nextCVIndex = 0;
 Lock* CVTableLock = new Lock("CVTableLock");
-extern ProcessEntry processTable[10];
+extern ProcessEntry* processTable[10];
 extern int processTableCount;
 extern Lock* processTableLock;
 extern const int MAX_CVS;
@@ -250,30 +250,29 @@ void Close_Syscall(int fd) {
 struct forkInfo{
 	int vaddr;
 	int pageAddr;
+    forkInfo():vaddr(0), pageAddr(0){}
 };
 
 void fork_thread(int value){
+printf("1\n");
 	forkInfo *m = (forkInfo*) value;
 	int vaddr = m->vaddr;
 	int pageLoc = m->pageAddr;
 
 	machine->WriteRegister(PCReg, vaddr);
 	machine->WriteRegister(NextPCReg, vaddr+4);
-
 	//Write to stack register the starting point of the stack for this thread
 	machine->WriteRegister(StackReg, pageLoc); //numPages * PageSize - 16
-
 	currentThread->space->RestoreState();
-	machine->Run();
+	
+    machine->Run();
 }
 
 void Fork_Syscall(unsigned int vaddr){
 	Thread* t = new Thread("forkThread"); //Create new thread
 	t->space = currentThread->space; //Allocate the addrspace to the thread being forked, same as current thread's
-
-	forkInfo* tmp;
+	forkInfo* tmp = new forkInfo();
 	tmp->vaddr = vaddr;
-
 	//Find 8 pages of stack to give to thread?
     int pageAddr = t->space->AllocatePages();
     if(pageAddr != -1) {
@@ -284,14 +283,16 @@ void Fork_Syscall(unsigned int vaddr){
         te->firstStackPage = pageAddr;
         processTableLock->Acquire();
         for(int i = 0; i < 10; i++){
-            if(processTable[i].as == currentThread->space){
-                processTable[i].threads[processTable[i].threadCount] = te;
-                processTable[i].threadCount++;
+            if(processTable[i]->as == currentThread->space){
+                processTable[i]->threads[processTable[i]->threadCount] = te;
+                processTable[i]->threadCount++;
                 break;
             }
         }
         processTableLock->Release();
-        t->Fork(fork_thread, (int) tmp);
+        printf("3\n");
+        t->Fork((VoidFunctionPtr) fork_thread, (int) tmp);
+        printf("4\n");
     }
     else //Should never happen...
         printf("Unable to allocate pages for stack in Fork.");
@@ -308,8 +309,8 @@ void exec_thread(int value){
     int vaddr = m->vaddr;
 
 	//Initialize the register by using currentThread->space.
-    machine->WriteRegister(PCReg, vaddr);
-    machine->WriteRegister(NextPCReg, vaddr+4);
+    machine->WriteRegister(PCReg, 0);
+    machine->WriteRegister(NextPCReg, 4);
 
     //Write to stack register the starting point of the stack for this thread
     machine->WriteRegister(StackReg, m->pageAddr); //numPages * PageSize - 16
@@ -318,7 +319,14 @@ void exec_thread(int value){
     machine->Run();
 }
 
-void Exec_Syscall(unsigned int vaddr, char *filename){
+void Exec_Syscall(char *filename){
+    processTableLock->Acquire();
+    if(processTableCount > 10){
+        printf("Too many processes for any more to be made!");
+        return;
+    }
+    processTableLock->Release();
+
 	//Convert VA to physical address
 
 	OpenFile* f = fileSystem->Open(filename);
@@ -350,13 +358,12 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
     pe->threadCount = 1;
     pe->as = space;
     pe->threads[0] = te;
-    processTable[processTableCount] = *pe;
+    processTable[processTableCount] = pe;
     processTableCount++;
     processTableLock->Release();
 
     execInfo* tmp;
     tmp->pageAddr = pageAddr;
-    tmp->vaddr = vaddr;
 
     t->Fork(exec_thread, (int) tmp);
 }
@@ -524,15 +531,15 @@ void MyWrite_Syscall(unsigned int vaddr, int len, int one, int two){
 
 
 int Exit_Syscall(){
-
+    currentThread->Finish();
     // 1. Last thread in the last process, just call halt
     int count = 0;
     int slot = 0;
     processTableLock->Acquire();
     for(int i = 0; i < 10; i++){
-        if(processTable[i].threadCount > 0)
+        if(processTable[i]->threadCount > 0)
             count++;
-        if(processTable[i].as == currentThread->space)
+        if(processTable[i]->as == currentThread->space)
             slot = i;
     }
     if(count == 1){
@@ -544,23 +551,23 @@ int Exit_Syscall(){
     //          memoryBitMap->Clear(ppn);
     //     b. Reclaim all locks/CVs that were allocated to that process
 
-    if(processTable[slot].threadCount == 1){ //Last thread in process
+    if(processTable[slot]->threadCount == 1){ //Last thread in process
         for (int i = 0; i < MAX_LOCKS; i++){
-            if (kLocks[i]->as == processTable[slot].as){
+            if (kLocks[i]->as == processTable[slot]->as){
                 DestroyLock_Syscall(i);
                 CreateLock_Syscall(i);            
             }
         }
 
         for (int i = 0; i < MAX_CVS; i++){
-            if (kCV[i]->as == processTable[slot].as){
+            if (kCV[i]->as == processTable[slot]->as){
                 DestroyCondition_Syscall(i);
                 CreateCondition_Syscall(i);            
             }
         }
-        processTable[slot].as->EmptyPages();
+        processTable[slot]->as->EmptyPages();
         ProcessEntry* blank = new ProcessEntry();
-        processTable[slot] = *blank;
+        processTable[slot] = blank;
         //Clear locks/CVS here!
         currentThread->Finish();
         return 0;
@@ -568,10 +575,10 @@ int Exit_Syscall(){
     
     // 3. Not last thread in a process
     //     a. Reclaim 8 stack pages
-    for(int j = 0; j< processTable[slot].threadCount; j++){
-        if(currentThread == processTable[slot].threads[j]->myThread){
-            processTable[slot].as->Empty8Pages(processTable[slot].threads[j]->firstStackPage);
-            processTable[slot].threads[j] = new ThreadEntry();
+    for(int j = 0; j< processTable[slot]->threadCount; j++){
+        if(currentThread == processTable[slot]->threads[j]->myThread){
+            processTable[slot]->as->Empty8Pages(processTable[slot]->threads[j]->firstStackPage);
+            processTable[slot]->threads[j] = new ThreadEntry();
             currentThread->Finish();
             return 1;
             break;
@@ -629,25 +636,25 @@ void ExceptionHandler(ExceptionType which) {
             DEBUG('a', "MyWrite syscall.\n");
             MyWrite_Syscall(machine->ReadRegister(4), machine->ReadRegister(5),machine->ReadRegister(6), machine->ReadRegister(7));
             break;
-            case SC_Fork:
-            DEBUG('a', "Fork syscall.\n");
-            Fork_Syscall(machine->ReadRegister(4));
-            break;
+    		case SC_Fork:
+    		DEBUG('a', "Fork syscall.\n");
+    		Fork_Syscall(machine->ReadRegister(4));
+    		break;
 
-            case SC_Exec:
-            DEBUG('a', "Exec syscall.\n");
-            Exec_Syscall(machine->ReadRegister(4), (char*) machine->ReadRegister(5) );
-            break;
+    		case SC_Exec:
+    		DEBUG('a', "Exec syscall.\n");
+    		Exec_Syscall((char*) machine->ReadRegister(4));
+    		break;
 
-            case SC_Exit:
-            DEBUG('a', "Exit syscall.\n");
-            rv = Exit_Syscall();
-            break;
+    		case SC_Exit:
+    		DEBUG('a', "Exit syscall.\n");
+    		rv = Exit_Syscall();
+    		break;
 
-            case SC_Yield:
-            DEBUG('a', "Yield syscall.\n");
-            Yield_Syscall();
-            break;
+    		case SC_Yield:
+    		DEBUG('a', "Yield syscall.\n");
+    		Yield_Syscall();
+    		break;
 
             case SC_CreateLock:
             DEBUG('a', "Create Lock syscall.\n");
