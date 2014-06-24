@@ -88,7 +88,7 @@ struct KernelCV{
 
 
 
-extern ProcessEntry processTable[10]; //Process table
+extern ProcessEntry* processTable[10]; //Process table
 extern int processTableCount;
 extern Lock* processTableLock; //Lock for process table
 extern const int MAX_CVS;
