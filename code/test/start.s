@@ -26,7 +26,7 @@
 __start:
 	jal	main
 	move	$4,$0		
-	jal	Signal	 /* if we return from main, Signal(0) */
+	jal	Exit	 /* if we return from main, Signal(0) */
 	.end __start
 
 /* -------------------------------------------------------------

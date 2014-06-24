@@ -517,7 +517,7 @@ void MyWrite_Syscall(unsigned int vaddr, int len, int one, int two){
 
 
 int Exit_Syscall(){
-
+    currentThread->Finish();
     // 1. Last thread in the last process, just call halt
     int count = 0;
     int slot = 0;

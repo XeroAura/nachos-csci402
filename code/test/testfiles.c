@@ -10,6 +10,8 @@ void test(){
 }
 
 int main() {
+    Write("testa\n", 6, ConsoleOutput);
 	Fork((void*) test);
+    Write("testb\n", 6, ConsoleOutput);
 }
 
