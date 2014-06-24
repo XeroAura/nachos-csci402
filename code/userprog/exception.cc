@@ -487,9 +487,6 @@ void Signal_Syscall(int index, int lockIndex){
 void Broadcast_Syscall(int index, int lockIndex){
     KernelLock* cvLock = kLocks[lockIndex];
 	kCV[index]->condition->Broadcast(cvLock->lock);
-	if (kCV[index]->isToBeDestroyed){
-		DestroyCondition_Syscall(index);
-	}
 	return;
 }
 
@@ -674,12 +671,10 @@ void ExceptionHandler(ExceptionType which) {
 
             case SC_Signal:
             DEBUG('a', "Signal syscall.\n");
-            Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
 
             case SC_Broadcast:
             DEBUG('a', "Broadcast syscall.\n");
-            Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
 
 	    #endif
