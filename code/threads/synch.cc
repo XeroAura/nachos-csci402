@@ -147,6 +147,7 @@ Lock::~Lock() {
 void Lock::Acquire() {
   IntStatus oldLevel = interrupt->SetLevel(IntOff); //disables interrupts
   if (lockOwner == currentThread){
+    printf("Thread already owns this lock.\n");
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
@@ -174,9 +175,9 @@ void Lock::Release() {
   IntStatus oldLevel = interrupt->SetLevel(IntOff);
   if (currentThread != lockOwner){
     if (lockOwner != NULL){
-      std::cout << "Error: Only " << lockOwner->getName() << ", the owner of " << getName() << ", can release the lock. " << std::endl;
+      printf("Error: Only %s, the owner of %s, can release the lock. \n", lockOwner->getName(), getName());
     } else {
-      std::cout << "Error: This lock "<< getName()<<" has not been acquired yet." << std::endl;
+      printf("Error: The lock %s has not been acquired yet.\n", getName());
     }
     (void)interrupt->SetLevel(oldLevel);
     return;

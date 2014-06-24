@@ -32,7 +32,10 @@
 using namespace std;
 const int MAX_CVS = 250;
 const int MAX_LOCKS = 250;
+int nextLockIndex = 0;
 Lock* lockTableLock = new Lock("lockTableLock");
+int nextCVIndex = 0;
+Lock* CVTableLock = new Lock("CVTableLock");
 extern ProcessEntry processTable[10];
 extern int processTableCount;
 extern Lock* processTableLock;
@@ -374,9 +377,10 @@ struct KernelLock{
     Lock* lock;
     AddrSpace* as;
     bool isToBeDestroyed;
+    KernelLock() : lock(NULL), as(NULL), isToBeDestroyed(false) {};
 };
+
 KernelLock* kLocks[MAX_LOCKS];
-int nextLockIndex = 0;
 
 int CreateLock_Syscall(int debugInt){
     char* debugName = new char[10];
@@ -415,15 +419,19 @@ void DestroyLock_Syscall(int index){
 }
 
 void Acquire_Syscall(int index){
+    printf("Acquiring lock %d\n", index);
 	kLocks[index]->lock->Acquire();
 	return;
 }
 
 void Release_Syscall(int index){
-	kLocks[index]->lock->Release();
-	if (kLocks[index]->lock->getFree() && kLocks[index]->isToBeDestroyed){
-		DestroyLock_Syscall(index);
-	}
+    //check if index is less than the size of the array
+    //check if lock at index belongs to current thread
+    printf("Releasing lock %d\n", index);
+   	kLocks[index]->lock->Release();
+    if (kLocks[index]->lock->getFree() && kLocks[index]->isToBeDestroyed){
+       	DestroyLock_Syscall(index);
+    }
 	return;
 }
 
@@ -431,12 +439,9 @@ struct KernelCV{
 	Condition* condition;
 	AddrSpace* as;
 	bool isToBeDestroyed;
+    KernelCV() : condition(NULL), as(NULL), isToBeDestroyed(false) {};
 };
 KernelCV* kCV[MAX_CVS]; //Set MAX_LOCKS to what you need 
-int nextCVIndex = 0;
-
-Lock* CVTableLock = new Lock("CVTableLock");
-
 
 int CreateCondition_Syscall(int debugInt){
     char* debugName = new char[20];
@@ -636,42 +641,42 @@ void ExceptionHandler(ExceptionType which) {
 
             case SC_DestroyLock:
             DEBUG('a', "Destroy Lock syscall.\n");
-            
+            DestroyLock_Syscall(machine->ReadRegister(4));            
             break;
 
             case SC_Acquire:
             DEBUG('a', "Lock Acquire syscall.\n");
-
+            Acquire_Syscall(machine->ReadRegister(4));
             break;
 
             case SC_Release:
             DEBUG('a', "Lock Release syscall.\n");
-
+            Release_Syscall(machine->ReadRegister(4));
             break;
 
             case SC_CreateCondition:
             DEBUG('a', "Create Condition syscall.\n");
-
+            rv = CreateCondition_Syscall(machine->ReadRegister(4));
             break;
 
             case SC_DestroyCondition:
             DEBUG('a', "Destroy Condition syscall.\n");
-
+            DestroyCondition_Syscall(machine->ReadRegister(4));
             break;
 
             case SC_Wait:
             DEBUG('a', "Wait syscall.\n");
-
+            Wait_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
 
             case SC_Signal:
             DEBUG('a', "Signal syscall.\n");
-
+            Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
 
             case SC_Broadcast:
             DEBUG('a', "Broadcast syscall.\n");
-
+            Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
 
 	    #endif
