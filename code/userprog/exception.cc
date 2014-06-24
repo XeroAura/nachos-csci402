@@ -258,8 +258,8 @@ void fork_thread(int value){
 	int vaddr = m->vaddr;
 	int pageLoc = m->pageAddr;
 
-	machine->WriteRegister(PCReg, vaddr);
-	machine->WriteRegister(NextPCReg, vaddr+4);
+    machine->WriteRegister(PCReg, vaddr);
+    machine->WriteRegister(NextPCReg, vaddr+4);
 	//Write to stack register the starting point of the stack for this thread
 	machine->WriteRegister(StackReg, pageLoc); //numPages * PageSize - 16
 	currentThread->space->RestoreState();
@@ -407,8 +407,8 @@ int CreateLock_Syscall(int debugInt){
     } else {
         printf("ERROR: Maximum number of locks reached. Current number of locks is %d. \n", nextLockIndex);
     }
-lockTableLock->Release();
-return nextLockIndex-1;
+    lockTableLock->Release();
+    return nextLockIndex-1;
 }
 
 void DestroyLock_Syscall(int index){
@@ -420,7 +420,7 @@ void DestroyLock_Syscall(int index){
         printf("ERROR: The entered index is below 0. \n");
         return;
     }
-    if (kLocks[index] == NULL){
+    if (kLocks[index]->lock == NULL){
         printf("ERROR: No lock exists here.\n");
         return;
     }
@@ -488,8 +488,8 @@ void DestroyCondition_Syscall(int index){
         printf("ERROR: The entered index is below 0. \n");
         return;
     }
-    if (kCV[index] == NULL){
-        printf("ERROR: No lock exists here.\n");
+    if (kCV[index]->condition == NULL){
+        printf("ERROR: No condition exists here.\n");
         return;
     }
     kCV[index]->isToBeDestroyed = true;
@@ -502,22 +502,34 @@ void DestroyCondition_Syscall(int index){
 }
 
 void Wait_Syscall(int index, int lockIndex){
-    KernelLock* cvLock = kLocks[lockIndex];
-    kCV[index]->condition->Wait(cvLock->lock);
+    if (index >= 0 && index < MAX_LOCKS){
+        KernelLock* cvLock = kLocks[lockIndex];
+        kCV[index]->condition->Wait(cvLock->lock);
+    } else {
+        printf("ERROR: Index exceeds bounds.\n");
+    }
     return;
 }
 
 void Signal_Syscall(int index, int lockIndex){
-    KernelLock* cvLock = kLocks[lockIndex];
-    if (cvLock->lock != NULL){
-    	kCV[index]->condition->Signal(cvLock->lock);
+    if (index >= 0 && index < MAX_LOCKS){
+        KernelLock* cvLock = kLocks[lockIndex];
+        if (cvLock->lock != NULL){
+            kCV[index]->condition->Signal(cvLock->lock);
+        }
+    } else {
+        printf("ERROR: Index exceeds bounds.\n");
     }
     return;
 }
 
 void Broadcast_Syscall(int index, int lockIndex){
-    KernelLock* cvLock = kLocks[lockIndex];
-    kCV[index]->condition->Broadcast(cvLock->lock);
+    if (index >= 0 && index < MAX_LOCKS){
+        KernelLock* cvLock = kLocks[lockIndex];
+        kCV[index]->condition->Broadcast(cvLock->lock);
+    } else {
+        printf("ERROR: Index exceeds bounds.\n");
+    }
     return;
 }
 
@@ -646,6 +658,7 @@ void ExceptionHandler(ExceptionType which) {
             DEBUG('a', "MyWrite syscall.\n");
             MyWrite_Syscall(machine->ReadRegister(4), machine->ReadRegister(5),machine->ReadRegister(6), machine->ReadRegister(7));
             break;
+
     		case SC_Fork:
     		DEBUG('a', "Fork syscall.\n");
     		Fork_Syscall(machine->ReadRegister(4));
