@@ -20,7 +20,19 @@ void t1_t2(){
   Release(0);
 }
 
+void test(){
+
+  Write("Test.\n", 6, ConsoleOutput);
+  
+  Exit(0);
+}
+
 int main() {
+  
+  Write("Test.\n", 6, ConsoleOutput);
+
+/*
+
   OpenFileId fd;
   OpenFileId fd2;
   int bytesread;
@@ -56,5 +68,6 @@ int main() {
     for(maxLockCount = 0; maxLockCount < 250; maxLockCount++){
       DestroyLock(maxLockCount);
     }
+    */
 }
 

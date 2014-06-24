@@ -361,8 +361,8 @@ void exec_thread(int value){
     int vaddr = m->vaddr;
 
 	//Initialize the register by using currentThread->space.
-    machine->WriteRegister(PCReg, vaddr);
-    machine->WriteRegister(NextPCReg, vaddr+4);
+    machine->WriteRegister(PCReg, 0);
+    machine->WriteRegister(NextPCReg, 4);
 
     //Write to stack register the starting point of the stack for this thread
     machine->WriteRegister(StackReg, m->pageAddr); //numPages * PageSize - 16
@@ -371,12 +371,7 @@ void exec_thread(int value){
 	machine->Run();
 }
 
-void Exec_Syscall(unsigned int vaddr, char *filename){
-
-    if(!validateAddress(vaddr)){
-        printf("Bad vaddr passed to exec.");
-    }
-
+void Exec_Syscall(char *filename){
     processTableLock->Acquire();
     if(processTableCount > 10){
         printf("Too many processes for any more to be made!");
@@ -421,7 +416,6 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
 
 	execInfo* tmp;
     tmp->pageAddr = pageAddr;
-    tmp->vaddr = vaddr;
 
 	t->Fork(exec_thread, (int) tmp);
 }
@@ -676,7 +670,7 @@ void ExceptionHandler(ExceptionType which) {
 
     		case SC_Exec:
     		DEBUG('a', "Exec syscall.\n");
-    		Exec_Syscall(machine->ReadRegister(4), (char*) machine->ReadRegister(5) );
+    		Exec_Syscall((char*) machine->ReadRegister(4));
     		break;
 
     		case SC_Exit:

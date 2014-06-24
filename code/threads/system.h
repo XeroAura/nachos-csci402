@@ -50,6 +50,9 @@ extern PostOffice* postOffice;
 #endif
 
 #ifdef CHANGED
+class AddrSpace;
+class Lock;
+
 struct ThreadEntry { //Struct to represent a thread
     int firstStackPage;
     Thread* myThread;
