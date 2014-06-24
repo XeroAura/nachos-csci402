@@ -254,10 +254,9 @@ struct forkInfo{
 };
 
 void fork_thread(int value){
-    printf("1\n");
-    forkInfo *m = (forkInfo*) value;
-    int vaddr = m->vaddr;
-    int pageLoc = m->pageAddr;
+	forkInfo *m = (forkInfo*) value;
+	int vaddr = m->vaddr;
+	int pageLoc = m->pageAddr;
 
     machine->WriteRegister(PCReg, vaddr);
     machine->WriteRegister(NextPCReg, vaddr+4);
@@ -298,13 +297,12 @@ void Fork_Syscall(unsigned int vaddr){
 }
 
 struct execInfo{
-    int vaddr;
     int pageAddr;
+    execInfo(): pageAddr(-1){}
 };
 
 void exec_thread(int value){
     execInfo *m = (execInfo*) value;
-    int vaddr = m->vaddr;
 
 	//Initialize the register by using currentThread->space.
     machine->WriteRegister(PCReg, 0);
@@ -317,7 +315,7 @@ void exec_thread(int value){
     machine->Run();
 }
 
-void Exec_Syscall(char *filename){
+void Exec_Syscall(unsigned int vaddr, int size){
     processTableLock->Acquire();
     if(processTableCount > 10){
         printf("Too many processes for any more to be made!");
@@ -325,17 +323,32 @@ void Exec_Syscall(char *filename){
     }
     processTableLock->Release();
 
-	//Convert VA to physical address
+    OpenFile *f;
+    char *buf = new char[size+1];    // Kernel buffer to put the name in
+    if (!buf) {
+        printf("%s","Can't allocate kernel buffer in Open\n");
+        return;
+    }
+    if( copyin(vaddr,size,buf) == -1 ) {
+        printf("%s","Bad pointer passed to Open\n");
+        delete[] buf;
+        return;
+    }
 
-    OpenFile* f = fileSystem->Open(filename);
+    buf[size]='\0';
+
+    f = fileSystem->Open(buf);
     if (f == NULL) {
-      printf("Unable to open file %s\n", filename);
-      return;
-  }
+        printf("Unable to open file %s\n", buf);
+        return;
+    }
+    delete[] buf;
+    
 
 	AddrSpace *space = new AddrSpace(f); // Create new addresspace for this executable file.
 
     space->file = f; // Store its openfile pointer
+
 
 	Thread *t = new Thread(""); //Create a new thread
 	t->space = space; // Allocate the space created to this thread's space.
@@ -360,7 +373,7 @@ void Exec_Syscall(char *filename){
     processTableCount++;
     processTableLock->Release();
 
-    execInfo* tmp;
+    execInfo* tmp = new execInfo();
     tmp->pageAddr = pageAddr;
 
     t->Fork(exec_thread, (int) tmp);
@@ -379,7 +392,6 @@ validateAddress(unsigned int vaddr){
 void Yield_Syscall(){
 	currentThread->Yield();
 }
-
 
 int CreateLock_Syscall(int debugInt){
     char* debugName = new char[10];
@@ -646,25 +658,26 @@ void ExceptionHandler(ExceptionType which) {
             DEBUG('a', "MyWrite syscall.\n");
             MyWrite_Syscall(machine->ReadRegister(4), machine->ReadRegister(5),machine->ReadRegister(6), machine->ReadRegister(7));
             break;
-            case SC_Fork:
-            DEBUG('a', "Fork syscall.\n");
-            Fork_Syscall(machine->ReadRegister(4));
-            break;
 
-            case SC_Exec:
-            DEBUG('a', "Exec syscall.\n");
-            Exec_Syscall((char*) machine->ReadRegister(4));
-            break;
+    		case SC_Fork:
+    		DEBUG('a', "Fork syscall.\n");
+    		Fork_Syscall(machine->ReadRegister(4));
+    		break;
 
-            case SC_Exit:
-            DEBUG('a', "Exit syscall.\n");
-            rv = Exit_Syscall();
-            break;
+    		case SC_Exec:
+    		DEBUG('a', "Exec syscall.\n");
+    		Exec_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+    		break;
 
-            case SC_Yield:
-            DEBUG('a', "Yield syscall.\n");
-            Yield_Syscall();
-            break;
+    		case SC_Exit:
+    		DEBUG('a', "Exit syscall.\n");
+    		rv = Exit_Syscall();
+    		break;
+
+    		case SC_Yield:
+    		DEBUG('a', "Yield syscall.\n");
+    		Yield_Syscall();
+    		break;
 
             case SC_CreateLock:
             DEBUG('a', "Create Lock syscall.\n");
