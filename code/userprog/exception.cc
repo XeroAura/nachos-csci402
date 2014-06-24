@@ -387,7 +387,7 @@ int Exit_Syscall(){
     //          memoryBitMap->Clear(ppn);
     //     b. Reclaim all locks/CVs that were allocated to that process
 
-    if(processTable[slot]->threadCount == 1){ //Last thread in process
+    if(processTable[slot].threadCount == 1){ //Last thread in process
         processTable[slot].as->EmptyPages();
         //Clear locks/CVS here!
         currentThread->Finish();
@@ -396,8 +396,8 @@ int Exit_Syscall(){
     
     // 3. Not last thread in a process
     //     a. Reclaim 8 stack pages
-    for(int j = 0; j< processTable[slot]->threadCount; j++){
-        if(currentThread == processTable[slot].threads[j]){
+    for(int j = 0; j< processTable[slot].threadCount; j++){
+        if(currentThread == processTable[slot].threads[j]->myThread){
             processTable[slot].as->Empty8Pages(processTable[slot].threads[j]->firstStackPage);
             currentThread->Finish();
             return 1;
@@ -440,12 +440,12 @@ int CreateLock_Syscall(int debugInt){
 }
 
 void DestroyLock_Syscall(int index){
-    if (index >= MAX_LOCKS){
-        printf("ERROR: The entered index exceeds the maximum allowed locks (%d). \n", MAX_LOCKS);
-        return;
-    }
     if (kLocks[index] == NULL){
         printf("ERROR: No lock exists here.\n");
+        return;
+    }
+    if (index > MAX_LOCKS){
+        printf("ERROR: The entered index exceeds the maximum allowed locks. \n");
         return;
     }
 	kLocks[index]->isToBeDestroyed = true;
@@ -617,7 +617,7 @@ void ExceptionHandler(ExceptionType which) {
 
             case SC_DestroyLock:
             DEBUG('a', "Destroy Lock syscall.\n");
-            DestroyLock_Syscall(machine->ReadRegister(4));            
+            
             break;
 
             case SC_Acquire:
