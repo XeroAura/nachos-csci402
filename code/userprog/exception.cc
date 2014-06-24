@@ -360,9 +360,9 @@ int Exit_Syscall(){
 
     // 1. Last thread in the last process
     //     a. interrupt->Halt()
-    if(){
-        
-    }
+    // if(){
+
+    // }
 
     // 2. Last thread in a process - not the last process
     //     a. Reclaim all memory (Use pageTable - All valid entries)

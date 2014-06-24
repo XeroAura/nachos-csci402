@@ -201,9 +201,9 @@ Broadcast:
 	syscall
 	j	$31
 	.end Broadcast
-
+	
 	.globl MyWrite
-	.ent MyWrite
+	.ent	MyWrite
 MyWrite:
 	addiu $2,$0,SC_MyWrite
 	syscall
