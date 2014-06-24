@@ -25,7 +25,6 @@ Functions have been added to easily allocate 8 pages for a new thread or clear u
 exception.cc
 Fork
 
-
 Exec
 
 Exit

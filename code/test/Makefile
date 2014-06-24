@@ -31,7 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort testfiles testlocks exectest testhospital
+all: halt matmult sort testfiles testlocks testfork1 testfork2 testfork3 testexec1 testexec2 testexec3
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -68,17 +68,41 @@ testlocks: testlocks.o start.o
 	$(LD) $(LDFLAGS) start.o testlocks.o -o testlocks.coff
 	../bin/coff2noff testlocks.coff testlocks
 
-exectest.o: exectest.c
-	$(CC) $(CFLAGS) -c exectest.c
-exectest: exectest.o start.o
-	$(LD) $(LDFLAGS) start.o exectest.o -o exectest.coff
-	../bin/coff2noff exectest.coff exectest
+testfork1.o: testfork1.c
+	$(CC) $(CFLAGS) -c testfork1.c
+testfork1: testfork1.o start.o
+	$(LD) $(LDFLAGS) start.o testfork1.o -o testfork1.coff
+	../bin/coff2noff testfork1.coff testfork1
 
-testhospital.o: testhospital.c
-	$(CC) $(CFLAGS) -c testhospital.c
-testhospital: testhospital.o start.o
-	$(LD) $(LDFLAGS) start.o testhospital.o -o testhospital.coff
-	../bin/coff2noff testhospital.coff testhospital
+testfork2.o: testfork2.c
+	$(CC) $(CFLAGS) -c testfork2.c
+testfork2: testfork2.o start.o
+	$(LD) $(LDFLAGS) start.o testfork2.o -o testfork2.coff
+	../bin/coff2noff testfork2.coff testfork2
+
+testfork3.o: testfork3.c
+	$(CC) $(CFLAGS) -c testfork3.c
+testfork3: testfork3.o start.o
+	$(LD) $(LDFLAGS) start.o testfork3.o -o testfork3.coff
+	../bin/coff2noff testfork3.coff testfork3
+
+testexec1.o: testexec1.c
+	$(CC) $(CFLAGS) -c testexec1.c
+testexec1: testexec1.o start.o
+	$(LD) $(LDFLAGS) start.o testexec1.o -o testexec1.coff
+	../bin/coff2noff testexec1.coff testexec1
+
+testexec2.o: testexec2.c
+	$(CC) $(CFLAGS) -c testexec2.c
+testexec2: testexec2.o start.o
+	$(LD) $(LDFLAGS) start.o testexec2.o -o testexec2.coff
+	../bin/coff2noff testexec2.coff testexec2
+
+testexec3.o: testexec3.c
+	$(CC) $(CFLAGS) -c testexec3.c
+testexec3: testexec3.o start.o
+	$(LD) $(LDFLAGS) start.o testexec3.o -o testexec3.coff
+	../bin/coff2noff testexec3.coff testexec3
 
 clean:
 	rm -f *.o *.coff
