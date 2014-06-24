@@ -17,7 +17,7 @@
 
 #define QUANTUM 100
 
-extern ProcessEntry processTable[10];
+extern ProcessEntry* processTable[10];
 extern int processTableCount;
 extern Lock* processTableLock;
 
@@ -56,7 +56,7 @@ StartProcess(char *filename)
     pe->threadCount = 1;
     pe->as = space;
 
-    processTable[0] = *pe;
+    processTable[0] = pe;
     processTableLock->Release();
     #endif
 

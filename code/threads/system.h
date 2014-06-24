@@ -69,7 +69,7 @@ struct ProcessEntry { //Struct to represent a process
     }
 };
 
-extern ProcessEntry processTable[10]; //Process table
+extern ProcessEntry* processTable[10]; //Process table
 extern int processTableCount;
 extern Lock* processTableLock; //Lock for process table
 #endif
