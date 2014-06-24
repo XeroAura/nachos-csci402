@@ -32,33 +32,14 @@
 using namespace std;
 const int MAX_CVS = 250;
 const int MAX_LOCKS = 250;
+int nextLockIndex = 0;
 Lock* lockTableLock = new Lock("lockTableLock");
+int nextCVIndex = 0;
+Lock* CVTableLock = new Lock("CVTableLock");
 extern ProcessEntry processTable[10];
 extern int processTableCount;
 extern Lock* processTableLock;
 
-#ifdef CHANGED
-bool
-validateAddress(unsigned int vaddr){ //Validates a virtual address to be within bounds and not NULL
-    if(vaddr == NULL)
-        return false;
-    int size = currentThread->space->numPages * PageSize;
-    if( vaddr > 0 && vaddr < size-1 ){ //Check if vaddr is within bounds?
-        return true;
-    }
-    return false;
-}
-
-bool validateBuffer(unsigned int vaddr, int len){ //Verifies a virtual address for a buffer is within bounds for its length and not null
-    if(vaddr == NULL)
-        return false;
-    int size = currentThread->space->numPages * PageSize;
-    if(vaddr > 0 && vaddr+len < size-1){
-        return true;
-    }
-    return false;
-}
-#endif
 
 int copyin(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes from the current thread's virtual address vaddr.
@@ -113,13 +94,6 @@ int copyout(unsigned int vaddr, int len, char *buf) {
 }
 
 void Create_Syscall(unsigned int vaddr, int len) {
-
-    #ifdef CHANGED
-    if(!validateBuffer(vaddr, len)){
-        printf("Bad buffer vaddr or length.");
-    }
-    #endif
-
     // Create the file with the name in the user buffer pointed to by
     // vaddr.  The file name is at most MAXFILENAME chars long.  No
     // way to return errors, though...
@@ -146,13 +120,6 @@ int Open_Syscall(unsigned int vaddr, int len) {
     // the file is opened successfully, it is put in the address
     // space's file table and an id returned that can find the file
     // later.  If there are any errors, -1 is returned.
-
-    #ifdef CHANGED
-    if(!validateBuffer(vaddr, len)){
-        printf("Bad buffer vaddr or length.");
-    }
-    #endif
-
     char *buf = new char[len+1];	// Kernel buffer to put the name in
     OpenFile *f;			// The new open file
     int id;				// The openfile id
@@ -189,12 +156,6 @@ void Write_Syscall(unsigned int vaddr, int len, int id) {
     // console exists, create one. For disk files, the file is looked
     // up in the current address space's open file table and used as
     // the target of the write.
-
-    #ifdef CHANGED
-    if(!validateBuffer(vaddr, len)){
-        printf("Bad buffer vaddr or length.");
-    }
-    #endif
 
     char *buf;		// Kernel buffer for output
     OpenFile *f;	// Open file for output
@@ -235,13 +196,6 @@ int Read_Syscall(unsigned int vaddr, int len, int id) {
     // a Write arrives for the synchronized Console, and no such
     // console exists, create one.    We reuse len as the number of bytes
     // read, which is an unnessecary savings of space.
-
-    #ifdef CHANGED
-    if(!validateBuffer(vaddr, len)){
-        printf("Bad buffer vaddr or length.");
-    }
-    #endif
-
     char *buf;		// Kernel buffer for input
     OpenFile *f;	// Open file for output
 
@@ -312,11 +266,6 @@ void fork_thread(int value){
 }
 
 void Fork_Syscall(unsigned int vaddr){
-
-    if(!validateAddress(vaddr)){
-        printf("Bad vaddr passed to fork.");
-    }
-
 	Thread* t = new Thread("forkThread"); //Create new thread
 	t->space = currentThread->space; //Allocate the addrspace to the thread being forked, same as current thread's
 
@@ -334,10 +283,6 @@ void Fork_Syscall(unsigned int vaddr){
         processTableLock->Acquire();
         for(int i = 0; i < 10; i++){
             if(processTable[i].as == currentThread->space){
-                if(processTable[i].threadCount >100){
-                    printf("Too many threads for any more to be created!");
-                    return;
-                }
                 processTable[i].threads[processTable[i].threadCount] = te;
                 processTable[i].threadCount++;
                 break;
@@ -346,7 +291,7 @@ void Fork_Syscall(unsigned int vaddr){
         processTableLock->Release();
         t->Fork(fork_thread, (int) tmp);
     }
-    else //Should never happen in assignment 2 unless testing
+    else //Should never happen...
         printf("Unable to allocate pages for stack in Fork.");
 	
 }
@@ -420,6 +365,16 @@ void Exec_Syscall(char *filename){
 	t->Fork(exec_thread, (int) tmp);
 }
 
+bool
+validateAddress(unsigned int vaddr){
+    if(vaddr == NULL)
+        return false;
+    if( vaddr > 0 && vaddr < 500 ){ //Check if vaddr is within bounds?
+        return true;
+    }
+    return false;
+}
+
 void Yield_Syscall(){
 	currentThread->Yield();
 }
@@ -428,9 +383,10 @@ struct KernelLock{
     Lock* lock;
     AddrSpace* as;
     bool isToBeDestroyed;
+    KernelLock() : lock(NULL), as(NULL), isToBeDestroyed(false) {};
 };
+
 KernelLock* kLocks[MAX_LOCKS];
-int nextLockIndex = 0;
 
 int CreateLock_Syscall(int debugInt){
     char* debugName = new char[10];
@@ -469,15 +425,19 @@ void DestroyLock_Syscall(int index){
 }
 
 void Acquire_Syscall(int index){
+    printf("Acquiring lock %d\n", index);
 	kLocks[index]->lock->Acquire();
 	return;
 }
 
 void Release_Syscall(int index){
-	kLocks[index]->lock->Release();
-	if (kLocks[index]->lock->getFree() && kLocks[index]->isToBeDestroyed){
-		DestroyLock_Syscall(index);
-	}
+    //check if index is less than the size of the array
+    //check if lock at index belongs to current thread
+    printf("Releasing lock %d\n", index);
+   	kLocks[index]->lock->Release();
+    if (kLocks[index]->lock->getFree() && kLocks[index]->isToBeDestroyed){
+       	DestroyLock_Syscall(index);
+    }
 	return;
 }
 
@@ -485,12 +445,9 @@ struct KernelCV{
 	Condition* condition;
 	AddrSpace* as;
 	bool isToBeDestroyed;
+    KernelCV() : condition(NULL), as(NULL), isToBeDestroyed(false) {};
 };
 KernelCV* kCV[MAX_CVS]; //Set MAX_LOCKS to what you need 
-int nextCVIndex = 0;
-
-Lock* CVTableLock = new Lock("CVTableLock");
-
 
 int CreateCondition_Syscall(int debugInt){
     char* debugName = new char[20];
@@ -518,21 +475,24 @@ void DestroyCondition_Syscall(int index){
 	return;
 }
 
-void Wait_Syscall(int index, KernelLock &cvLock){
-	kCV[index]->condition->Wait(cvLock.lock);
+void Wait_Syscall(int index, int lockIndex){
+    KernelLock* cvLock = kLocks[lockIndex];
+	kCV[index]->condition->Wait(cvLock->lock);
 	return;
 }
 
-void Signal_Syscall(int index, KernelLock &cvLock){
-	kCV[index]->condition->Signal(cvLock.lock);
+void Signal_Syscall(int index, int lockIndex){
+    KernelLock* cvLock = kLocks[lockIndex];
+	kCV[index]->condition->Signal(cvLock->lock);
 	if (kCV[index]->isToBeDestroyed && kCV[index]->condition->getLock() == NULL){
 		DestroyCondition_Syscall(index);
 	}
 	return;
 }
 
-void Broadcast_Syscall(int index, KernelLock &cvLock){
-	kCV[index]->condition->Broadcast(cvLock.lock);
+void Broadcast_Syscall(int index, int lockIndex){
+    KernelLock* cvLock = kLocks[lockIndex];
+	kCV[index]->condition->Broadcast(cvLock->lock);
 	if (kCV[index]->isToBeDestroyed){
 		DestroyCondition_Syscall(index);
 	}
@@ -690,42 +650,42 @@ void ExceptionHandler(ExceptionType which) {
 
             case SC_DestroyLock:
             DEBUG('a', "Destroy Lock syscall.\n");
-            
+            DestroyLock_Syscall(machine->ReadRegister(4));            
             break;
 
             case SC_Acquire:
             DEBUG('a', "Lock Acquire syscall.\n");
-
+            Acquire_Syscall(machine->ReadRegister(4));
             break;
 
             case SC_Release:
             DEBUG('a', "Lock Release syscall.\n");
-
+            Release_Syscall(machine->ReadRegister(4));
             break;
 
             case SC_CreateCondition:
             DEBUG('a', "Create Condition syscall.\n");
-
+            rv = CreateCondition_Syscall(machine->ReadRegister(4));
             break;
 
             case SC_DestroyCondition:
             DEBUG('a', "Destroy Condition syscall.\n");
-
+            DestroyCondition_Syscall(machine->ReadRegister(4));
             break;
 
             case SC_Wait:
             DEBUG('a', "Wait syscall.\n");
-
+            Wait_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
 
             case SC_Signal:
             DEBUG('a', "Signal syscall.\n");
-
+            Signal_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
 
             case SC_Broadcast:
             DEBUG('a', "Broadcast syscall.\n");
-
+            Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
 
 	    #endif
