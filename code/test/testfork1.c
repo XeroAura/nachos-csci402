@@ -1,4 +1,4 @@
-/* testfiles.c
+/* testfork1.c
  *	Simple program to test the file handling system calls
  */
 

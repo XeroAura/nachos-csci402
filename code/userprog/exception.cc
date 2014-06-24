@@ -42,6 +42,29 @@ extern const int MAX_LOCKS;
 extern KernelLock* kLocks[];
 extern KernelCV* kCV[]; 
 
+#ifdef CHANGED
+bool
+validateAddress(unsigned int vaddr){ //Validates a virtual address to be within bounds and not NULL
+    if(vaddr == NULL)
+        return false;
+    int size = currentThread->space->numPages * PageSize;
+    if( vaddr > 0 && vaddr < size-1 ){ //Check if vaddr is within bounds?
+        return true;
+    }
+    return false;
+}
+
+bool validateBuffer(unsigned int vaddr, int len){ //Verifies a virtual address for a buffer is within bounds for its length and not null
+    if(vaddr == NULL)
+        return false;
+    int size = currentThread->space->numPages * PageSize;
+    if(vaddr > 0 && vaddr+len < size-1){
+        return true;
+    }
+    return false;
+}
+#endif
+
 
 int copyin(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes from the current thread's virtual address vaddr.
@@ -96,6 +119,12 @@ int copyin(unsigned int vaddr, int len, char *buf) {
 }
 
 void Create_Syscall(unsigned int vaddr, int len) {
+    #ifdef CHANGED
+    if(!validateBuffer(vaddr, len)){
+        printf("Bad buffer vaddr or length.");
+        return;
+    }
+    #endif
     // Create the file with the name in the user buffer pointed to by
     // vaddr.  The file name is at most MAXFILENAME chars long.  No
     // way to return errors, though...
@@ -117,6 +146,12 @@ void Create_Syscall(unsigned int vaddr, int len) {
 }
 
 int Open_Syscall(unsigned int vaddr, int len) {
+    #ifdef CHANGED
+    if(!validateBuffer(vaddr, len)){
+        printf("Bad buffer vaddr or length.");
+        return -1;
+    }
+    #endif
     // Open the file with the name in the user buffer pointed to by
     // vaddr.  The file name is at most MAXFILENAME chars long.  If
     // the file is opened successfully, it is put in the address
@@ -152,6 +187,12 @@ int Open_Syscall(unsigned int vaddr, int len) {
 }
 
 void Write_Syscall(unsigned int vaddr, int len, int id) {
+    #ifdef CHANGED
+    if(!validateBuffer(vaddr, len)){
+        printf("Bad buffer vaddr or length.");
+        return;
+    }
+    #endif
     // Write the buffer to the given disk file.  If ConsoleOutput is
     // the fileID, data goes to the synchronized console instead.  If
     // a Write arrives for the synchronized Console, and no such
@@ -193,6 +234,12 @@ void Write_Syscall(unsigned int vaddr, int len, int id) {
 }
 
 int Read_Syscall(unsigned int vaddr, int len, int id) {
+    #ifdef CHANGED
+    if(!validateBuffer(vaddr, len)){
+        printf("Bad buffer vaddr or length.");
+        return -1;
+    }
+    #endif
     // Write the buffer to the given disk file.  If ConsoleOutput is
     // the fileID, data goes to the synchronized console instead.  If
     // a Write arrives for the synchronized Console, and no such
@@ -268,6 +315,10 @@ void fork_thread(int value){
 }
 
 void Fork_Syscall(unsigned int vaddr){
+    if(!validateAddress(vaddr)){
+        printf("Bad vaddr passed to fork.");
+        return;
+    }
 	Thread* t = new Thread("forkThread"); //Create new thread
 	t->space = currentThread->space; //Allocate the addrspace to the thread being forked, same as current thread's
 	forkInfo* tmp = new forkInfo();
@@ -316,6 +367,10 @@ void exec_thread(int value){
 }
 
 void Exec_Syscall(unsigned int vaddr, int size){
+    if(!validateAddress(vaddr)){
+        printf("Bad vaddr passed to exec.");
+        return;
+    }
     processTableLock->Acquire();
     if(processTableCount > 10){
         printf("Too many processes for any more to be made!");
@@ -377,16 +432,6 @@ void Exec_Syscall(unsigned int vaddr, int size){
     tmp->pageAddr = pageAddr;
 
     t->Fork(exec_thread, (int) tmp);
-}
-
-bool
-validateAddress(unsigned int vaddr){
-    if(vaddr == NULL)
-        return false;
-    if( vaddr > 0 && vaddr < 500 ){ //Check if vaddr is within bounds?
-        return true;
-    }
-    return false;
 }
 
 void Yield_Syscall(){
