@@ -44,6 +44,8 @@ class AddrSpace {
     void Empty8Pages(int startPage); //Dumps the 8 pages for thread exit
     int executablePageCount; //Counter for which page its on
     OpenFile* file;
+    unsigned int numPages;      // Number of pages in the virtual
+    // address space
 
     private:
     BitMap* pageBitMap; //Create new bitmap and lock to keep track of open physical pages
@@ -52,8 +54,6 @@ class AddrSpace {
     Lock* pageTableLock; //Lock for pageTable
     TranslationEntry *pageTable;    // Assume linear page table translation
     // for now!'
-    unsigned int numPages;      // Number of pages in the virtual
-    // address space
 };
 
 #endif // ADDRSPACE_H
