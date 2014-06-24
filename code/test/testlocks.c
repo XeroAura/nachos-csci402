@@ -10,6 +10,8 @@ void t1_t1(){
   Release(1);
   Acquire(1);
   Release(1);
+  Release(-1);
+  Acquire(-1);
   Release(0);
 
 }
@@ -20,14 +22,14 @@ void t1_t2(){
 int main(){
 	int maxLockCount;
 	Write("making locks...\n", 16, ConsoleOutput);
-	for (maxLockCount = 0; maxLockCount < 2; maxLockCount++){
+	for (maxLockCount = 0; maxLockCount < 255; maxLockCount++){
 		CreateLock(maxLockCount);
 	}
 	t1_t1();
 
 	maxLockCount = 0;
 	Write("erasing locks...\n", 18, ConsoleOutput);
-	for(maxLockCount = 0; maxLockCount < 2; maxLockCount++){
+	for(maxLockCount = 0; maxLockCount < 255; maxLockCount++){
 		DestroyLock(maxLockCount);
     }
 }

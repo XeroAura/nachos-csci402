@@ -30,8 +30,6 @@
 #include <iostream>
 
 using namespace std;
-const int MAX_CVS = 250;
-const int MAX_LOCKS = 250;
 int nextLockIndex = 0;
 Lock* lockTableLock = new Lock("lockTableLock");
 int nextCVIndex = 0;
@@ -39,6 +37,10 @@ Lock* CVTableLock = new Lock("CVTableLock");
 extern ProcessEntry processTable[10];
 extern int processTableCount;
 extern Lock* processTableLock;
+extern const int MAX_CVS;
+extern const int MAX_LOCKS;
+extern KernelLock* kLocks[];
+extern KernelCV* kCV[]; 
 
 
 int copyin(unsigned int vaddr, int len, char *buf) {
@@ -68,9 +70,9 @@ int copyin(unsigned int vaddr, int len, char *buf) {
 
    	delete paddr;
    	return len;
-}
+   }
 
-int copyout(unsigned int vaddr, int len, char *buf) {
+   int copyout(unsigned int vaddr, int len, char *buf) {
     // Copy len bytes to the current thread's virtual address vaddr.
     // Return the number of bytes so written, or -1 if an error
     // occors.  Errors can generally mean a bad virtual address was
@@ -275,7 +277,7 @@ void Fork_Syscall(unsigned int vaddr){
 	//Find 8 pages of stack to give to thread?
     int pageAddr = t->space->AllocatePages();
     if(pageAddr != -1) {
-	    tmp->pageAddr = pageAddr;
+     tmp->pageAddr = pageAddr;
         //Multiprogramming: Update process table
         ThreadEntry* te = new ThreadEntry(); //Give first stack page?
         te->myThread = t;
@@ -293,7 +295,7 @@ void Fork_Syscall(unsigned int vaddr){
     }
     else //Should never happen...
         printf("Unable to allocate pages for stack in Fork.");
-	
+
 }
 
 struct execInfo{
@@ -312,8 +314,8 @@ void exec_thread(int value){
     //Write to stack register the starting point of the stack for this thread
     machine->WriteRegister(StackReg, m->pageAddr); //numPages * PageSize - 16
 
-	currentThread->space->RestoreState();
-	machine->Run();
+    currentThread->space->RestoreState();
+    machine->Run();
 }
 
 void Exec_Syscall(unsigned int vaddr, char *filename){
@@ -352,11 +354,11 @@ void Exec_Syscall(unsigned int vaddr, char *filename){
     processTableCount++;
     processTableLock->Release();
 
-	execInfo* tmp;
+    execInfo* tmp;
     tmp->pageAddr = pageAddr;
     tmp->vaddr = vaddr;
 
-	t->Fork(exec_thread, (int) tmp);
+    t->Fork(exec_thread, (int) tmp);
 }
 
 bool
@@ -373,93 +375,106 @@ void Yield_Syscall(){
 	currentThread->Yield();
 }
 
-struct KernelLock{
-    Lock* lock;
-    AddrSpace* as;
-    bool isToBeDestroyed;
-    KernelLock() : lock(NULL), as(NULL), isToBeDestroyed(false) {};
-};
-
-KernelLock* kLocks[MAX_LOCKS];
 
 int CreateLock_Syscall(int debugInt){
     char* debugName = new char[10];
     sprintf(debugName, "Lock %d",debugInt);
-	KernelLock* tempLock = new KernelLock;
-	tempLock->as = currentThread->space;
-	tempLock->isToBeDestroyed = false;
-	tempLock->lock = new Lock(debugName);
-	lockTableLock->Acquire();
-	if (nextLockIndex < MAX_LOCKS){
-		kLocks[nextLockIndex] = tempLock;
-		nextLockIndex++;
-	} else {
-        printf("ERROR: Maximum number of locks reached. Current number of locks is %d. \n", nextLockIndex);
-    }
-	lockTableLock->Release();
-	return nextLockIndex-1;
+    KernelLock* tempLock = new KernelLock;
+    tempLock->as = currentThread->space;
+    tempLock->isToBeDestroyed = false;
+    tempLock->lock = new Lock(debugName);
+    lockTableLock->Acquire();
+    if (nextLockIndex < MAX_LOCKS){
+      kLocks[nextLockIndex] = tempLock;
+      nextLockIndex++;
+  } else {
+    printf("ERROR: Maximum number of locks reached. Current number of locks is %d. \n", nextLockIndex);
+}
+lockTableLock->Release();
+return nextLockIndex-1;
 }
 
 void DestroyLock_Syscall(int index){
+    if (index >= MAX_LOCKS){
+        printf("ERROR: The entered index exceeds the maximum allowed locks. \n");
+        return;
+    }
+    if (index < 0){
+        printf("ERROR: The entered index is below 0. \n");
+        return;
+    }
     if (kLocks[index] == NULL){
         printf("ERROR: No lock exists here.\n");
         return;
     }
-    if (index > MAX_LOCKS){
-        printf("ERROR: The entered index exceeds the maximum allowed locks. \n");
-        return;
-    }
-	kLocks[index]->isToBeDestroyed = true;
-	if (kLocks[index]->isToBeDestroyed && kLocks[index]->lock->getFree()){
-		delete kLocks[index]->lock;
-		delete kLocks[index];
-		kLocks[index] = NULL;
-	}
-	return;
+    kLocks[index]->isToBeDestroyed = true;
+    if (kLocks[index]->isToBeDestroyed && kLocks[index]->lock->getFree()){
+      delete kLocks[index]->lock;
+      delete kLocks[index];
+      kLocks[index] = NULL;
+  }
+  return;
 }
 
 void Acquire_Syscall(int index){
     printf("Acquiring lock %d\n", index);
-	kLocks[index]->lock->Acquire();
-	return;
+    if (index >= 0 && index < MAX_LOCKS){
+        kLocks[index]->lock->Acquire();
+    } else {
+        printf("ERROR: Index exceeds bounds.\n");
+    }
+    return;
 }
 
 void Release_Syscall(int index){
     //check if index is less than the size of the array
     //check if lock at index belongs to current thread
     printf("Releasing lock %d\n", index);
-   	kLocks[index]->lock->Release();
-    if (kLocks[index]->lock->getFree() && kLocks[index]->isToBeDestroyed){
-       	DestroyLock_Syscall(index);
+    if (index >= 0 && index < MAX_LOCKS){ //checks if index is valid
+        if (kLocks[index]->lock != NULL){ //checks if the lock exists
+            kLocks[index]->lock->Release();
+            if (kLocks[index]->lock->getFree() && kLocks[index]->isToBeDestroyed){
+                DestroyLock_Syscall(index);
+            }
+        } else {
+            printf("ERROR: No lock exists.\n");
+        }
+    } else {
+        printf("ERROR: Index exceeds bounds.\n");
     }
-	return;
+    return;
 }
 
-struct KernelCV{
-	Condition* condition;
-	AddrSpace* as;
-	bool isToBeDestroyed;
-    KernelCV() : condition(NULL), as(NULL), isToBeDestroyed(false) {};
-};
-KernelCV* kCV[MAX_CVS]; //Set MAX_LOCKS to what you need 
 
 int CreateCondition_Syscall(int debugInt){
     char* debugName = new char[20];
     sprintf(debugName, "Condition %d",debugInt);
-	KernelCV* tempCV = new KernelCV;
-	tempCV->as = currentThread->space;
-	tempCV->isToBeDestroyed = false;
-	tempCV->condition = new Condition(debugName);
-	CVTableLock->Acquire();
-	if (nextCVIndex < MAX_LOCKS){
-		kCV[nextCVIndex] = tempCV;
-		nextCVIndex++;
-	}
-	CVTableLock->Release();
-	return nextCVIndex-1;
+    KernelCV* tempCV = new KernelCV;
+    tempCV->as = currentThread->space;
+    tempCV->isToBeDestroyed = false;
+    tempCV->condition = new Condition(debugName);
+    CVTableLock->Acquire();
+    if (nextCVIndex < MAX_LOCKS){
+      kCV[nextCVIndex] = tempCV;
+      nextCVIndex++;
+  }
+  CVTableLock->Release();
+  return nextCVIndex-1;
 }
 
 void DestroyCondition_Syscall(int index){
+    if (index >= MAX_CVS){
+        printf("ERROR: The entered index exceeds the maximum allowed locks. \n");
+        return;
+    }
+    if (index < 0){
+        printf("ERROR: The entered index is below 0. \n");
+        return;
+    }
+    if (kCV[index] == NULL){
+        printf("ERROR: No lock exists here.\n");
+        return;
+    }
 	kCV[index]->isToBeDestroyed = true;
 	if (kCV[index]->isToBeDestroyed && kCV[index]->condition->getLock() == NULL){
 		delete kCV[index]->condition;
@@ -471,23 +486,22 @@ void DestroyCondition_Syscall(int index){
 
 void Wait_Syscall(int index, int lockIndex){
     KernelLock* cvLock = kLocks[lockIndex];
-	kCV[index]->condition->Wait(cvLock->lock);
-	return;
+    kCV[index]->condition->Wait(cvLock->lock);
+    return;
 }
 
 void Signal_Syscall(int index, int lockIndex){
     KernelLock* cvLock = kLocks[lockIndex];
-	kCV[index]->condition->Signal(cvLock->lock);
-	if (kCV[index]->isToBeDestroyed && kCV[index]->condition->getLock() == NULL){
-		DestroyCondition_Syscall(index);
-	}
-	return;
+    if (cvLock->lock != NULL){
+    	kCV[index]->condition->Signal(cvLock->lock);
+    }
+    return;
 }
 
 void Broadcast_Syscall(int index, int lockIndex){
     KernelLock* cvLock = kLocks[lockIndex];
-	kCV[index]->condition->Broadcast(cvLock->lock);
-	return;
+    kCV[index]->condition->Broadcast(cvLock->lock);
+    return;
 }
 
 void MyWrite_Syscall(unsigned int vaddr, int len, int one, int two){
@@ -580,59 +594,60 @@ void ExceptionHandler(ExceptionType which) {
     	switch (type) {
     		default:
     		DEBUG('a', "Unknown syscall - shutting down.\n");
-    		case SC_Halt:
-    		DEBUG('a', "Shutdown, initiated by user program.\n");
-    		interrupt->Halt();
-    		break;
-    		case SC_Create:
-    		DEBUG('a', "Create syscall.\n");
-    		Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-    		break;
-    		case SC_Open:
-    		DEBUG('a', "Open syscall.\n");
-    		rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-    		break;
-    		case SC_Write:
-    		DEBUG('a', "Write syscall.\n");
-    		Write_Syscall(machine->ReadRegister(4),
-    			machine->ReadRegister(5),
-    			machine->ReadRegister(6));
-    		break;
-    		case SC_Read:
-    		DEBUG('a', "Read syscall.\n");
-    		rv = Read_Syscall(machine->ReadRegister(4),
-    			machine->ReadRegister(5),
-    			machine->ReadRegister(6));
-    		break;
-    		case SC_Close:
-    		DEBUG('a', "Close syscall.\n");
-    		Close_Syscall(machine->ReadRegister(4));
-    		break;
+            break;
+            case SC_Halt:
+            DEBUG('a', "Shutdown, initiated by user program.\n");
+            interrupt->Halt();
+            break;
+            case SC_Create:
+            DEBUG('a', "Create syscall.\n");
+            Create_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+            break;
+            case SC_Open:
+            DEBUG('a', "Open syscall.\n");
+            rv = Open_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+            break;
+            case SC_Write:
+            DEBUG('a', "Write syscall.\n");
+            Write_Syscall(machine->ReadRegister(4),
+               machine->ReadRegister(5),
+               machine->ReadRegister(6));
+            break;
+            case SC_Read:
+            DEBUG('a', "Read syscall.\n");
+            rv = Read_Syscall(machine->ReadRegister(4),
+               machine->ReadRegister(5),
+               machine->ReadRegister(6));
+            break;
+            case SC_Close:
+            DEBUG('a', "Close syscall.\n");
+            Close_Syscall(machine->ReadRegister(4));
+            break;
 
 		#ifdef CHANGED
             case SC_MyWrite:
             DEBUG('a', "MyWrite syscall.\n");
             MyWrite_Syscall(machine->ReadRegister(4), machine->ReadRegister(5),machine->ReadRegister(6), machine->ReadRegister(7));
             break;
-    		case SC_Fork:
-    		DEBUG('a', "Fork syscall.\n");
-    		Fork_Syscall(machine->ReadRegister(4));
-    		break;
+            case SC_Fork:
+            DEBUG('a', "Fork syscall.\n");
+            Fork_Syscall(machine->ReadRegister(4));
+            break;
 
-    		case SC_Exec:
-    		DEBUG('a', "Exec syscall.\n");
-    		Exec_Syscall(machine->ReadRegister(4), (char*) machine->ReadRegister(5) );
-    		break;
+            case SC_Exec:
+            DEBUG('a', "Exec syscall.\n");
+            Exec_Syscall(machine->ReadRegister(4), (char*) machine->ReadRegister(5) );
+            break;
 
-    		case SC_Exit:
-    		DEBUG('a', "Exit syscall.\n");
-    		rv = Exit_Syscall();
-    		break;
+            case SC_Exit:
+            DEBUG('a', "Exit syscall.\n");
+            rv = Exit_Syscall();
+            break;
 
-    		case SC_Yield:
-    		DEBUG('a', "Yield syscall.\n");
-    		Yield_Syscall();
-    		break;
+            case SC_Yield:
+            DEBUG('a', "Yield syscall.\n");
+            Yield_Syscall();
+            break;
 
             case SC_CreateLock:
             DEBUG('a', "Create Lock syscall.\n");

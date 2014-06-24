@@ -157,13 +157,13 @@ void Release(int index);
 /* System call to wait on a condition to be met, and put the current 
  * thread to sleep. 
  */
-void Wait(int index);
+void Wait(int index, int lockIndex);
 
 /* System call to wake up a thread that is waiting on this condition */
-void Signal(int index);
+void Signal(int index, int lockIndex);
 
 /* System call to wake up all threads waiting on this condition */
-void Broadcast(int index);
+void Broadcast(int index, int lockIndex);
 
 /* System call to create a lock, returns an int to the index position of the kernel 
  * structure array of actual locks. 

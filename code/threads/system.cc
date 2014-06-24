@@ -8,6 +8,7 @@
 #include "copyright.h"
 #include "system.h"
 #include "synch.h"
+#include "addrspace.h"
 // This defines *all* of the global data structures used by Nachos.
 // These are all initialized and de-allocated by this file.
 
@@ -39,6 +40,11 @@ PostOffice *postOffice;
 ProcessEntry processTable[10]; //Process table
 int processTableCount;
 Lock* processTableLock; //Lock for process table
+
+const int MAX_LOCKS = 250;
+const int MAX_CVS = 250;
+KernelLock* kLocks[MAX_LOCKS];
+KernelCV* kCV[MAX_CVS];
 #endif
 
 // External definition, to allow us to take a pointer to this function
@@ -171,6 +177,15 @@ Initialize(int argc, char **argv)
 #ifdef CHANGED
 processTableCount = 1; //Counter
 processTableLock = new Lock("processTableLock"); //Lock for process table
+
+for (int i = 0; i < MAX_LOCKS; i++){
+    kLocks[i] = new KernelLock();
+}
+
+for (int i = 0; i < MAX_CVS; i++){
+    kCV[i] = new KernelCV();
+}
+
 #endif    
 }
 

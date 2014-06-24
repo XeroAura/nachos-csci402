@@ -7,7 +7,7 @@
 
  int main() {
   OpenFileId fd;
-  int bytesread;
+  int bytesread;    
   char buf[20];
   Create("testfile", 8);
   fd = Open("testfile", 8);
