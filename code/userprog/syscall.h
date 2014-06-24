@@ -179,6 +179,8 @@ int CreateCondition(int debugInt);
 
 /* System call to destroy a condition variable. */
 void DestroyCondition(int index);
+
+void MyWrite(int vaddr, int len, int one, int two);
 #endif
 
 
