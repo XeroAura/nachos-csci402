@@ -313,11 +313,9 @@ void fork_thread(int value){
 
 void Fork_Syscall(unsigned int vaddr){
 
-    #ifdef CHANGED
     if(!validateAddress(vaddr)){
         printf("Bad vaddr passed to fork.");
     }
-    #endif
 
 	Thread* t = new Thread("forkThread"); //Create new thread
 	t->space = currentThread->space; //Allocate the addrspace to the thread being forked, same as current thread's
@@ -336,6 +334,10 @@ void Fork_Syscall(unsigned int vaddr){
         processTableLock->Acquire();
         for(int i = 0; i < 10; i++){
             if(processTable[i].as == currentThread->space){
+                if(processTable[i].threadCount >100){
+                    printf("Too many threads for any more to be created!");
+                    return;
+                }
                 processTable[i].threads[processTable[i].threadCount] = te;
                 processTable[i].threadCount++;
                 break;
@@ -344,7 +346,7 @@ void Fork_Syscall(unsigned int vaddr){
         processTableLock->Release();
         t->Fork(fork_thread, (int) tmp);
     }
-    else //Should never happen...
+    else //Should never happen in assignment 2 unless testing
         printf("Unable to allocate pages for stack in Fork.");
 	
 }
@@ -371,11 +373,16 @@ void exec_thread(int value){
 
 void Exec_Syscall(unsigned int vaddr, char *filename){
 
-     #ifdef CHANGED
     if(!validateAddress(vaddr)){
         printf("Bad vaddr passed to exec.");
     }
-    #endif
+
+    processTableLock->Acquire();
+    if(processTableCount > 10){
+        printf("Too many processes for any more to be made!");
+        return;
+    }
+    processTableLock->Release();
 
 	//Convert VA to physical address
 
