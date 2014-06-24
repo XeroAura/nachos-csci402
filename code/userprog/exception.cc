@@ -368,22 +368,45 @@ validateAddress(unsigned int vaddr){
 
 int Exit_Syscall(){
 
-    // 1. Last thread in the last process
-    //     a. interrupt->Halt()
-    // if(){
-
-    // }
+    // 1. Last thread in the last process, just call halt
+    int count = 0;
+    int slot = 0;
+    processTableLock->Acquire();
+    for(int i = 0; i < 10; i++){
+        if(processTable[i].threadCount > 0)
+            count++;
+        if(processTable[i].as == currentThread->space)
+            slot = i;
+    }
+    if(count == 1){
+        interrupt->Halt();
+    }
 
     // 2. Last thread in a process - not the last process
     //     a. Reclaim all memory (Use pageTable - All valid entries)
     //          memoryBitMap->Clear(ppn);
     //     b. Reclaim all locks/CVs that were allocated to that process
 
+    if(processTable[slot]->threadCount == 1){ //Last thread in process
+        processTable[slot].as->EmptyPages();
+        //Clear locks/CVS here!
+        currentThread->Finish();
+        return 0;
+    }
+    
     // 3. Not last thread in a process
     //     a. Reclaim 8 stack pages
+    for(int j = 0; j< processTable[slot]->threadCount; j++){
+        if(currentThread == processTable[slot].threads[j]){
+            processTable[slot].as->Empty8Pages(processTable[slot].threads[j]->firstStackPage);
+            currentThread->Finish();
+            return 1;
+            break;
+        }
+    }
 
-    currentThread->Finish();
-	return 1; //Return 0 if last process, 1 if more processes
+    printf("Exit syscall called with no acceptable results.");
+    return -1;
 }
 
 void Yield_Syscall(){

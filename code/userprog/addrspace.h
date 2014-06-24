@@ -40,7 +40,8 @@ class AddrSpace {
     Table fileTable;            // Table of openfiles
 
     int AllocatePages(); //Returns start address of 8 pages for stack
-
+    void EmptyPages(); //Dumps the pages for process exit
+    void Empty8Pages(int startPage); //Dumps the 8 pages for thread exit
     int executablePageCount; //Counter for which page its on
     OpenFile* file;
 

@@ -203,6 +203,30 @@ AddrSpace::AllocatePages(){ //Function to allocate 8 pages on the stack for a ne
 	return pageStart;
 }
 
+void
+AddrSpace::EmptyPages(){
+	pageTableLock->Acquire();
+	bitMapLock->Acquire();
+	for(int i = 0; i < numPages; i++){
+		memoryBitMap->Clear(pageTable[i].physicalPage);
+	}
+	bitMapLock->Release();
+	pageTableLock->Release();
+}
+
+void 
+AddrSpace::Empty8Pages(int startPage){
+	startPage = startPage/PageSize;
+	pageTableLock->Acquire();
+	bitMapLock->Acquire();
+	for(int i = 0; i < 8; i++){
+		memoryBitMap->Clear(pageTable[startPage+i].physicalPage);
+	}
+	bitMapLock->Release();
+	pageTableLock->Release();
+
+}
+
 #endif
 
 
