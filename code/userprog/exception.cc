@@ -366,52 +366,6 @@ validateAddress(unsigned int vaddr){
     return false;
 }
 
-int Exit_Syscall(){
-
-    // 1. Last thread in the last process, just call halt
-    int count = 0;
-    int slot = 0;
-    processTableLock->Acquire();
-    for(int i = 0; i < 10; i++){
-        if(processTable[i].threadCount > 0)
-            count++;
-        if(processTable[i].as == currentThread->space)
-            slot = i;
-    }
-    if(count == 1){
-        interrupt->Halt();
-    }
-
-    // 2. Last thread in a process - not the last process
-    //     a. Reclaim all memory (Use pageTable - All valid entries)
-    //          memoryBitMap->Clear(ppn);
-    //     b. Reclaim all locks/CVs that were allocated to that process
-
-    if(processTable[slot].threadCount == 1){ //Last thread in process
-        processTable[slot].as->EmptyPages();
-        ProcessEntry* blank = new ProcessEntry();
-        processTable[slot] = *blank;
-        //Clear locks/CVS here!
-        currentThread->Finish();
-        return 0;
-    }
-    
-    // 3. Not last thread in a process
-    //     a. Reclaim 8 stack pages
-    for(int j = 0; j< processTable[slot].threadCount; j++){
-        if(currentThread == processTable[slot].threads[j]->myThread){
-            processTable[slot].as->Empty8Pages(processTable[slot].threads[j]->firstStackPage);
-            processTable[slot].threads[j] = new ThreadEntry();
-            currentThread->Finish();
-            return 1;
-            break;
-        }
-    }
-
-    printf("Exit syscall called with no acceptable results.");
-    return -1;
-}
-
 void Yield_Syscall(){
 	currentThread->Yield();
 }
@@ -548,6 +502,68 @@ void MyWrite_Syscall(unsigned int vaddr, int len, int one, int two){
     printf(buf, a, b, c, d);
     return;
 }
+
+
+int Exit_Syscall(){
+
+    // 1. Last thread in the last process, just call halt
+    int count = 0;
+    int slot = 0;
+    processTableLock->Acquire();
+    for(int i = 0; i < 10; i++){
+        if(processTable[i].threadCount > 0)
+            count++;
+        if(processTable[i].as == currentThread->space)
+            slot = i;
+    }
+    if(count == 1){
+        interrupt->Halt();
+    }
+
+    // 2. Last thread in a process - not the last process
+    //     a. Reclaim all memory (Use pageTable - All valid entries)
+    //          memoryBitMap->Clear(ppn);
+    //     b. Reclaim all locks/CVs that were allocated to that process
+
+    if(processTable[slot].threadCount == 1){ //Last thread in process
+        for (int i = 0; i < MAX_LOCKS; i++){
+            if (kLocks[i]->as == processTable[slot].as){
+                DestroyLock_Syscall(i);
+                CreateLock_Syscall(i);            
+            }
+        }
+
+        for (int i = 0; i < MAX_CVS; i++){
+            if (kCV[i]->as == processTable[slot].as){
+                DestroyCondition_Syscall(i);
+                CreateCondition_Syscall(i);            
+            }
+        }
+        processTable[slot].as->EmptyPages();
+        ProcessEntry* blank = new ProcessEntry();
+        processTable[slot] = *blank;
+        //Clear locks/CVS here!
+        currentThread->Finish();
+        return 0;
+    }
+    
+    // 3. Not last thread in a process
+    //     a. Reclaim 8 stack pages
+    for(int j = 0; j< processTable[slot].threadCount; j++){
+        if(currentThread == processTable[slot].threads[j]->myThread){
+            processTable[slot].as->Empty8Pages(processTable[slot].threads[j]->firstStackPage);
+            processTable[slot].threads[j] = new ThreadEntry();
+            currentThread->Finish();
+            return 1;
+            break;
+        }
+    }
+
+    printf("Exit syscall called with no acceptable results.");
+    return -1;
+}
+
+
 
 #endif
 
