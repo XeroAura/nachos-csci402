@@ -21,7 +21,9 @@ extern void Initialize(int argc, char **argv); 	// Initialization,
 						// called before anything else
 extern void Cleanup();				// Cleanup, called when
 						// Nachos is done.
-
+class AddrSpace;
+class Lock;
+class Condition;
 extern Thread *currentThread;			// the thread holding the CPU
 extern Thread *threadToBeDestroyed;  		// the thread that just finished
 extern Scheduler *scheduler;			// the ready list
@@ -69,9 +71,32 @@ struct ProcessEntry { //Struct to represent a process
     }
 };
 
-extern ProcessEntry* processTable[10]; //Process table
+struct KernelLock{
+    Lock* lock;
+    AddrSpace* as;
+    bool isToBeDestroyed;
+    KernelLock() : lock(NULL), as(NULL), isToBeDestroyed(false) {};
+};
+
+
+struct KernelCV{
+    Condition* condition;
+    AddrSpace* as;
+    bool isToBeDestroyed;
+    KernelCV() : condition(NULL), as(NULL), isToBeDestroyed(false) {};
+};
+
+
+
+extern ProcessEntry processTable[10]; //Process table
 extern int processTableCount;
 extern Lock* processTableLock; //Lock for process table
+extern const int MAX_CVS;
+extern const int MAX_LOCKS;
+extern KernelLock* kLocks[250];
+extern KernelCV* kCV[250]; 
+
+
 #endif
 
 #endif // SYSTEM_H
