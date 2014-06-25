@@ -141,7 +141,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	if ((noffH.noffMagic != NOFFMAGIC) && (WordToHost(noffH.noffMagic) == NOFFMAGIC))
 		SwapHeader(&noffH);
 	ASSERT(noffH.noffMagic == NOFFMAGIC);
-	
+	codeSize = noffH.code.size;
 	size = noffH.code.size + noffH.initData.size + noffH.uninitData.size ;
 	executablePageCount = divRoundUp(size, PageSize);
 	numPages = divRoundUp(size, PageSize) + 400; //<-- added in this semicolon  //divRoundUp(UserStackSize,PageSize);

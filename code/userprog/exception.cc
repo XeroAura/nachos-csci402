@@ -47,8 +47,9 @@ bool
 validateAddress(unsigned int vaddr){ //Validates a virtual address to be within bounds and not NULL
     if(vaddr == NULL)
         return false;
-    int size = currentThread->space->numPages * PageSize;
+    int size = currentThread->space->codeSize;
     if( vaddr > 0 && vaddr < (unsigned int) (size-1) ){ //Check if vaddr is within bounds?
+    	// printf("Size: %d", size);
         return true;
     }
     return false;
@@ -57,7 +58,7 @@ validateAddress(unsigned int vaddr){ //Validates a virtual address to be within 
 bool validateBuffer(unsigned int vaddr, int len){ //Verifies a virtual address for a buffer is within bounds for its length and not null
     if(vaddr == NULL)
         return false;
-    int size = currentThread->space->numPages * PageSize;
+    int size = currentThread->space->codeSize;
     if(vaddr > 0 && vaddr+len < (unsigned int)(size-1)){
         return true;
     }

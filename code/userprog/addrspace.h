@@ -46,6 +46,7 @@ class AddrSpace {
     OpenFile* file;
     unsigned int numPages;      // Number of pages in the virtual
     // address space
+    unsigned int codeSize;
 
     private:
     BitMap* pageBitMap; //Create new bitmap and lock to keep track of open physical pages
