@@ -8,6 +8,8 @@
 int completedPatientThreads = 0;
 int numPatients = 0;
 int testNum = 0;
+int patientIndexLock = CreateLock(0);
+int nextPatientIndex = 0;
 
 //Receptionist globals
 Lock* recLineLock = new Lock("recLineLock");
@@ -119,6 +121,10 @@ Patient(){
 	int myPrescription;
 	int myMedicineFee;
 	int index;
+	Acquire(patientIndexLock);
+	index = nextPatientIndex;
+	nextPatientIndex++;
+	Release(patientIndexLock);
 
 	MyWrite("Patient %d has arrived at the Hospital. \n", sizeof("Patient %d has arrived at the Hospital. \n")-1, index*100, 0);
 	
