@@ -59,9 +59,10 @@ III. Design:
 	Input validation was done on the included syscalls and fork/exec by checking to make sure virtual addresses provided were within bounds.
 	Buffers were checked also by checking that the end point of the buffer is also within the bounds.
 
-	-Locks'n'stuff
+	Locks
 	Locks are created using a new struct called KernelLock. Within KernelLock is a lock, a boolean, and the address space. Creating a lock stores a KernelLock in an array of KernelLocks, which can be referenced using its index. Acquiring and releasing a lock are also excecuted using the index of the lock in the KernelLock array. 
 
+	Condition Variables
 	CV's are made in exactly the same way, but the CV functions (Wait, Signal, and Broadcast), have 2 arguments, one for the CV's index and one for the lock's index. 
 
 IV. Implementation:
