@@ -121,7 +121,7 @@ int copyin(unsigned int vaddr, int len, char *buf) {
 void Create_Syscall(unsigned int vaddr, int len) {
     #ifdef CHANGED
     if(!validateBuffer(vaddr, len)){
-        printf("Bad buffer vaddr or length.");
+        printf("Bad buffer vaddr or length.\n");
         return;
     }
     #endif
@@ -148,7 +148,7 @@ void Create_Syscall(unsigned int vaddr, int len) {
 int Open_Syscall(unsigned int vaddr, int len) {
     #ifdef CHANGED
     if(!validateBuffer(vaddr, len)){
-        printf("Bad buffer vaddr or length.");
+        printf("Bad buffer vaddr or length.\n");
         return -1;
     }
     #endif
@@ -189,7 +189,7 @@ int Open_Syscall(unsigned int vaddr, int len) {
 void Write_Syscall(unsigned int vaddr, int len, int id) {
     #ifdef CHANGED
     if(!validateBuffer(vaddr, len)){
-        printf("Bad buffer vaddr or length.");
+        printf("Bad buffer vaddr or length.\n");
         return;
     }
     #endif
@@ -236,7 +236,7 @@ void Write_Syscall(unsigned int vaddr, int len, int id) {
 int Read_Syscall(unsigned int vaddr, int len, int id) {
     #ifdef CHANGED
     if(!validateBuffer(vaddr, len)){
-        printf("Bad buffer vaddr or length.");
+        printf("Bad buffer vaddr or length.\n");
         return -1;
     }
     #endif
@@ -369,12 +369,12 @@ void exec_thread(int value){
 
 void Exec_Syscall(unsigned int vaddr, int size){
     if(!validateAddress(vaddr)){
-        printf("Bad vaddr passed to exec.");
+        printf("Bad vaddr passed to exec.\n");
         return;
     }
     processTableLock->Acquire();
     if(processTableCount > 10){
-        printf("Too many processes for any more to be made!");
+        printf("Too many processes for any more to be made!\n");
         return;
     }
     processTableLock->Release();
@@ -416,7 +416,7 @@ void Exec_Syscall(unsigned int vaddr, int size){
 
     int pageAddr = space->AllocatePages();
     if(pageAddr == -1){
-        printf("Unable to allocate stack pages for exec");
+        printf("Unable to allocate stack pages for exec. \n");
         return;
     }
     te->firstStackPage = pageAddr;
@@ -653,7 +653,7 @@ int Exit_Syscall(){
         }
     }
 
-    printf("Exit syscall called with no acceptable results.");
+    printf("Exit syscall called with no acceptable results.\n");
     return -1;
 }
 
