@@ -4,9 +4,9 @@
 
 #include "syscall.h"
 
-//Global variables
-int completedPatientThreads = 0; //for debugging
-int numPatients = 0; //Number of patients
+/*Global variables*/
+int completedPatientThreads = 0;
+int numPatients = 0;
 int testNum = 0;
 
 //Receptionist globals
@@ -22,15 +22,15 @@ Lock* tokenLock = new Lock("tokenLock"); //Lock for token assignment
 int nextToken = 0; //Next token value
 int recCount = 5; //Number of receptionists
 
-//Doctor globals
-int docLock[5]; //Lock for doctor and patient meeting
-int docCV[5]; //CV for doctor and patient meeting
-int docState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break, 3 waiting
-int docToken[5] = {-1,-1,-1,-1,-1}; //Used to give doctor token from patients
-int docTokenLock = CreateLock(0); //Lock for docTokens use
-int docPrescriptionLock = CreateLock(0); //Lock for passing prescriptions
-int docPrescription[5] = {0,0,0,0,0}; //1-4 represent problems
-int docCount = 5; //Number of doctors
+/*Doctor globals*/
+int docLock[5];
+int docCV[5];
+int docState[5] = {1,1,1,1,1}; 
+int docToken[5] = {-1,-1,-1,-1,-1};
+int docTokenLock = CreateLock(0);
+int docPrescriptionLock = CreateLock(0); 
+int docPrescription[5] = {0,0,0,0,0}; 
+int docCount = 5; 
 
 //Doorboy globals
 Lock* doorBoyLineLock = new Lock("doorBoyLineLock"); //Lock to manage line
@@ -77,28 +77,27 @@ Lock* cashierTokenLock = new Lock("cashierTokenLock"); //Lock for cashierToken
 int cashierFee[5] = {0,0,0,0,0}; //Fee charged by cashier to patient
 Lock* cashierFeeLock = new Lock("cashierFeeLock"); //Lock for cashierFee
 
-//Clerk globals
-int medicineFeeLock = CreateLock(0); //Lock for medicine costs
-int medicineFee[5] = {0,0,0,0,0}; //Used to pass costs to patient
-int totalMedicineLock = CreateLock(0); //Used to lock total medicine cost
-int totalMedicineCost = 0; //Used to keep track of total medicine costs
-int clerkCount = 5; // Number of clerks
+/*Clerk globals*/
+int medicineFeeLock = CreateLock(0); 
+int medicineFee[5] = {0,0,0,0,0}; 
+int totalMedicineLock = CreateLock(0); 
+int totalMedicineCost = 0; 
+int clerkCount = 5; 
 
-int clerkLineLock = CreateLock(0); //Lock for clerk lines
-int clerkLineCount[5] = {0,0,0,0,0}; //Number of people in each line
-int clerkLineCV[5]; //CV for clerk line calling
-int clerkState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
-int clerkPrescription[5] = {0,0,0,0,0}; //Medicine types 1-4
-int clerkPrescriptionLock = CreateLock(0); //Lock for prescription passing
+int clerkLineLock = CreateLock(0); 
+int clerkLineCount[5] = {0,0,0,0,0}; 
+int clerkLineCV[5]; 
+int clerkState[5] = {1,1,1,1,1};
+int clerkPrescription[5] = {0,0,0,0,0}; 
+int clerkPrescriptionLock = CreateLock(0); 
 
-int clerkTokenLock = CreateLock(0); //Lock for token passing
-int clerkToken[5] = {0,0,0,0,0}; //Used to hold tokens passed to clerk by patient
+int clerkTokenLock = CreateLock(0); 
+int clerkToken[5] = {0,0,0,0,0}; 
 
-int clerkLock[5]; //Lock for interaction with clerks
-int clerkCV[5]; //CV for interaction with clerks
+int clerkLock[5]; 
+int clerkCV[5];
 
-//Manager globals
-//Locks and condition variables used to put and wake up people in breaks
+/*Manager globals*/
 int receptionistBreakLock = CreateLock(0);
 int receptionistBreakCV[5];
 int doorBoyBreakLock = CreateLock(0);
@@ -111,7 +110,7 @@ int clerkBreakCV[5];
 /* Hospital members*/
 void
 Patient(int index){
-	printf("Patient %d has arrived at the Hospital. \n",index);
+	MyWrite("Patient %d has arrived at the Hospital. \n", sizeof("Patient %d has arrived at the Hospital. \n")-1, index*100, 0);
 	
 	/*
 	* Receptionist
@@ -204,47 +203,47 @@ Patient(int index){
 	* Doctor
 	*/
 	if (testNum == 1 || testNum == 2 || testNum == 8){
-		MyWrite("Patient %d is going to Examining Room %d \n", myToken*100+docIndex, 0);
+		MyWrite("Patient %d is going to Examining Room %d \n", sizeof("Patient %d is going to Examining Room %d \n")-1, myToken*100+docIndex, 0);
 	}
-	docState[docIndex] = 1; //Set doctor to busy
+	docState[docIndex] = 1; 
 	
 	Release(docReadyLock);
 	
-	Acquire(docLock[docIndex]); //Acquire doctor lock
+	Acquire(docLock[docIndex]);
 
 	Acquire(docTokenLock);
-	docToken[docIndex] = myToken; //Give token to doctor
+	docToken[docIndex] = myToken;
 	Release(docTokenLock);
 
 	if (testNum == 1 || testNum == 2 || testNum == 5 || testNum == 8){	
-		MyWrite("Patient %d is waiting to be examined by the Doctor in ExaminingRoom %d \n", myToken*100 + docIndex, 0);
+		MyWrite("Patient %d is waiting to be examined by the Doctor in ExaminingRoom %d \n", sizeof("Patient %d is waiting to be examined by the Doctor in ExaminingRoom %d \n") -1, myToken*100 + docIndex, 0);
 	}
 
-	Signal(docCV[docIndex], docLock[docIndex]); //Tell doctor to take token
-	Wait(docCV[docIndex], docLock[docIndex]); //Wait for doctor to do checkup
+	Signal(docCV[docIndex], docLock[docIndex]); 
+	Wait(docCV[docIndex], docLock[docIndex]);
 	
 	Acquire(docPrescriptionLock);
-	int myPrescription = docPrescription[docIndex]; //Takes prescription
+	int myPrescription = docPrescription[docIndex]; 
 	if (testNum == 8){
 		if(myPrescription == 0){
-			MyWrite("Patient %d is not sick in Examining Room %d \n", myToken*100+docIndex, 0);
+			MyWrite("Patient %d is not sick in Examining Room %d \n", sizeof("Patient %d is not sick in Examining Room %d \n")-1, myToken*100+docIndex, 0);
 		}
 		else{
-			MyWrite("Patient %d is sick with disease %d in Examining Room %d \n", myToken*100+ myPrescription, docIndex*100);
-			MyWrite("Patient %d has been prescribed medicine %d \n", myToken*100+ myPrescription, 0);
+			MyWrite("Patient %d is sick with disease %d in Examining Room %d \n", sizeof("Patient %d is sick with disease %d in Examining Room %d \n")-1, myToken*100+ myPrescription, docIndex*100);
+			MyWrite("Patient %d has been prescribed medicine %d \n", sizeof("Patient %d has been prescribed medicine %d \n")-1, myToken*100+ myPrescription, 0);
 		}
 	}
 	Release(docPrescriptionLock);
-	Signal(docCV[docIndex], docLock[docIndex]); //Notifies doctor that patient took prescrip.
+	Signal(docCV[docIndex], docLock[docIndex]);
 	if (testNum == 8){
-		MyWrite("Patient %d in Examining Room %d is waiting for the Doctor to come back from the Cashier \n", myToken*100+ docIndex, 0);
+		MyWrite("Patient %d in Examining Room %d is waiting for the Doctor to come back from the Cashier \n", sizeof("Patient %d in Examining Room %d is waiting for the Doctor to come back from the Cashier \n")-1, myToken*100+ docIndex, 0);
 	}
-	Wait(docCV[docIndex], docLock[docIndex]); //Wait for doctor to return from cashier
+	Wait(docCV[docIndex], docLock[docIndex]);
 	if (testNum == 5 ||testNum == 7 ||testNum == 8){
-		MyWrite("Patient %d is leaving Examining Room %d\n", myToken*100+ docIndex, 0);
+		MyWrite("Patient %d is leaving Examining Room %d\n", sizeof("Patient %d is leaving Examining Room %d\n")-1, myToken*100+ docIndex, 0);
 	}	
 	Release(docLock[docIndex]);
-	Acquire(cashierLineLock); //Find shortest cashier line
+	Acquire(cashierLineLock); 
 	
 	/*
 	* Cashier
@@ -297,66 +296,64 @@ Patient(int index){
 	/*
 	* Pharmacy Clerk
 	*/
-	if(myPrescription != 0){ //If prescription assigned
-		Acquire(clerkLineLock); //Find shortest clerk line
-		shortest = clerkLineCount[0]; //Shortest line length
-		lineIndex = 0; //Index of line
-		for(int i=0; i<clerkCount; i++){ //Go through each clerk
-			if(clerkLineCount[i] < shortest){ //If the next clerk has a shorter line
-				lineIndex = i; //Set index to this clerk
-				shortest = clerkLineCount[i]; //Set shortest line length to this one's
+	if(myPrescription != 0){ 
+		Acquire(clerkLineLock); 
+		shortest = clerkLineCount[0]; 
+		lineIndex = 0; 
+		for(int i=0; i<clerkCount; i++){ 
+			if(clerkLineCount[i] < shortest){ 
+				lineIndex = i; 
+				shortest = clerkLineCount[i]; 
 			}
-			if(clerkState[i] == 0){ //If clerk is open
-				clerkState[i] = 1; //Set clerk's state to busy
-				lineIndex = i; //Change line index to this clerk
+			if(clerkState[i] == 0){ 
+				clerkState[i] = 1; 
+				lineIndex = i; 
 				shortest = -1;
 				break;
 			}
 		}
-		if(shortest > -1 && (clerkState[lineIndex] == 1|| clerkState[lineIndex] == 2)){ //All clerk are busy, wait in line
+		if(shortest > -1 && (clerkState[lineIndex] == 1|| clerkState[lineIndex] == 2)){ 
 			if (testNum == 3){
-				MyWrite("The line Patient %d is entering is for Pharmacy Clerk %d and is currently %d people long. \n",index*100+ lineIndex, clerkLineCount[lineIndex]*100);
+				MyWrite("The line Patient %d is entering is for Pharmacy Clerk %d and is currently %d people long. \n", sizeof("The line Patient %d is entering is for Pharmacy Clerk %d and is currently %d people long. \n") -1,index*100+ lineIndex, clerkLineCount[lineIndex]*100);
 			}
-			clerkLineCount[lineIndex]++; //Increment shortest line length
-			Wait(clerkLineCV[lineIndex], clerkLineLock); //Wait till called
-			clerkLineCount[lineIndex]--; //Decrement after being woken
+			clerkLineCount[lineIndex]++; 
+			Wait(clerkLineCV[lineIndex], clerkLineLock); 
+			clerkLineCount[lineIndex]--; 
 		}
 		
-		Release(clerkLineLock); //Release lock on clerk line
-		Acquire(clerkLock[lineIndex]); //Acquire lock to clerk
+		Release(clerkLineLock); 
+		Acquire(clerkLock[lineIndex]); 
 		
 		Acquire(clerkTokenLock);
-		clerkToken[lineIndex] = myToken; //Give token to cashier
+		clerkToken[lineIndex] = myToken; 
 		Release(clerkTokenLock);
 		
 		Acquire(clerkPrescriptionLock);
-		clerkPrescription[lineIndex] = myPrescription; //Give clerk prescription
+		clerkPrescription[lineIndex] = myPrescription; 
 		Release(clerkPrescriptionLock);
 		
-		Signal(clerkCV[lineIndex], clerkLock[lineIndex]); //Wake clerk up
+		Signal(clerkCV[lineIndex], clerkLock[lineIndex]); 
 		if(testNum == 3 || testNum == 8){
-			MyWrite("Patient %d is waiting to see PharmacyClerk %d\n", myToken*100+ lineIndex, 0);
+			MyWrite("Patient %d is waiting to see PharmacyClerk %d\n", sizeof("Patient %d is waiting to see PharmacyClerk %d\n")-1, myToken*100+ lineIndex, 0);
 		}
 		Wait(clerkCV[lineIndex], clerkLock[lineIndex]);
 		
 		Acquire(medicineFeeLock);
-		int myMedicineFee = medicineFee[lineIndex]; //Receive fee and meds from clerk
+		int myMedicineFee = medicineFee[lineIndex]; 
 		if(testNum == 8){
-			MyWrite("Patient %d is paying their prescription fees of %d\n", myToken*100+ myMedicineFee,0);
+			MyWrite("Patient %d is paying their prescription fees of %d\n",sizeof("Patient %d is paying their prescription fees of %d\n")-1, myToken*100+ myMedicineFee,0);
 		}
 		Release(medicineFeeLock);
 		
-		Signal(clerkCV[lineIndex], clerkLock[lineIndex]); //Pay clerk
+		Signal(clerkCV[lineIndex], clerkLock[lineIndex]); 
 		if(testNum == 3 || testNum == 8){
-			MyWrite("Patient %d is leaving PharmacyClerk %d\n", myToken*100 +lineIndex, 0);
+			MyWrite("Patient %d is leaving PharmacyClerk %d\n", sizeof("Patient %d is leaving PharmacyClerk %d\not")-1, myToken*100 +lineIndex, 0);
 		}
 		Release(clerkLock[lineIndex]);
 	}
 	
-	//Leave hospital
-	MyWrite("Patient %d is leaving the Hospital\n", myToken*100, 0);
+	MyWrite("Patient %d is leaving the Hospital\n", sizeof("Patient %d is leaving the Hospital\n")-1, myToken*100, 0);
 	completedPatientThreads++;
-	// printf("Total Patients: %d \n",completedPatientThreads);
 }
 
 void
@@ -520,6 +517,13 @@ void
 Doctor(int index){
 	int stickCount = 0;
 	int breakValCount = 0;
+	int dbNum = 0;
+	int i = 0;
+	int token = 0;
+	int sickTest =0;
+	int yieldCount = 10;
+	int breakVal = 0;
+	int breakTimeVal = 10;
 	while(true){
 		Acquire(docReadyLock);
 		docState[index] = 0;
@@ -531,10 +535,10 @@ Doctor(int index){
 		if(doorBoyDoctorCount > 0){
 			doorBoyDoctorCount--;
 			Acquire(doorBoyLineLock);
-			int dbNum = 0;
-			for(int i = 0; i<doorBoyCount; i++){
+			dbNum = 0;
+			for( i = 0; i<doorBoyCount; i++){
 				if(doorBoyState[i] == 9){
-					doorBoyState[i] = 0; //Find doorboy waiting and set to open
+					doorBoyState[i] = 0;
 					dbNum = i;
 					break;
 				}
@@ -550,77 +554,75 @@ Doctor(int index){
 			Wait(doctorDoorBoyCV[index], dbbLock);
 		}
 		if(testNum == 1 || testNum == 8){
-			MyWrite("Doctor %d has told a DoorBoy to bring a Patient to Examining Room %d \n", index*100 + index, 0);
+			MyWrite("Doctor %d has told a DoorBoy to bring a Patient to Examining Room %d \n", sizeof("Doctor %d has told a DoorBoy to bring a Patient to Examining Room %d \n")-1 index*100 + index, 0);
 		}
 		Release(dbbLock);
 		Wait(docCV[index], docLock[index]);
 		Acquire(docTokenLock);
-		int token = docToken[index]; //Get patient's token number
+		token = docToken[index];
 		Release(docTokenLock);
 		if(testNum == 1 || testNum == 8){
-			MyWrite("Doctor %d is examining a Patient with Token %d \n",index*100+token,0);
+			MyWrite("Doctor %d is examining a Patient with Token %d \n", sizeof("Doctor %d is examining a Patient with Token %d \n")-1,index*100+token,0);
 		}
-		int yieldCount = 10;
-		for(int i = 0; i < yieldCount; i++){ //Check patient for that long
-			Yield(); //Yield thread to simulate time spent
+		for(int i = 0; i < yieldCount; i++){ 
+			Yield();
 		}
 		sickCount++;
-		int sickTest = sickCount%5; //Generate if patient is sick
+		sickTest = sickCount%5; 
 		/* 0 not sick
 		1-4 sick */
 		if (testNum == 7){
-			sickTest = 1; //Making sickness static for test 8
+			sickTest = 1; 
 		}
 		if(testNum == 8){
 			if(sickTest == 0){
-				MyWrite("Doctor %d has determined that the Patient with Token %d is not sick\n", index*100+token, 0);
+				MyWrite("Doctor %d has determined that the Patient with Token %d is not sick\n", sizeof("Doctor %d has determined that the Patient with Token %d is not sick\n")-1, index*100+token, 0);
 			}
 			else{
-				MyWrite("Doctor %d has determined that the Patient with Token %d is sick with disease type %d \n", index*100+token, sickTest*100);
+				MyWrite("Doctor %d has determined that the Patient with Token %d is sick with disease type %d \n", sizeof("Doctor %d has determined that the Patient with Token %d is sick with disease type %d \n")-1, index*100+token, sickTest*100);
 			}
 		}
 		Acquire(docPrescriptionLock);
-		docPrescription[index] = sickTest; //Tells patient illness and prescription
+		docPrescription[index] = sickTest; 
 		if(testNum == 8){
-			MyWrite("Doctor %d is prescribing medicine type %d to the Patient with Token %d \n", index*100+sickTest, token*100);
+			MyWrite("Doctor %d is prescribing medicine type %d to the Patient with Token %d \n", sizeof("Doctor %d is prescribing medicine type %d to the Patient with Token %d \n")-1, index*100+sickTest, token*100);
 		}
 		Release(docPrescriptionLock);
 		
-		Signal(docCV[index], docLock[index]); //Tells patient to take prescription
-		Wait(docCV[index], docLock[index]); //Waits for patient to take prescription
+		Signal(docCV[index], docLock[index]); 
+		Wait(docCV[index], docLock[index]); 
 		
-		//Doctor tells cashiers price of consultation
 		Acquire(consultLock);
 		consultationFee[token] = sickTest*20+20;
 		Release(consultLock);
 		if(testNum == 1 || testNum == 5 || testNum == 7 ||testNum == 8){		
-			MyWrite("Doctor %d tells Patient with Token %d they can leave \n", index*100+ token,0);
+			MyWrite("Doctor %d tells Patient with Token %d they can leave \n", sizeof("Doctor %d tells Patient with Token %d they can leave \n")-1, index*100+ token,0);
 		}
-		Signal(docCV[index], docLock[index]);//Tell patient ok to go
+		Signal(docCV[index], docLock[index]);
 		Release(docLock[index]);
 		
 		breakValCount++;
-		int breakVal = breakValCount%2; //Generate break value
-		if(breakVal == 1 || (testNum == 5)){ //Take break for random time
+		breakVal = breakValCount%2; 
+		if(breakVal == 1 || (testNum == 5)){ 
 			if (testNum == 5 || testNum == 8){
-				MyWrite("Doctor %d tells a DoorBoy he is going on break \n", index*100, 0);
+				MyWrite("Doctor %d tells a DoorBoy he is going on break \n", sizeof("Doctor %d tells a DoorBoy he is going on break \n")-1,index*100, 0);
 			}
-			Acquire(docReadyLock); //Acquire doctor ready lock
-			docState[index] = 2; //Sets own state to ready
+			Acquire(docReadyLock); 
+			docState[index] = 2; 
 			Release(docReadyLock);
-			int breakTimeVal = 10; //Random between 5 and 15
+			
 			if (testNum == 5){
-				MyWrite("Doctor %d is going on break for %d milliseconds. \n",index*100+ breakTimeVal, 0);
+				MyWrite("Doctor %d is going on break for %d milliseconds. \n", sizeof("Doctor %d is going on break for %d milliseconds. \n") -1, index*100+ breakTimeVal, 0);
 			}
 			for(int i = 0; i < breakTimeVal; i++){
 				Yield();
 			}
 			if (testNum == 5 || testNum == 8){
-				MyWrite("Doctor %d tells a DoorBoy he is coming off break \n", index*100, 0);
+				MyWrite("Doctor %d tells a DoorBoy he is coming off break \n", sizeof("Doctor %d tells a DoorBoy he is coming off break \n")-1, index*100, 0);
 			}
 		}
 		if (testNum == 5){
-			MyWrite("To simulate test 5, Doctor %d is quitting. \n",index*100,0);
+			MyWrite("To simulate test 5, Doctor %d is quitting. \n", sizeof("To simulate test 5, Doctor %d is quitting. \n")-1, index*100,0);
 			break;
 		}
 	}
@@ -699,67 +701,69 @@ Cashier(int index){
 
 void
 Clerk(int index){
+	int token = 0;
+	int fee = 0;
+	int prescription = 0;
 	while(1){
-		Acquire(clerkLineLock); //Acquire line lock
-		clerkState[index]=0; //Set self to not busy
+		Acquire(clerkLineLock); 
+		clerkState[index]=0; 
 		
-		if(clerkLineCount[index] > 0) { //Check to see if anyone in line
+		if(clerkLineCount[index] > 0) { 
 			if (testNum == 3 || testNum == 8){
-				MyWrite("PharmacyClerk %d has signaled a Patient. \n",index*100, 0);
+				MyWrite("PharmacyClerk %d has signaled a Patient. \n", sizeof("PharmacyClerk %d has signaled a Patient. \n")-1,index*100, 0);
 			}
-			Signal(clerkLineCV[index], clerkLineLock); //Signal first person in line
-			clerkState[index] = 1; //Set self to busy
+			Signal(clerkLineCV[index], clerkLineLock); 
+			clerkState[index] = 1; 
 		}
 		
-		Acquire(clerkLock[index]); //Acquire clerk lock
-		Release(clerkLineLock); //Release line lock
-		Wait(clerkCV[index], clerkLock[index]); //Wait for patient to arrive
+		Acquire(clerkLock[index]);
+		Release(clerkLineLock); 
+		Wait(clerkCV[index], clerkLock[index]); 
 		
 		Acquire(clerkTokenLock);
-		int token = clerkToken[index];
+		token = clerkToken[index];
 		Release(clerkTokenLock);
 		
 		Acquire(clerkPrescriptionLock);
-		int prescription = clerkPrescription[index]; //Get prescription from patient
+		prescription = clerkPrescription[index]; 
 		if (testNum == 3 || testNum == 8){
-			MyWrite("PharmacyClerk %d gets Prescription %d from Patient with Token %d \n", index*100+prescription, token*100);
+			MyWrite("PharmacyClerk %d gets Prescription %d from Patient with Token %d \n", sizeof("PharmacyClerk %d gets Prescription %d from Patient with Token %d \n")-1, index*100+prescription, token*100);
 		}
 		Release(clerkPrescriptionLock);
 
 		
-		int fee = prescription*25; //Calculate fee of medicine
+		fee = prescription*25; 
 		
 		Acquire(medicineFeeLock);
-		medicineFee[index] = fee; //Tell patient fee
+		medicineFee[index] = fee; 
 		Release(medicineFeeLock);
 		if (testNum == 3 || testNum == 8){
-			MyWrite("PharmacyClerk %d gives Prescription %d from Patient with Token %d \n", index*100+ prescription, token*100);
-			MyWrite("PharmacyClerk %d tells Patient with Token %d they owe %d \n", index*100+ token, fee*100);
+			MyWrite("PharmacyClerk %d gives Prescription %d from Patient with Token %d \n", sizeof("PharmacyClerk %d gives Prescription %d from Patient with Token %d \n")-1, index*100+ prescription, token*100);
+			MyWrite("PharmacyClerk %d tells Patient with Token %d they owe %d \n", sizeof("PharmacyClerk %d tells Patient with Token %d they owe %d \n")-1, index*100+ token, fee*100);
 		}
 		Signal(clerkCV[index], clerkLock[index]);
-		Wait(clerkCV[index], clerkLock[index]); //Wait for patient to give money and take prescription
+		Wait(clerkCV[index], clerkLock[index]); 
 		if (testNum == 3 || testNum == 8){
-			MyWrite("Pharmacyclerk %d gets money from Patient with Token %d \n", index*100+ token, 0);
+			MyWrite("Pharmacyclerk %d gets money from Patient with Token %d \n", sizeof("Pharmacyclerk %d gets money from Patient with Token %d \n")-1, index*100+ token, 0);
 		}
 		Acquire(totalMedicineLock);
-		totalMedicineCost += fee; //Add medicine fee to total count
+		totalMedicineCost += fee; 
 		Release(totalMedicineLock);
 		
-		Release(clerkLock[index]); //Release clerk lock
+		Release(clerkLock[index]);
 		
-		//Take break check
 		Acquire(clerkLineLock);
-		if(clerkLineCount[index] == 0){ //If noone in line
-			clerkState[index] = 2; //Set to on-break
+		if(clerkLineCount[index] == 0){
+			clerkState[index] = 2; 
 			Release(clerkLineLock);
 			if (testNum == 6 || testNum == 8){
-				MyWrite("PharmacyClerk %d is going on break. \n",index*100, 0);
+				MyWrite("PharmacyClerk %d is going on break. \n", sizeof("PharmacyClerk %d is going on break. \n")-1, index*100, 0);
 			}
 			Acquire(clerkBreakLock);
-			Wait(clerkBreakCV[index], clerkBreakLock); //Set condition for manager to callback
+			Wait(clerkBreakCV[index], clerkBreakLock);
 			Release(clerkBreakLock);
 			if (testNum == 6 || testNum == 8){
-				MyWrite("PharmacyClerk %d is coming off break. \n",index*100, 0);
+				MyWrite("PharmacyClerk %d is coming off break. \n", sizeof("PharmacyClerk %d is coming off break. \n")-1, index*100, 0);
 			}
 		}
 		else{
@@ -770,31 +774,30 @@ Clerk(int index){
 
 void
 Manager(){
+	int i = 0;
+	int yield = 70;
+	int lineCnt = 0;
+	int myConsultFee = 0;
+	int myMedicineFee = 0;
 	while(true){
-		//Checks hospital is running randomly
-		//Randomly generate number and yield for other threads
-		int yield = 70;
 		if (testNum == 7){
 			yield = 5020;
 		}
-		for(int i = 0; i<yield; i++){
+		for(i = 0; i<yield; i++){
 			Yield();
 		}
 		
-		//Wakes up receptionist
-		//Check if there are at least 2 people waiting in receptionist line
 		Acquire(recLineLock);
-		int lineCnt = 0;
-		for(int i = 0; i < recCount; i++){
+		lineCnt = 0;
+		for(i = 0; i < recCount; i++){
 			lineCnt+= recLineCount[i];
 		}
 		if(lineCnt > 1){
-			for(int i = 0; i < recCount; i++){
+			for(i = 0; i < recCount; i++){
 				if(recState[i] == 2 ){
 					Acquire(receptionistBreakLock);
-					//Set receptionist to off break
 					if (testNum == 6 || testNum == 8){
-						MyWrite("HospitalManager signaled a Receptionist to come off break\n", 0, 0);
+						MyWrite("HospitalManager signaled a Receptionist to come off break\n", sizeof("HospitalManager signaled a Receptionist to come off break\n")-1, 0, 0);
 					}
 					Signal(receptionistBreakCV[i], receptionistBreakLock);
 					Release(receptionistBreakLock);
@@ -804,16 +807,14 @@ Manager(){
 		Release(recLineLock);
 
 		
-		//Wakes up door boy
 		if (testNum != 2){
 			Acquire(doorBoyLineLock);
-		if(doorBoyLineCount > 0){ //Check if any patient in line
-			for(int i = 0; i < doorBoyCount; i++){
+		if(doorBoyLineCount > 0){ 
+			for(i = 0; i < doorBoyCount; i++){
 				if(doorBoyState[i] == 2){
 					Acquire(doorBoyBreakLock);
-					//Set door boy to off break
 					if (testNum == 6 || testNum == 8){
-						MyWrite("HospitalManager signaled a DoorBoy to come off break\n",0 ,0);
+						MyWrite("HospitalManager signaled a DoorBoy to come off break\n", sizeof("HospitalManager signaled a DoorBoy to come off break\n")-1,0 ,0);
 					}
 					Signal(doorBoyBreakCV[i], doorBoyBreakLock);
 					Release(doorBoyBreakLock);
@@ -822,30 +823,26 @@ Manager(){
 		}
 		Release(doorBoyLineLock);
 	}
-		//Wakes up cashier
+
 	Acquire(cashierLineLock);
-	for( int i = 0; i < cashierCount; i++){
-			if(cashierLineCount[i] > 0 && cashierState[i] == 2){ //Check if any patient in line
+	for(i = 0; i < cashierCount; i++){
+			if(cashierLineCount[i] > 0 && cashierState[i] == 2){
 				Acquire(cashierBreakLock);
 				if (testNum == 6 || testNum == 8){
-					MyWrite("HospitalManager signaled a Cashier to come off break\n", 0, 0);
+					MyWrite("HospitalManager signaled a Cashier to come off break\n", sizeof("HospitalManager signaled a Cashier to come off break\n")-1, 0, 0);
 				}
-				Signal(cashierBreakCV[i], cashierBreakLock); //Set cashier to off break
+				Signal(cashierBreakCV[i], cashierBreakLock); 
 				Release(cashierBreakLock);
-				//Get total consultation fee
 			}
 		}
 		Release(cashierLineLock);
 		
-		
-
-		//Wakes up clerk
 		Acquire(clerkLineLock);
-		for(int i = 0; i<clerkCount; i++){
+		for(i = 0; i<clerkCount; i++){
 			if(clerkLineCount[i] > 0 && clerkState[i] == 2){
 				Acquire(clerkBreakLock);
 				if (testNum == 6 || testNum == 8){
-					MyWrite("HospitalManager signaled a PharmacyClerk to come off break\n", 0, 0);
+					MyWrite("HospitalManager signaled a PharmacyClerk to come off break\n", sizeof("HospitalManager signaled a PharmacyClerk to come off break\n")-1, 0, 0);
 				}
 				Signal(clerkBreakCV[i], clerkBreakLock);
 				Release(clerkBreakLock);
@@ -859,24 +856,23 @@ Manager(){
 		*/
 		if (testNum == 7){
 			Acquire(totalFeeLock);
-			int myConsultFee = totalConsultationFee;
-			MyWrite("HospitalManager reports that total consultancy fees are %d\n", myConsultFee*100, 0);
+			myConsultFee = totalConsultationFee;
+			MyWrite("HospitalManager reports that total consultancy fees are %d\n", sizeof("HospitalManager reports that total consultancy fees are %d\n")-1, myConsultFee*100, 0);
 			Release(totalFeeLock);
 
 			Acquire(totalMedicineLock);
-			int myMedicineFee = totalMedicineCost;
-			MyWrite("HospitalManager reports total sales in pharmacy are %d\n", myMedicineFee*100, 0);
+			myMedicineFee = totalMedicineCost;
+			MyWrite("HospitalManager reports total sales in pharmacy are %d\n", sizeof("HospitalManager reports total sales in pharmacy are %d\n")-1, myMedicineFee*100, 0);
 			Release(totalMedicineLock);
 		}
 		/* 
-		* COMMENT OUT BETWEEM TO REMOVE SPAM FROM HOSPITAL MANAGER 
+		* COMMENT OUT BETWEEN TO REMOVE SPAM FROM HOSPITAL MANAGER 
 		*/
 		if (testNum == 2 || testNum == 4 || testNum == 5 || testNum == 6){
 			break;
 		}
 
 		if (completedPatientThreads == numPatients){
-			// MyWrite("No patients left, Manager leaving \n");
 			break;
 		}
 		
@@ -886,177 +882,113 @@ Manager(){
 void
 Setup(){
 	char *name;
-	//Instantiating receptionist variables
-	for(int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"recLock%d",i);
-		recLock[i] = new Lock(name);
+	int i = 0;
+	for(i = 0; i < 5; i++){
+		recLock[i] = CreateLock(0);
 	}
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"recLineCV%d",i);
-		recLineCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		recLineCV[i] = CreateCondition(0);
 	}
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"recCV%d",i);
-		recCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		recCV[i] = CreateCondition(0);
 	}
 	
-	//Instantiating doctor variables
-	for(int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"docLock%d",i);
-		docLock[i] = new Lock(name);
+	for(i = 0; i < 5; i++){
+		docLock[i] = CreateLock(0);
 	}
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"docCV%d",i);
-		docCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		docCV[i] = CreateCondition(0);
 	}
 	
-	//Doorboy
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"docReadyCV%d",i);
-		docReadyCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		docReadyCV[i] = CreateCondition(0);
 	}
 	
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"doorBoyPatientCV%d",i);
-		doorBoyPatientCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		doorBoyPatientCV[i] = CreateCondition(0);
 	}
 
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"recLineCV%d",i);
-		doctorDoorBoyCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		doctorDoorBoyCV[i] = CreateCondition(0);
 	}
 
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"recLineCV%d",i);
-		doorBoyDoctorCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		doorBoyDoctorCV[i] = CreateCondition(0);
 	}
 	
-	//Cashier
-	//Map?
-	for(int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"cashierLock%d",i);
-		cashierLock[i] = new Lock(name);
+	for(i = 0; i < 5; i++){
+		cashierLock[i] = CreateLock(0);
 	}
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"cashierCV%d",i);
-		cashierCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		cashierCV[i] = CreateCondition(0);
 	}
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"cashierLineCV%d",i);
-		cashierLineCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		cashierLineCV[i] = CreateCondition(0);
 	}
 	
-	//Clerk
-	for(int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"clerkLock%d",i);
-		clerkLock[i] = new Lock(name);
+	for(i = 0; i < 5; i++){
+		clerkLock[i] = CreateLock(0);
 	}
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"clerkCV%d",i);
-		clerkCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		clerkCV[i] = CreateCondition(0);
 	}
 	
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"clerkLineCV%d",i);
-		clerkLineCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		clerkLineCV[i] = CreateCondition(0);
 	}
 	
-	//Manager
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"receptionistBreakCV%d",i);
-		receptionistBreakCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		receptionistBreakCV[i] = CreateCondition(0);
 	}
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"doorBoyBreakCV%d",i);
-		doorBoyBreakCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		doorBoyBreakCV[i] = CreateCondition(0);
 	}
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"clerkBreakCV%d",i);
-		clerkBreakCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		clerkBreakCV[i] = CreateCondition(0);
 	}
-	for (int i = 0; i < 5; i++){
-		name = new char [20];
-		sprintf(name,"cashierBreakCV%d",i);
-		cashierBreakCV[i] = new Condition(name);
+	for (i = 0; i < 5; i++){
+		cashierBreakCV[i] = CreateCondition(0);
 	}
 }
 
 
-//Initializing the threads for part 2 of the first assignment
 void
 InitializeThreads(){
 	Thread *t;
 	char* name;
-	printf("\n");
-	printf("Number of Receptionists = %d \n",recCount);
-	printf("Number of Doctors = %d \n",docCount);
-	printf("Number of DoorBoys = %d \n",doorBoyCount);
-	printf("Number of Cashiers = %d \n",cashierCount);
-	printf("Number of PharmacyClerks = %d \n",clerkCount);
-	printf("Number of Patients = %d \n",numPatients);
-	printf("\n");
+	int i;
 
-	for (int i = 0; i < docCount; i++){
-		name = new char [20];
-		sprintf(name,"Doctor %d",i);
-		t = new Thread(name);
-		t->Fork((VoidFunctionPtr) Doctor,i);
+	MyWrite("Number of Receptionists = %d \n", sizeof()-1, recCount*100, 0);
+	MyWrite("Number of Doctors = %d \n", sizeof("Number of Doctors = %d \n")-1, docCount*100, 0);
+	MyWrite("Number of DoorBoys = %d \n", sizeof("Number of DoorBoys = %d \n")-1, doorBoyCount*100, 0);
+	MyWrite("Number of Cashiers = %d \n", sizeof("Number of Cashiers = %d \n")-1, cashierCount*100, 0);
+	MyWrite("Number of PharmacyClerks = %d \n", sizeof("Number of PharmacyClerks = %d \n")-1, clerkCount*100, 0);
+	MyWrite("Number of Patients = %d \n", sizeof("Number of Patients = %d \n")-1, numPatients*100, 0);
+
+	for (i = 0; i < docCount; i++){
+		Fork(Doctor);
 	}
 
-	for (int i = 0; i < recCount; i++){
-		name = new char [20];
-		sprintf(name,"Receptionist %d",i);
-		t = new Thread(name);
-		t->Fork((VoidFunctionPtr) Receptionist,i);
+	for (i = 0; i < recCount; i++){
+		Fork(Receptionist);
 	}
 
-	for (int i = 0; i < doorBoyCount; i++){
-		name = new char [20];
-		sprintf(name,"Door Boy %d",i);
-		t = new Thread(name);
-		t->Fork((VoidFunctionPtr) Door_Boy,i);
+	for (i = 0; i < doorBoyCount; i++){
+		Fork(Door_Boy);
 	}
 
-	for (int i = 0; i < cashierCount; i++){
-		name = new char [20];
-		sprintf(name,"Cashier %d",i);
-		t = new Thread(name);
-		t->Fork((VoidFunctionPtr) Cashier,i);
+	for (i = 0; i < cashierCount; i++){
+		Fork(Cashier);
 	}
 
-	for (int i = 0; i < clerkCount; i++){
-		name = new char [20];
-		sprintf(name,"Pharmacy Clerk %d",i);
-		t = new Thread(name);
-		t->Fork((VoidFunctionPtr) Clerk,i);
+	for (i = 0; i < clerkCount; i++){
+		Fork(Clerk);
 	}
 
-	t = new Thread("Manager");
-	t->Fork((VoidFunctionPtr) Manager, 1);
+	Fork(Manager);
 
-	for (int i = 0; i < numPatients; i++){
-		name = new char [20];
-		sprintf(name,"Patient %d",i);
-		t = new Thread(name);
-		t->Fork((VoidFunctionPtr) Patient,i);
+	for (i = 0; i < numPatients; i++){
+		Fork(Patient);
 	}
 
 }
