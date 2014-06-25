@@ -99,6 +99,10 @@ IV. Implementation:
 		Added OpenFile* file for assignment 3 use.
 	}
 
+	-system.h
+	class KernelLock //User program lock
+	class KernelCV //User program CV
+
 	+ Functions added and in which file.
 	-addrspace.cc
 	int AllocatePages(); //Allocates 8 pages from addrspace when called.
@@ -117,6 +121,15 @@ IV. Implementation:
 	int Exit_Syscall() //Exit syscall function
 	bool validateAddress() //Function for validating vaddr
 	bool validateBuffer() //Function for validating buffer address within vaddr bounds
+	int CreateLock_Syscall() //Creates a lock to put in kernelLock array, returns index
+	void DestroyLock_Syscall() //Destroys lock in kernelLock array
+	void Acquire_Syscall() //Lock acquire syscall function
+	void Release_Syscall() //Lock release syscall function
+	int CreateCondition_Syscall() //Creates a CV to put in kernelCV array, returns index
+	void DestroyCondition_Syscall() //Destroys CV in kernelCV array
+	void Wait_Syscall() //CV Wait syscall function
+	void Signal_Syscall() //CV Signal syscall function
+	void Broadcast_Syscall() //CV Broadcast syscall function
 
 	+ Functions modified and in which file.
 	-addrspace.cc
