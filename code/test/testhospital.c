@@ -31,6 +31,8 @@ int docTokenLock = CreateLock(0);
 int docPrescriptionLock = CreateLock(0); 
 int docPrescription[5] = {0,0,0,0,0}; 
 int docCount = 5; 
+int nextDoctorIndex = 0;
+int doctorIndexLock = CreateLock(0);
 
 //Doorboy globals
 Lock* doorBoyLineLock = new Lock("doorBoyLineLock"); //Lock to manage line
@@ -97,6 +99,9 @@ int clerkToken[5] = {0,0,0,0,0};
 int clerkLock[5]; 
 int clerkCV[5];
 
+int clerkIndexLock = CreateLock(0);
+int nextClerkIndex = 0;
+
 /*Manager globals*/
 int receptionistBreakLock = CreateLock(0);
 int receptionistBreakCV[5];
@@ -109,7 +114,12 @@ int clerkBreakCV[5];
 
 /* Hospital members*/
 void
-Patient(int index){
+Patient(){
+	int i;
+	int myPrescription;
+	int myMedicineFee;
+	int index;
+
 	MyWrite("Patient %d has arrived at the Hospital. \n", sizeof("Patient %d has arrived at the Hospital. \n")-1, index*100, 0);
 	
 	/*
@@ -223,7 +233,7 @@ Patient(int index){
 	Wait(docCV[docIndex], docLock[docIndex]);
 	
 	Acquire(docPrescriptionLock);
-	int myPrescription = docPrescription[docIndex]; 
+	myPrescription = docPrescription[docIndex]; 
 	if (testNum == 8){
 		if(myPrescription == 0){
 			MyWrite("Patient %d is not sick in Examining Room %d \n", sizeof("Patient %d is not sick in Examining Room %d \n")-1, myToken*100+docIndex, 0);
@@ -250,7 +260,7 @@ Patient(int index){
 	*/
 	shortest = cashierLineCount[0]; //Shortest line length
 	lineIndex = 0; //Index of line
-	for(int i=0; i<cashierCount; i++){ //Go through each cashier
+	for(i=0; i<cashierCount; i++){ //Go through each cashier
 		if(cashierLineCount[i] < shortest){ //If the next cashier has a shorter line
 			lineIndex = i; //Set index to this cashier
 			shortest = cashierLineCount[i]; //Set shortest line length to this one's
@@ -300,7 +310,7 @@ Patient(int index){
 		Acquire(clerkLineLock); 
 		shortest = clerkLineCount[0]; 
 		lineIndex = 0; 
-		for(int i=0; i<clerkCount; i++){ 
+		for(i=0; i<clerkCount; i++){ 
 			if(clerkLineCount[i] < shortest){ 
 				lineIndex = i; 
 				shortest = clerkLineCount[i]; 
@@ -339,7 +349,7 @@ Patient(int index){
 		Wait(clerkCV[lineIndex], clerkLock[lineIndex]);
 		
 		Acquire(medicineFeeLock);
-		int myMedicineFee = medicineFee[lineIndex]; 
+		myMedicineFee = medicineFee[lineIndex]; 
 		if(testNum == 8){
 			MyWrite("Patient %d is paying their prescription fees of %d\n",sizeof("Patient %d is paying their prescription fees of %d\n")-1, myToken*100+ myMedicineFee,0);
 		}
@@ -514,7 +524,7 @@ Door_Boy(int index){
 }
 
 void
-Doctor(int index){
+Doctor(){
 	int stickCount = 0;
 	int breakValCount = 0;
 	int dbNum = 0;
@@ -524,6 +534,12 @@ Doctor(int index){
 	int yieldCount = 10;
 	int breakVal = 0;
 	int breakTimeVal = 10;
+	int index;
+	Acquire(doctorIndexLock);
+	index = nextDoctorIndex;
+	nextDoctorIndex++;
+	Release(doctorIndexLock);
+
 	while(true){
 		Acquire(docReadyLock);
 		docState[index] = 0;
@@ -700,10 +716,16 @@ Cashier(int index){
 }
 
 void
-Clerk(int index){
+Clerk(){
 	int token = 0;
 	int fee = 0;
-	int prescription = 0;
+	int prescription = 0;	
+	int index;
+	Acquire(clerkIndexLock);
+	index = nextClerkIndex;
+	nextClerkIndex++;
+	Release(clerkIndexLock);
+
 	while(1){
 		Acquire(clerkLineLock); 
 		clerkState[index]=0; 
