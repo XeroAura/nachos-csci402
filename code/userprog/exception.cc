@@ -482,7 +482,6 @@ void DestroyLock_Syscall(int index){
 }
 
 void Acquire_Syscall(int index){
-    printf("Acquiring lock %d\n", index);
     if (index >= 0 && index < MAX_LOCKS){
         kLocks[index]->lock->Acquire();
     } else {
@@ -492,7 +491,6 @@ void Acquire_Syscall(int index){
 }
 
 void Release_Syscall(int index){
-    printf("Releasing lock %d\n", index);
     if (index >= 0 && index < MAX_LOCKS){ //checks if index is valid
         if (kLocks[index]->lock != NULL){ //checks if the lock exists
             kLocks[index]->lock->Release();
@@ -500,7 +498,7 @@ void Release_Syscall(int index){
                 DestroyLock_Syscall(index);
             }
         } else {
-            printf("ERROR: No lock exists.\n");
+            printf("ERROR: No lock exists at this index.\n");
         }
     } else {
         printf("ERROR: Index exceeds bounds.\n");
