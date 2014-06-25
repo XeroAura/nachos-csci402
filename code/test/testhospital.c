@@ -23,12 +23,12 @@ int nextToken = 0; //Next token value
 int recCount = 5; //Number of receptionists
 
 //Doctor globals
-Lock* docLock[5]; //Lock for doctor and patient meeting
-Condition* docCV[5]; //CV for doctor and patient meeting
+int docLock[5]; //Lock for doctor and patient meeting
+int docCV[5]; //CV for doctor and patient meeting
 int docState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break, 3 waiting
 int docToken[5] = {-1,-1,-1,-1,-1}; //Used to give doctor token from patients
-Lock* docTokenLock = new Lock("docTokenLock"); //Lock for docTokens use
-Lock * docPrescriptionLock = new Lock("dockPrescriptionLock"); //Lock for passing prescriptions
+int docTokenLock = CreateLock(0); //Lock for docTokens use
+int docPrescriptionLock = CreateLock(0); //Lock for passing prescriptions
 int docPrescription[5] = {0,0,0,0,0}; //1-4 represent problems
 int docCount = 5; //Number of doctors
 
@@ -78,35 +78,35 @@ int cashierFee[5] = {0,0,0,0,0}; //Fee charged by cashier to patient
 Lock* cashierFeeLock = new Lock("cashierFeeLock"); //Lock for cashierFee
 
 //Clerk globals
-Lock* medicineFeeLock = new Lock("medicineFeeLock"); //Lock for medicine costs
+int medicineFeeLock = CreateLock(0); //Lock for medicine costs
 int medicineFee[5] = {0,0,0,0,0}; //Used to pass costs to patient
-Lock* totalMedicineLock = new Lock("totalMedicineLock"); //Used to lock total medicine cost
+int totalMedicineLock = CreateLock(0); //Used to lock total medicine cost
 int totalMedicineCost = 0; //Used to keep track of total medicine costs
 int clerkCount = 5; // Number of clerks
 
-Lock* clerkLineLock = new Lock("clerkLineLock"); //Lock for clerk lines
+int clerkLineLock = CreateLock(0); //Lock for clerk lines
 int clerkLineCount[5] = {0,0,0,0,0}; //Number of people in each line
-Condition* clerkLineCV[5]; //CV for clerk line calling
+int clerkLineCV[5]; //CV for clerk line calling
 int clerkState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
 int clerkPrescription[5] = {0,0,0,0,0}; //Medicine types 1-4
-Lock* clerkPrescriptionLock = new Lock("clerkPrescriptionLock"); //Lock for prescription passing
+int clerkPrescriptionLock = CreateLock(0); //Lock for prescription passing
 
-Lock* clerkTokenLock = new Lock("clerkTokenLock"); //Lock for token passing
+int clerkTokenLock = CreateLock(0); //Lock for token passing
 int clerkToken[5] = {0,0,0,0,0}; //Used to hold tokens passed to clerk by patient
 
-Lock* clerkLock[5]; //Lock for interaction with clerks
-Condition* clerkCV[5]; //CV for interaction with clerks
+int clerkLock[5]; //Lock for interaction with clerks
+int clerkCV[5]; //CV for interaction with clerks
 
 //Manager globals
 //Locks and condition variables used to put and wake up people in breaks
-Lock* receptionistBreakLock = new Lock("receptionistBreakLock");
-Condition* receptionistBreakCV[5];
-Lock* doorBoyBreakLock = new Lock("doorBoyBreakLock");
-Condition* doorBoyBreakCV[5];
-Lock* cashierBreakLock = new Lock("cashierBreakLock");
-Condition* cashierBreakCV[5];
-Lock* clerkBreakLock = new Lock("clerkBreakLock");
-Condition* clerkBreakCV[5];
+int receptionistBreakLock = CreateLock(0);
+int receptionistBreakCV[5];
+int doorBoyBreakLock = CreateLock(0);
+int doorBoyBreakCV[5];
+int cashierBreakLock = CreateLock(0);
+int cashierBreakCV[5];
+int clerkBreakLock = CreateLock(0);
+int clerkBreakCV[5];
 
 /* Hospital members*/
 void
@@ -204,52 +204,47 @@ Patient(int index){
 	* Doctor
 	*/
 	if (testNum == 1 || testNum == 2 || testNum == 8){
-		printf("Patient %d is going to Examining Room %d \n", myToken, docIndex);
+		MyWrite("Patient %d is going to Examining Room %d \n", myToken*100+docIndex, 0);
 	}
 	docState[docIndex] = 1; //Set doctor to busy
 	
-	docReadyLock->Release();
+	Release(docReadyLock);
 	
-	docLock[docIndex]->Acquire(); //Acquire doctor lock
+	Acquire(docLock[docIndex]); //Acquire doctor lock
 
-	docTokenLock->Acquire();
+	Acquire(docTokenLock);
 	docToken[docIndex] = myToken; //Give token to doctor
-	docTokenLock->Release();
+	Release(docTokenLock);
 
 	if (testNum == 1 || testNum == 2 || testNum == 5 || testNum == 8){	
-		printf("Patient %d is waiting to be examined by the Doctor in ExaminingRoom %d \n", myToken, docIndex);
+		MyWrite("Patient %d is waiting to be examined by the Doctor in ExaminingRoom %d \n", myToken*100 + docIndex, 0);
 	}
-	if(myToken == 0 || myToken == 1){
-	//	printf(">>>Patient %d signaling.\n",myToken);
-	}
-	docCV[docIndex]->Signal(docLock[docIndex]); //Tell doctor to take token
-	if(myToken == 0 || myToken == 1){
-	//	printf(">>>Patient %d done signaling.\n",myToken);
-	}
-	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to do checkup
+
+	Signal(docCV[docIndex], docLock[docIndex]); //Tell doctor to take token
+	Wait(docCV[docIndex], docLock[docIndex]); //Wait for doctor to do checkup
 	
-	docPrescriptionLock->Acquire();
+	Acquire(docPrescriptionLock);
 	int myPrescription = docPrescription[docIndex]; //Takes prescription
 	if (testNum == 8){
 		if(myPrescription == 0){
-			printf("Patient %d is not sick in Examining Room %d \n", myToken, docIndex);
+			MyWrite("Patient %d is not sick in Examining Room %d \n", myToken*100+docIndex, 0);
 		}
 		else{
-			printf("Patient %d is sick with disease %d in Examining Room %d \n", myToken, myPrescription, docIndex);
-			printf("Patient %d has been prescribed medicine %d \n", myToken, myPrescription);
+			MyWrite("Patient %d is sick with disease %d in Examining Room %d \n", myToken*100+ myPrescription, docIndex*100);
+			MyWrite("Patient %d has been prescribed medicine %d \n", myToken*100+ myPrescription, 0);
 		}
 	}
-	docPrescriptionLock->Release();
-	docCV[docIndex]->Signal(docLock[docIndex]); //Notifies doctor that patient took prescrip.
+	Release(docPrescriptionLock);
+	Signal(docCV[docIndex], docLock[docIndex]); //Notifies doctor that patient took prescrip.
 	if (testNum == 8){
-		printf("Patient %d in Examining Room %d is waiting for the Doctor to come back from the Cashier \n", myToken, docIndex);
+		MyWrite("Patient %d in Examining Room %d is waiting for the Doctor to come back from the Cashier \n", myToken*100+ docIndex, 0);
 	}
-	docCV[docIndex]->Wait(docLock[docIndex]); //Wait for doctor to return from cashier
+	Wait(docCV[docIndex], docLock[docIndex]); //Wait for doctor to return from cashier
 	if (testNum == 5 ||testNum == 7 ||testNum == 8){
-		printf("Patient %d is leaving Examining Room %d\n", myToken, docIndex);
+		MyWrite("Patient %d is leaving Examining Room %d\n", myToken*100+ docIndex, 0);
 	}	
-	docLock[docIndex]->Release();
-	cashierLineLock->Acquire(); //Find shortest cashier line
+	Release(docLock[docIndex]);
+	Acquire(cashierLineLock); //Find shortest cashier line
 	
 	/*
 	* Cashier
@@ -298,11 +293,12 @@ Patient(int index){
 		printf("Patient %d is leaving Cashier %d\n", myToken, lineIndex);
 	}
 	cashierLock[lineIndex]->Release();
+
 	/*
 	* Pharmacy Clerk
 	*/
 	if(myPrescription != 0){ //If prescription assigned
-		clerkLineLock->Acquire(); //Find shortest clerk line
+		Acquire(clerkLineLock); //Find shortest clerk line
 		shortest = clerkLineCount[0]; //Shortest line length
 		lineIndex = 0; //Index of line
 		for(int i=0; i<clerkCount; i++){ //Go through each clerk
@@ -319,46 +315,46 @@ Patient(int index){
 		}
 		if(shortest > -1 && (clerkState[lineIndex] == 1|| clerkState[lineIndex] == 2)){ //All clerk are busy, wait in line
 			if (testNum == 3){
-				printf("The line Patient %d is entering is for Pharmacy Clerk %d and is currently %d people long. \n",index, lineIndex, clerkLineCount[lineIndex]);
+				MyWrite("The line Patient %d is entering is for Pharmacy Clerk %d and is currently %d people long. \n",index*100+ lineIndex, clerkLineCount[lineIndex]*100);
 			}
 			clerkLineCount[lineIndex]++; //Increment shortest line length
-			clerkLineCV[lineIndex]->Wait(clerkLineLock); //Wait till called
+			Wait(clerkLineCV[lineIndex], clerkLineLock); //Wait till called
 			clerkLineCount[lineIndex]--; //Decrement after being woken
 		}
 		
-		clerkLineLock->Release(); //Release lock on clerk line
-		clerkLock[lineIndex]->Acquire(); //Acquire lock to clerk
+		Release(clerkLineLock); //Release lock on clerk line
+		Acquire(clerkLock[lineIndex]); //Acquire lock to clerk
 		
-		clerkTokenLock->Acquire();
+		Acquire(clerkTokenLock);
 		clerkToken[lineIndex] = myToken; //Give token to cashier
-		clerkTokenLock->Release();
+		Release(clerkTokenLock);
 		
-		clerkPrescriptionLock->Acquire();
+		Acquire(clerkPrescriptionLock);
 		clerkPrescription[lineIndex] = myPrescription; //Give clerk prescription
-		clerkPrescriptionLock->Release();
+		Release(clerkPrescriptionLock);
 		
-		clerkCV[lineIndex]->Signal(clerkLock[lineIndex]); //Wake clerk up
+		Signal(clerkCV[lineIndex], clerkLock[lineIndex]); //Wake clerk up
 		if(testNum == 3 || testNum == 8){
-			printf("Patient %d is waiting to see PharmacyClerk %d\n", myToken, lineIndex);
+			MyWrite("Patient %d is waiting to see PharmacyClerk %d\n", myToken*100+ lineIndex, 0);
 		}
-		clerkCV[lineIndex]->Wait(clerkLock[lineIndex]);
+		Wait(clerkCV[lineIndex], clerkLock[lineIndex]);
 		
-		medicineFeeLock->Acquire();
+		Acquire(medicineFeeLock);
 		int myMedicineFee = medicineFee[lineIndex]; //Receive fee and meds from clerk
 		if(testNum == 8){
-			printf("Patient %d is paying their prescription fees of %d\n", myToken, myMedicineFee);
+			MyWrite("Patient %d is paying their prescription fees of %d\n", myToken*100+ myMedicineFee,0);
 		}
-		medicineFeeLock->Release();
+		Release(medicineFeeLock);
 		
-		clerkCV[lineIndex]->Signal(clerkLock[lineIndex]); //Pay clerk
+		Signal(clerkCV[lineIndex], clerkLock[lineIndex]); //Pay clerk
 		if(testNum == 3 || testNum == 8){
-			printf("Patient %d is leaving PharmacyClerk %d\n", myToken, lineIndex);
+			MyWrite("Patient %d is leaving PharmacyClerk %d\n", myToken*100 +lineIndex, 0);
 		}
-		clerkLock[lineIndex]->Release();
+		Release(clerkLock[lineIndex]);
 	}
 	
 	//Leave hospital
-	printf("Patient %d is leaving the Hospital\n", myToken);
+	MyWrite("Patient %d is leaving the Hospital\n", myToken*100, 0);
 	completedPatientThreads++;
 	// printf("Total Patients: %d \n",completedPatientThreads);
 }
@@ -522,21 +518,19 @@ Door_Boy(int index){
 
 void
 Doctor(int index){
+	int stickCount = 0;
+	int breakValCount = 0;
 	while(true){
-		docReadyLock->Acquire();
+		Acquire(docReadyLock);
 		docState[index] = 0;
-		docLock[index]->Acquire();
+		Acquire(docLock[index]);
 		
-		docReadyLock->Release();
-		dbbLock->Acquire();
-
-		// printf("~~~~~Doctor %d acquired dbblock\n", index);
+		Release(docReadyLock);
+		Acquire(dbbLock);
 
 		if(doorBoyDoctorCount > 0){
 			doorBoyDoctorCount--;
-			// printf("~~~~~Doctor %d trying to acquire doorBoyLineLock\n", index);
-			doorBoyLineLock->Acquire();
-			// printf("~~~~~Doctor %d acquired doorBoyLineLock\n", index);
+			Acquire(doorBoyLineLock);
 			int dbNum = 0;
 			for(int i = 0; i<doorBoyCount; i++){
 				if(doorBoyState[i] == 9){
@@ -545,41 +539,33 @@ Doctor(int index){
 					break;
 				}
 			}
-			doorBoyLineLock->Release();
-			doorBoyDoctorCV[dbNum]->Signal(dbbLock);	
+			Release(doorBoyLineLock);
+			Signal(doorBoyDoctorCV[dbNum], dbbLock);	
 		}
 		else{
-			// printf("~~~~~Doctor %d found no doorboys.\n", index);
 			doctorDoorBoyCount++;
-			// printf("~~~~~Doctor %d trying to acquire docReadyLock.\n", index);
-			docReadyLock->Acquire();
-			// printf("~~~~~Doctor %d acquired docReadyLock.\n", index);
+			Acquire(docReadyLock);
 			docState[index] = 9;
-			docReadyLock->Release();
-			// printf("~~~~~Doctor %d wait on dbblock\n", index);
-			doctorDoorBoyCV[index]->Wait(dbbLock);
-			//printf("~~~~~Doctor %d has awakened!\n", index);
+			Release(docReadyLock);
+			Wait(doctorDoorBoyCV[index], dbbLock);
 		}
 		if(testNum == 1 || testNum == 8){
-			printf("Doctor %d has told a DoorBoy to bring a Patient to Examining Room %d \n",index, index);
+			MyWrite("Doctor %d has told a DoorBoy to bring a Patient to Examining Room %d \n", index*100 + index, 0);
 		}
-		dbbLock->Release();
-		// printf("~~~~~Doctor %d trying to acquire doclock\n", index);
-		//printf("~~~~~Doctor %d acquired doclock\n", index);
-		
-		// printf("~~~~~Doctor %d going to wait!\n", index);
-		docCV[index]->Wait(docLock[index]);
-		docTokenLock->Acquire();
+		Release(dbbLock);
+		Wait(docCV[index], docLock[index]);
+		Acquire(docTokenLock);
 		int token = docToken[index]; //Get patient's token number
-		docTokenLock->Release();
+		Release(docTokenLock);
 		if(testNum == 1 || testNum == 8){
-			printf("Doctor %d is examining a Patient with Token %d \n",index, token);
+			MyWrite("Doctor %d is examining a Patient with Token %d \n",index*100+token,0);
 		}
-		int yieldCount = rand()%11+10; //Generate yield times between 10 and 20
+		int yieldCount = 10;
 		for(int i = 0; i < yieldCount; i++){ //Check patient for that long
-			currentThread->Yield(); //Yield thread to simulate time spent
+			Yield(); //Yield thread to simulate time spent
 		}
-		int sickTest = rand()%5; //Generate if patient is sick
+		sickCount++;
+		int sickTest = sickCount%5; //Generate if patient is sick
 		/* 0 not sick
 		1-4 sick */
 		if (testNum == 7){
@@ -587,53 +573,54 @@ Doctor(int index){
 		}
 		if(testNum == 8){
 			if(sickTest == 0){
-				printf("Doctor %d has determined that the Patient with Token %d is not sick\n", index, token);
+				MyWrite("Doctor %d has determined that the Patient with Token %d is not sick\n", index*100+token, 0);
 			}
 			else{
-				printf("Doctor %d has determined that the Patient with Token %d is sick with disease type %d \n", index, token, sickTest);
+				MyWrite("Doctor %d has determined that the Patient with Token %d is sick with disease type %d \n", index*100+token, sickTest*100);
 			}
 		}
-		docPrescriptionLock->Acquire();
+		Acquire(docPrescriptionLock);
 		docPrescription[index] = sickTest; //Tells patient illness and prescription
 		if(testNum == 8){
-			printf("Doctor %d is prescribing medicine type %d to the Patient with Token %d \n", index, sickTest, token);
+			MyWrite("Doctor %d is prescribing medicine type %d to the Patient with Token %d \n", index*100+sickTest, token*100);
 		}
-		docPrescriptionLock->Release();
+		Release(docPrescriptionLock);
 		
-		docCV[index]->Signal(docLock[index]); //Tells patient to take prescription
-		docCV[index]->Wait(docLock[index]); //Waits for patient to take prescription
+		Signal(docCV[index], docLock[index]); //Tells patient to take prescription
+		Wait(docCV[index], docLock[index]); //Waits for patient to take prescription
 		
 		//Doctor tells cashiers price of consultation
-		consultLock->Acquire();
+		Acquire(consultLock);
 		consultationFee[token] = sickTest*20+20;
-		consultLock->Release();
+		Release(consultLock);
 		if(testNum == 1 || testNum == 5 || testNum == 7 ||testNum == 8){		
-			printf("Doctor %d tells Patient with Token %d they can leave \n", index, token);
+			MyWrite("Doctor %d tells Patient with Token %d they can leave \n", index*100+ token,0);
 		}
-		docCV[index]->Signal(docLock[index]);//Tell patient ok to go
-		docLock[index]->Release();
+		Signal(docCV[index], docLock[index]);//Tell patient ok to go
+		Release(docLock[index]);
 		
-		int breakVal = rand()%100; //Generate break value
-		if(breakVal > 30 || (testNum == 5)){ //Take break for random time
+		breakValCount++;
+		int breakVal = breakValCount%2; //Generate break value
+		if(breakVal == 1 || (testNum == 5)){ //Take break for random time
 			if (testNum == 5 || testNum == 8){
-				printf("Doctor %d tells a DoorBoy he is going on break \n", index);
+				MyWrite("Doctor %d tells a DoorBoy he is going on break \n", index*100, 0);
 			}
-			docReadyLock->Acquire(); //Acquire doctor ready lock
+			Acquire(docReadyLock); //Acquire doctor ready lock
 			docState[index] = 2; //Sets own state to ready
-			docReadyLock->Release();
-			int breakTimeVal = rand()%11+5; //Random between 5 and 15
+			Release(docReadyLock);
+			int breakTimeVal = 10; //Random between 5 and 15
 			if (testNum == 5){
-				printf("Doctor %d is going on break for %d milliseconds. \n",index, breakTimeVal);
+				MyWrite("Doctor %d is going on break for %d milliseconds. \n",index*100+ breakTimeVal, 0);
 			}
 			for(int i = 0; i < breakTimeVal; i++){
-				currentThread->Yield();
+				Yield();
 			}
 			if (testNum == 5 || testNum == 8){
-				printf("Doctor %d tells a DoorBoy he is coming off break \n", index);
+				MyWrite("Doctor %d tells a DoorBoy he is coming off break \n", index*100, 0);
 			}
 		}
 		if (testNum == 5){
-			printf("To simulate test 5, Doctor %d is quitting. \n",index);
+			MyWrite("To simulate test 5, Doctor %d is quitting. \n",index*100,0);
 			break;
 		}
 	}
@@ -713,70 +700,70 @@ Cashier(int index){
 void
 Clerk(int index){
 	while(1){
-		clerkLineLock->Acquire(); //Acquire line lock
+		Acquire(clerkLineLock); //Acquire line lock
 		clerkState[index]=0; //Set self to not busy
 		
 		if(clerkLineCount[index] > 0) { //Check to see if anyone in line
 			if (testNum == 3 || testNum == 8){
-				printf("PharmacyClerk %d has signaled a Patient. \n",index);
+				MyWrite("PharmacyClerk %d has signaled a Patient. \n",index*100, 0);
 			}
-			clerkLineCV[index]->Signal(clerkLineLock); //Signal first person in line
+			Signal(clerkLineCV[index], clerkLineLock); //Signal first person in line
 			clerkState[index] = 1; //Set self to busy
 		}
 		
-		clerkLock[index]->Acquire(); //Acquire clerk lock
-		clerkLineLock->Release(); //Release line lock
-		clerkCV[index]->Wait(clerkLock[index]); //Wait for patient to arrive
+		Acquire(clerkLock[index]); //Acquire clerk lock
+		Release(clerkLineLock); //Release line lock
+		Wait(clerkCV[index], clerkLock[index]); //Wait for patient to arrive
 		
-		clerkTokenLock->Acquire();
+		Acquire(clerkTokenLock);
 		int token = clerkToken[index];
-		clerkTokenLock->Release();
+		Release(clerkTokenLock);
 		
-		clerkPrescriptionLock->Acquire();
+		Acquire(clerkPrescriptionLock);
 		int prescription = clerkPrescription[index]; //Get prescription from patient
 		if (testNum == 3 || testNum == 8){
-			printf("PharmacyClerk %d gets Prescription %d from Patient with Token %d \n", index, prescription, token);
+			MyWrite("PharmacyClerk %d gets Prescription %d from Patient with Token %d \n", index*100+prescription, token*100);
 		}
-		clerkPrescriptionLock->Release();
+		Release(clerkPrescriptionLock);
 
 		
 		int fee = prescription*25; //Calculate fee of medicine
 		
-		medicineFeeLock->Acquire();
+		Acquire(medicineFeeLock);
 		medicineFee[index] = fee; //Tell patient fee
-		medicineFeeLock->Release();
+		Release(medicineFeeLock);
 		if (testNum == 3 || testNum == 8){
-			printf("PharmacyClerk %d gives Prescription %d from Patient with Token %d \n", index, prescription, token);
-			printf("PharmacyClerk %d tells Patient with Token %d they owe %d \n", index, token, fee);
+			MyWrite("PharmacyClerk %d gives Prescription %d from Patient with Token %d \n", index*100+ prescription, token*100);
+			MyWrite("PharmacyClerk %d tells Patient with Token %d they owe %d \n", index*100+ token, fee*100);
 		}
-		clerkCV[index]->Signal(clerkLock[index]);
-		clerkCV[index]->Wait(clerkLock[index]); //Wait for patient to give money and take prescription
+		Signal(clerkCV[index], clerkLock[index]);
+		Wait(clerkCV[index], clerkLock[index]); //Wait for patient to give money and take prescription
 		if (testNum == 3 || testNum == 8){
-			printf("Pharmacyclerk %d gets money from Patient with Token %d \n", index, token);
+			MyWrite("Pharmacyclerk %d gets money from Patient with Token %d \n", index*100+ token, 0);
 		}
-		totalMedicineLock->Acquire();
+		Acquire(totalMedicineLock);
 		totalMedicineCost += fee; //Add medicine fee to total count
-		totalMedicineLock->Release();
+		Release(totalMedicineLock);
 		
-		clerkLock[index]->Release(); //Release clerk lock
+		Release(clerkLock[index]); //Release clerk lock
 		
 		//Take break check
-		clerkLineLock->Acquire();
+		Acquire(clerkLineLock);
 		if(clerkLineCount[index] == 0){ //If noone in line
 			clerkState[index] = 2; //Set to on-break
-			clerkLineLock->Release();
+			Release(clerkLineLock);
 			if (testNum == 6 || testNum == 8){
-				printf("PharmacyClerk %d is going on break. \n",index);
+				MyWrite("PharmacyClerk %d is going on break. \n",index*100, 0);
 			}
-			clerkBreakLock->Acquire();
-			clerkBreakCV[index]->Wait(clerkBreakLock); //Set condition for manager to callback
-			clerkBreakLock->Release();
+			Acquire(clerkBreakLock);
+			Wait(clerkBreakCV[index], clerkBreakLock); //Set condition for manager to callback
+			Release(clerkBreakLock);
 			if (testNum == 6 || testNum == 8){
-				printf("PharmacyClerk %d is coming off break. \n",index);
+				MyWrite("PharmacyClerk %d is coming off break. \n",index*100, 0);
 			}
 		}
 		else{
-			clerkLineLock->Release();
+			Release(clerkLineLock);
 		}
 	}
 }
@@ -786,17 +773,17 @@ Manager(){
 	while(true){
 		//Checks hospital is running randomly
 		//Randomly generate number and yield for other threads
-		int yield = rand()%50+50;
+		int yield = 70;
 		if (testNum == 7){
-			yield = rand()%50+5000;
+			yield = 5020;
 		}
 		for(int i = 0; i<yield; i++){
-			currentThread->Yield();
+			Yield();
 		}
 		
 		//Wakes up receptionist
 		//Check if there are at least 2 people waiting in receptionist line
-		recLineLock->Acquire();
+		Acquire(recLineLock);
 		int lineCnt = 0;
 		for(int i = 0; i < recCount; i++){
 			lineCnt+= recLineCount[i];
@@ -804,82 +791,82 @@ Manager(){
 		if(lineCnt > 1){
 			for(int i = 0; i < recCount; i++){
 				if(recState[i] == 2 ){
-					receptionistBreakLock->Acquire();
+					Acquire(receptionistBreakLock);
 					//Set receptionist to off break
 					if (testNum == 6 || testNum == 8){
-						printf("HospitalManager signaled a Receptionist to come off break\n");
+						MyWrite("HospitalManager signaled a Receptionist to come off break\n", 0, 0);
 					}
-					receptionistBreakCV[i]->Signal(receptionistBreakLock);
-					receptionistBreakLock->Release();
+					Signal(receptionistBreakCV[i], receptionistBreakLock);
+					Release(receptionistBreakLock);
 				}
 			}
 		}
-		recLineLock->Release();
+		Release(recLineLock);
 
 		
 		//Wakes up door boy
 		if (testNum != 2){
-			doorBoyLineLock->Acquire();
+			Acquire(doorBoyLineLock);
 		if(doorBoyLineCount > 0){ //Check if any patient in line
 			for(int i = 0; i < doorBoyCount; i++){
 				if(doorBoyState[i] == 2){
-					doorBoyBreakLock->Acquire();
+					Acquire(doorBoyBreakLock);
 					//Set door boy to off break
 					if (testNum == 6 || testNum == 8){
-						printf("HospitalManager signaled a DoorBoy to come off break\n");
+						MyWrite("HospitalManager signaled a DoorBoy to come off break\n",0 ,0);
 					}
-					doorBoyBreakCV[i]->Signal(doorBoyBreakLock);
-					doorBoyBreakLock->Release();
+					Signal(doorBoyBreakCV[i], doorBoyBreakLock);
+					Release(doorBoyBreakLock);
 				}
 			}
 		}
-		doorBoyLineLock->Release();
+		Release(doorBoyLineLock);
 	}
 		//Wakes up cashier
-	cashierLineLock->Acquire();
+	Acquire(cashierLineLock);
 	for( int i = 0; i < cashierCount; i++){
 			if(cashierLineCount[i] > 0 && cashierState[i] == 2){ //Check if any patient in line
-				cashierBreakLock->Acquire();
+				Acquire(cashierBreakLock);
 				if (testNum == 6 || testNum == 8){
-					printf("HospitalManager signaled a Cashier to come off break\n");
+					MyWrite("HospitalManager signaled a Cashier to come off break\n", 0, 0);
 				}
-				cashierBreakCV[i]->Signal(cashierBreakLock); //Set cashier to off break
-				cashierBreakLock->Release();
+				Signal(cashierBreakCV[i], cashierBreakLock); //Set cashier to off break
+				Release(cashierBreakLock);
 				//Get total consultation fee
 			}
 		}
-		cashierLineLock->Release();
+		Release(cashierLineLock);
 		
 		
 
 		//Wakes up clerk
-		clerkLineLock->Acquire();
+		Acquire(clerkLineLock);
 		for(int i = 0; i<clerkCount; i++){
 			if(clerkLineCount[i] > 0 && clerkState[i] == 2){
-				clerkBreakLock->Acquire();
+				Acquire(clerkBreakLock);
 				if (testNum == 6 || testNum == 8){
-					printf("HospitalManager signaled a PharmacyClerk to come off break\n");
+					MyWrite("HospitalManager signaled a PharmacyClerk to come off break\n", 0, 0);
 				}
-				clerkBreakCV[i]->Signal(clerkBreakLock);
-				clerkBreakLock->Release();
+				Signal(clerkBreakCV[i], clerkBreakLock);
+				Release(clerkBreakLock);
 			}
 		}
-		clerkLineLock->Release();
+		Release(clerkLineLock);
 
 
 		/* 
 		* COMMENT OUT BETWEEN TO REMOVE SPAM FROM HOSPITAL MANAGER 
 		*/
 		if (testNum == 7){
-			totalFeeLock->Acquire();
+			Acquire(totalFeeLock);
 			int myConsultFee = totalConsultationFee;
-			printf("HospitalManager reports that total consultancy fees are %d\n", myConsultFee);
-			totalFeeLock->Release();
+			MyWrite("HospitalManager reports that total consultancy fees are %d\n", myConsultFee*100, 0);
+			Release(totalFeeLock);
 
-			totalMedicineLock->Acquire();
+			Acquire(totalMedicineLock);
 			int myMedicineFee = totalMedicineCost;
-			printf("HospitalManager reports total sales in pharmacy are %d\n", myMedicineFee);
-			totalMedicineLock->Release();
+			MyWrite("HospitalManager reports total sales in pharmacy are %d\n", myMedicineFee*100, 0);
+			Release(totalMedicineLock);
 		}
 		/* 
 		* COMMENT OUT BETWEEM TO REMOVE SPAM FROM HOSPITAL MANAGER 
@@ -889,7 +876,7 @@ Manager(){
 		}
 
 		if (completedPatientThreads == numPatients){
-			// printf("No patients left, Manager leaving \n");
+			// MyWrite("No patients left, Manager leaving \n");
 			break;
 		}
 		
