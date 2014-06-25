@@ -6,8 +6,9 @@
 
 
 int main() {
-	Fork(-1);
-	Fork("test");
+	Fork((void*)-1);
+	Fork((void*)9999);
+	Fork((void*)"test"); 
 	while(1){	
 		Yield();
 	}

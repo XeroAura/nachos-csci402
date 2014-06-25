@@ -103,7 +103,7 @@ IV. Implementation:
 	void Empty8Pages(); //Freed 8 physical pages allocated to a thread when called.
 
 	-syscall.h
-	Exec(); //Added size argument to function
+	Exec(); //Added size argument to function.
 
 	-exceptions.cc
 	void fork_thread() //Function passed to nachos fork to set registers for fork syscall
@@ -127,19 +127,65 @@ IV. Implementation:
 	void ExceptionHandler() //Added syscalls to switch.
 
 V. Testing:  (For each test case, you must show)
+
 	+ How to test
-	- How to run the test cases, the commands, the arguments and so on.
+	Call gmake in test and userprog directory. Run tests from userprog directory as indicated below.
+
+	Fork Tests
+	Call nachos -x ../test/testfork(1-3) individually to see the tests for fork.
+
+	Exec Tests
+	Call nachos -x ../test/testexec(1-3) individually to see the tests for exec.
+
 
 	+ Test Output
-	- Describe the testing output. You don't have to dump all the output info. Just make sure your description can exactly reflect your output.
+	Fork Tests
+	testfork1 - Should see two write messages saying "test1" and "test2". Nachos then ends.
+	testfork2 - Should see various messages saying various error messages about fork input. Nachos should _not_ end. Will need to force quit.
+	testfork3 - Should see 49 messages saying Creating test# to show the forks. The 50th should show "Unable to allocate pages for stack in Fork." Then 49 tests should be written out to show the other threads ending. Nachos then ends.
+
+	Exec Tests
+	exectest1 - Should show a single print of "test". Nachos then ends.
+	exectest2 - Should see exec run 11 times. Error message "Too many processes for any more to be made!" should show up for last exec because too many processes. "test" is printed out 10 times. Nachos should end.
+	exectest3 - The test prints out Unable to open file, Bad pointer to Open, and test.
+
 
 VI. Discussion:
 	+ Experiment expectation.  (What you hope will happen.)
+	Fork Tests
+	testfork1 - Should just end normally after printing out test1 and test2 into console.
+	testfork2 - Should see error messages saying how fork failed. Nachos should not end because infinite loop in main to show that nachos didn't crash because of the failed forks.
+	testfork3 - Should see messages showing forking threads. 50th thread should not fork, as that is the hard limit. Error message should indicate so. The other threads that forked should each print out test to indicate they ran.
+
+	Exec Tests
+	exectest1 - This should simply work by printing out "test" which is the user file called by exec. 
+	exectest2 - There should be a short pause while the processes are created. Then a message saying too many processes should appear. Then the other 10 exec threads should print out "test" to show they ran successfully.
+	exectest3 - The first exec checks a nonexisting file. This should return an open file error message. The second one tests invalid length for the filename. It should return an error regarding bad pointer. The last one uses an extra long filename. 
+
 
 	+ Experiment result.  (What actually happens.)
+	Fork Tests
+	testfork1 - Nachos starts up and prints out "test1" and "test2".
+	testfork2 - Nachos prints out "Bad vaddr passed to fork." 3 times for each bad fork attempt. Nachos then hangs on purpose because of the infinite yields.
+	testfork3 - Nachos prints out test0 through test49. Then it prints out unable to allocate pages. Then it prints out test 50 times.
+
+	ExecTests
+	exectest1 - Nachos prints out "test".
+	exectest2 - Nachos prints out "Too many processes for any more to be made!". THen it prints out "test" 10 times.
+	exectest3 - Nachos prints out "Unable to open file ../test/testfile", "Bad pointer passed to Open", and "test".
+
 
 	+ Explanation
-	- Explain your experiment result.
+	Fork Tests
+	forktest1 - The two forked threads are created in main. After main ends, the two forked threads print out their respective test phrases to indicate they ran as well. Nachos then ends as expected.
+	forktest2 - The bad values passed into fork are detected and kicked out. The infinite yields just shows that Nachos did not crash.
+	forktest3 - The thread limit is hard coded at 50 per thread. The fork works for 50 times, but fails on the 51st cause the limit is reached. It then continues as normal to finish off the other 50 successfully forked threads.
+
+	ExecTests
+	exectest1 - The exec works because the file "testfile" is loaded and run. Testfile basically prints out test when run.
+	exectest2 - The max process limit is reached on the 11th exec. The error message is printed. Then the other 10 execs should run as planned as shown by the 10 test print messages.
+	exectest3 - The first two printouts are as expected. However, the third one worked, which was surprising. When the readin detected end of filename, it just fed in blanks for the buffer. This actually allowed the real file name to get fed in and run the testfiles correctly.
+
 
 VII. Miscellaneous:
 	The PhysNumPages has to be increased to a larger number (roughly 1000) for the 2 hospitals to work. 

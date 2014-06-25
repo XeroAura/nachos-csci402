@@ -4,9 +4,7 @@
 
 #include "syscall.h"
 
- int main() {
-  	Write("before testfiles\n", sizeof("before testfiles"), ConsoleOutput);
+int main() {
  	Exec("../test/testfiles", sizeof("../test/testfiles"));
-  	Write("after testfiles\n", sizeof("after testfiles"), ConsoleOutput);
 }
 

@@ -317,7 +317,7 @@ void fork_thread(int value){
 void Fork_Syscall(unsigned int vaddr){
     // printf("Vaddr: %d\n", vaddr);
     if(!validateAddress(vaddr)){
-        printf("Bad vaddr passed to fork.");
+        printf("Bad vaddr passed to fork.\n");
         return;
     }
 	Thread* t = new Thread("forkThread"); //Create new thread
@@ -375,6 +375,7 @@ void Exec_Syscall(unsigned int vaddr, int size){
     processTableLock->Acquire();
     if(processTableCount > 10){
         printf("Too many processes for any more to be made!\n");
+        processTableLock->Release();
         return;
     }
     processTableLock->Release();
@@ -393,6 +394,7 @@ void Exec_Syscall(unsigned int vaddr, int size){
 
     buf[size]='\0';
 
+    // printf("%s\n", buf);
     f = fileSystem->Open(buf);
     if (f == NULL) {
         printf("Unable to open file %s\n", buf);
