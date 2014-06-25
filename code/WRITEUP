@@ -5,69 +5,142 @@ Group Num 1 : Name            Email            Student ID
               Byron Choy	  byroncho@usc.edu 7784820771
 
 I. Requirements:
-Implement the system calls and exception handling of fork, exec, yield, and exit. 
-Also add in the syscalls for all the functions needed to use Locks and CVs.
-Add bullet-proofing to the syscalls.
-Implement multiprogramming by adding improving the page table. Also add in process table to keep track of threads and processes.
-Implement the hospital program from project 1 as a user program. 
+	Implement the system calls and exception handling of fork, exec, yield, and exit. 
+	Also add in the syscalls for all the functions needed to use Locks and CVs.
+	Add bullet-proofing to the syscalls.
+	Implement multiprogramming by adding improving the page table. Also add in process table to keep track of threads and processes.
+	Implement the hospital program from project 1 as a user program. 
 
 II. Assumptions:
-Provided code works, except parts indicated to be changed.
-The physical memory size has been increased to match the needed number of pages. (Changed NumPhysPages to 1000)
+	Provided code works, except parts indicated to be changed.
+	The physical memory size has been increased to match the needed number of pages. (Changed NumPhysPages to 1000)
 
 III. Design:
-- This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  This should include a description of classes, algorithms, etc.
+	-addrspace.cc
+	Addrspace has been changed to use a bitmap to determine which physical page to map to each virtual page when creating the address space.
+	Loading of the executable has been moved into the loop that allocates pages, as the ReadAt function automatically will stop reading in pages when its done.
+	A function has been added to easily allocate 8 pages for a new thread by the use of another bitmap to keep track of the pages created.
+	Two functions have been created to clear up pages by going through the pageTable.
+	One is in charge of releasing all pages in the address space for the physical page bitmap.
+	The other releases only 8 pages of a process.
 
-addrspace.cc
-Addrspace has been changed to use a bitmap to determine which physical page to map to each virtual page when creating the address space.
-Functions have been added to easily allocate 8 pages for a new thread or clear up pages by going through the pageTable.
+	-exception.cc
+	Fork takes in the virtual address of the function to be run.
+	It then validates the vaddr by checking if its within bounds and making sure it is not NULL.
+	Then it creates a new thread, copies the address space from the current thread, and then allocates 8 pages from the address space's stack for this thread.
+	The process table is then updated with the information.
+	The function then finally calls nacho's Fork using fork_thread, while passing in the virtual address and the address of the first stack page allocated for it.
+	The function fork_thread then sets the PCReg, NextPCReg, and StackReg to the values passed in through the forkInfo struct.
 
-exception.cc
-Fork
+	Exec takes in the virtual address of a filename buffer.
+	It then validates the virtual address.
+	Then it checks to make sure you don't have too many processes at this point.
+	The filename is then loaded from the buffer, and opened through the filesystem.
+	A new addressspace and first thread for the new process is created.
+	The process table is then updated with this information.
+	Finally, exec forks with exec_thread, while passing in the 8 pages for the first thread.
+	exec_thread loads the PCReg with address of main (0), and calls machine->Run() to start it.
 
-Exec
+	Exit has three main situations.
+	1. Last thread in the last process
+	Nachos checks to see if the thread is the last one in the last process.
+	If so, nachos just calls Halt to end itself.
+	2. Last thread in a process (not the last process)
+	Nachos clears the memory pages, locks, and CVs allocated to the process.
+	The page table is updated with this information.
+	Then it calls Finish() on the current thread to end the process.
+	3. Not last thread in a process
+	The 8 pages allocated to the thread are freed up.
+	The thread is ended with Finish();
 
-Exit
+	Yield just yields the currentThread as expected.
 
-Yield just yields the currentThread as expected.
+	Input validation was done on the included syscalls and fork/exec by checking to make sure virtual addresses provided were within bounds.
+	Buffers were checked also by checking that the end point of the buffer is also within the bounds.
 
-Input validation was done on the included syscalls and fork/exec by checking to make sure virtual addresses provided were within bounds.
-Buffers were checked also by checking that the end point of the buffer is also within the bounds.
+	-Locks'n'stuff
 
 
 IV. Implementation:
-+ Files Modified
+	+ Files Modified
+	userprog/exception.cc
+	userprog/addrspace.cc
+	userprog/progtest.cc
+	userprog/addrspace.h
+	userprog/syscall.h
+	threads/system.cc
+	threads/system.h
+	test/start.s
+	machine/machine.h (Only to increase the physical page limit)
+	Any files changed in part 1 were also kept.
 
-+ Files added
+	+ Files added
+	C Files with name format of test*.c in test directory for test suites.
 
-+ Data Structures added, and the file they were added to.
+	+ Data Structures added, and the file they were added to.
+	-system.h
+	struct ThreadEntry //Basic entry for thread
+	struct ProcessEntry //Basic entry for a process
 
-+ Data Structures modified, and the file they were added to.
--For example,
-    class Lock                -- in file threads.cc/threads.h
-    {
-                //. Modified fields.
-    }
+	-exception.cc
+	struct forkInfo //Used to transfer information into fork_thread
+	struct execInfo //Used to transfer information into exec_thread
 
-+ Functions added and in which file.
+	+ Data Structures modified, and the file they were added to.
+	-addrspace.h
+	class AddrSpace{
+		Moved numPages to public.
+		Added BitMap* pageBitMap for virtual page allocation.
+		Added Lock* pageBitMapLock.
+		Added executablePageCount to keep track of number of pages taken by executable.
+		Added OpenFile* file for assignment 3 use.
+	}
 
-+ Functions modified and in which file.
+	+ Functions added and in which file.
+	-addrspace.cc
+	int AllocatePages(); //Allocates 8 pages from addrspace when called.
+	void EmptyPages(); //Freed all physical pages allocated to addrspace.
+	void Empty8Pages(); //Freed 8 physical pages allocated to a thread when called.
+
+	-syscall.h
+	Exec(); //Added size argument to function
+
+	-exceptions.cc
+	void fork_thread() //Function passed to nachos fork to set registers for fork syscall
+	void Fork_Syscall() //Fork syscall function
+	void exec_thread() //Function passed to nachos fork to set registers for exec syscall
+	void Exec_Syscall() //Exec syscall function
+	void Yield_Syscall() //Yield syscall function
+	int Exit_Syscall() //Exit syscall function
+	bool validateAddress() //Function for validating vaddr
+	bool validateBuffer() //Function for validating buffer address within vaddr bounds
+
+	+ Functions modified and in which file.
+	-addrspace.cc
+	AddrSpace(); //Added mapping for physical to virtual page.
+
+	-progtest.cc
+	StartProcess(); //Added process table information for the first thread/process.
+
+	-exception.cc
+	Built in syscalls have input validation added at beginning.
+	void ExceptionHandler() //Added syscalls to switch.
 
 V. Testing:  (For each test case, you must show)
-+ How to test
-- How to run the test cases, the commands, the arguments and so on.
+	+ How to test
+	- How to run the test cases, the commands, the arguments and so on.
 
-+ Test Output
-- Describe the testing output. You don't have to dump all the output info. Just make sure your description can exactly reflect your output.
+	+ Test Output
+	- Describe the testing output. You don't have to dump all the output info. Just make sure your description can exactly reflect your output.
 
 VI. Discussion:
-+ Experiment expectation.  (What you hope will happen.)
+	+ Experiment expectation.  (What you hope will happen.)
 
-+ Experiment result.  (What actually happens.)
+	+ Experiment result.  (What actually happens.)
 
-+ Explanation
-- Explain your experiment result.
+	+ Explanation
+	- Explain your experiment result.
 
 VII. Miscellaneous:
-The PhysNumPages has to be increased to a larger number (roughly 1000) for the 2 hospitals to work. 
-Current implementation uses 400 + code size / pages for each process.
+	The PhysNumPages has to be increased to a larger number (roughly 1000) for the 2 hospitals to work. 
+	Current implementation uses 400 + code size / pages for each process.

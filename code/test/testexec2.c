@@ -1,4 +1,4 @@
-/* File to test exec command
+/* testexec2.c
  *
  */
 

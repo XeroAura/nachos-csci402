@@ -1,5 +1,5 @@
-/* File to test exec command
- *
+/* testexec1.c
+ * Basic test to see if exec works.
  */
 
 #include "syscall.h"
