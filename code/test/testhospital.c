@@ -954,7 +954,6 @@ Setup(){
 
 void
 InitializeThreads(){
-	Thread *t;
 	char* name;
 	int i;
 
