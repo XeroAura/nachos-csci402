@@ -268,6 +268,7 @@ void Condition::Wait(Lock* conditionLock){
 void Condition::Signal(Lock* conditionLock) {
   IntStatus oldLevel = interrupt->SetLevel(IntOff);
   if (waitList->empty()){
+    printf("Nothing waiting on this CV.\n");
     (void)interrupt->SetLevel(oldLevel);
     return;
   }

@@ -31,7 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort testfiles testlock1 testlock2 testfork1 testfork2 testfork3 testexec1 testexec2 testexec3 testCV
+all: halt matmult sort testfiles testlock1 testlock2 testfork1 testfork2 testfork3 testexec1 testexec2 testexec3 testCV1 testCV2 testCV3 testCV4 testCV5
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -111,11 +111,36 @@ testexec3: testexec3.o start.o
 	$(LD) $(LDFLAGS) start.o testexec3.o -o testexec3.coff
 	../bin/coff2noff testexec3.coff testexec3
 
-testCV.o: testCV.c
-	$(CC) $(CFLAGS) -c testCV.c
-testCV: testCV.o start.o
-	$(LD) $(LDFLAGS) start.o testCV.o -o testCV.coff
-	../bin/coff2noff testCV.coff testCV
+testCV1.o: testCV1.c
+	$(CC) $(CFLAGS) -c testCV1.c
+testCV1: testCV1.o start.o
+	$(LD) $(LDFLAGS) start.o testCV1.o -o testCV1.coff
+	../bin/coff2noff testCV1.coff testCV1
+
+testCV2.o: testCV2.c
+	$(CC) $(CFLAGS) -c testCV2.c
+testCV2: testCV2.o start.o
+	$(LD) $(LDFLAGS) start.o testCV2.o -o testCV2.coff
+	../bin/coff2noff testCV2.coff testCV2
+
+testCV3.o: testCV3.c
+	$(CC) $(CFLAGS) -c testCV3.c
+testCV3: testCV3.o start.o
+	$(LD) $(LDFLAGS) start.o testCV3.o -o testCV3.coff
+	../bin/coff2noff testCV3.coff testCV3
+
+testCV4.o: testCV4.c
+	$(CC) $(CFLAGS) -c testCV4.c
+testCV4: testCV4.o start.o
+	$(LD) $(LDFLAGS) start.o testCV4.o -o testCV4.coff
+	../bin/coff2noff testCV4.coff testCV4
+
+testCV5.o: testCV5.c
+	$(CC) $(CFLAGS) -c testCV5.c
+testCV5: testCV5.o start.o
+	$(LD) $(LDFLAGS) start.o testCV5.o -o testCV5.coff
+	../bin/coff2noff testCV5.coff testCV5
+
 
 clean:
 	rm -f *.o *.coff

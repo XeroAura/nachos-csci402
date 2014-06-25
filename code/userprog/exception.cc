@@ -44,14 +44,11 @@ extern KernelCV* kCV[];
 
 #ifdef CHANGED
 bool
-validateAddress(unsigned int vaddr, AddrSpace* as){ //Validates a virtual address to be within bounds and not NULL
-    // printf("Vaddr: %d\n", vaddr);
+validateAddress(unsigned int vaddr){ //Validates a virtual address to be within bounds and not NULL
     if(vaddr == NULL)
         return false;
-    // int size = as->executablePageCount*PageSize;
-    // printf("Size: %d, codeSize: %d, dataSize: %d\n", size,as->codeSize, as->dataSize);
-    if( vaddr > 0 && vaddr < as->codeSize){ //Check if vaddr is within bounds?
-    	// printf("Size: %d", size);
+    int size = currentThread->space->numPages * PageSize;
+    if( vaddr > 0 && vaddr < (unsigned int) (size-1) ){ //Check if vaddr is within bounds?
         return true;
     }
     return false;
@@ -60,7 +57,7 @@ validateAddress(unsigned int vaddr, AddrSpace* as){ //Validates a virtual addres
 bool validateBuffer(unsigned int vaddr, int len){ //Verifies a virtual address for a buffer is within bounds for its length and not null
     if(vaddr == NULL)
         return false;
-    int size = currentThread->space->executablePageCount*size;
+    int size = currentThread->space->numPages * PageSize;
     if(vaddr > 0 && vaddr+len < (unsigned int)(size-1)){
         return true;
     }
@@ -318,7 +315,8 @@ void fork_thread(int value){
 }
 
 void Fork_Syscall(unsigned int vaddr){
-    if(!validateAddress(vaddr, currentThread->space)){
+    // printf("Vaddr: %d\n", vaddr);
+    if(!validateAddress(vaddr)){
         printf("Bad vaddr passed to fork.\n");
         return;
     }
@@ -370,7 +368,7 @@ void exec_thread(int value){
 }
 
 void Exec_Syscall(unsigned int vaddr, int size){
-    if(!validateAddress(vaddr, currentThread->space)){
+    if(!validateAddress(vaddr)){
         printf("Bad vaddr passed to exec.\n");
         return;
     }

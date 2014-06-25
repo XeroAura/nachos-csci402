@@ -1,4 +1,4 @@
-/* testCV.c
+/* testCV1.c
  * File used to test user CV functionality
  */
 
@@ -6,15 +6,15 @@
 
 void test1(){
 	Acquire(0);
-	Write("Negative Wait\n", sizeof("Negative Wait\n"),ConsoleOutput);
+	MyWrite("Thread 1: Attempting to Wait on CV -1\n", sizeof("Thread 1: Attempting to Wait on CV -1\n"), 0,0);
 	Wait(-1, 0);
-	Write("Positive Wait\n", sizeof("Positive Wait\n"),ConsoleOutput);
+	MyWrite("Thread 1: Attempting to Wait on CV 0\n", sizeof("Thread 1: Attempting to Wait on CV 0\n"), 0,0);
 	Wait(0,0);
 	Exit(0);
 }
 
 void test2(){
-	Write("Things worked.\n", sizeof("Things worked.\n"),ConsoleOutput);
+	Write("Thread 2: Successfully moved to next thread\n", sizeof("Thread 2: Successfully moved to next thread\n"),ConsoleOutput);
 	Exit(0);
 }
 
@@ -30,7 +30,9 @@ int main(){
 	Yield();
 
 	Write("Destroying CV's...\n", sizeof("Destroying CV's...\n"), ConsoleOutput);
-	DestroyCondition(0);
-	DestroyCondition(1);
+	for (maxCV = 0; maxCV < 255; maxCV++){
+		DestroyCondition(maxCV);
+	}
+
 	Write("CV's destroyed.\n", sizeof("CV's destroyed.\n"), ConsoleOutput);
 }

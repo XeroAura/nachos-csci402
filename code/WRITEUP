@@ -60,7 +60,9 @@ III. Design:
 	Buffers were checked also by checking that the end point of the buffer is also within the bounds.
 
 	-Locks'n'stuff
+	Locks are created using a new struct called KernelLock. Within KernelLock is a lock, a boolean, and the address space. Creating a lock stores a KernelLock in an array of KernelLocks, which can be referenced using its index. Acquiring and releasing a lock are also excecuted using the index of the lock in the KernelLock array. 
 
+	CV's are made in exactly the same way, but the CV functions (Wait, Signal, and Broadcast), have 2 arguments, one for the CV's index and one for the lock's index. 
 
 IV. Implementation:
 	+ Files Modified
@@ -141,8 +143,11 @@ V. Testing:  (For each test case, you must show)
 	Lock Tests
 	Call nachos -x ../test/testlock(1-2) individually to see the tests for lock.
 
+	CV Tests
+	Call nachos -x ../test/testCV(1-5) individually to see the tests for CV's.
+
 	+ Test Output
-	Fork Tests
+*	Fork Tests
 	testfork1 - Should see two write messages saying "test1" and "test2". Nachos then ends.
 	testfork2 - Should see various messages saying various error messages about fork input. Nachos should _not_ end. Will need to force quit.
 	testfork3 - Should see 49 messages saying Creating test# to show the forks. The 50th should show "Unable to allocate pages for stack in Fork." Then 49 tests should be written out to show the other threads ending. Nachos then ends.
@@ -155,6 +160,10 @@ V. Testing:  (For each test case, you must show)
 	Lock Tests
 	testlock1 - Should show attempt to create more locks than allowed, with error messages when overflow occurs. The program should then attempt a series of illegal actions (invalid index, releasing before acquiring, attempting to acquire the same lock twice). Finally the program should attempt to destroy all locks, and overflow a little, with error messages indicating its success.
 	testlock2 - Should show results similar to testSuite test 1 - thread 1 acquires lock, passes from thread 2 to 3, 3 unsuccessfully attempts to release lock, thread 1 releases, thread 2 acquires, and thread 2 releases. 
+
+	CV Tests
+	testCV1 - Should show error messages when trying to make too many CV's, attempting to Wait on an index that does not exist, and error messages when trying to destroy too many CV's. 
+	testCV2 - Should see Thread 1 acquiring a lock and signalling, with no results. Thread 2 should run into wait and the program should terminate. 
 
 VI. Discussion:
 	+ Experiment expectation.  (What you hope will happen.)
@@ -172,6 +181,13 @@ VI. Discussion:
 	testlock1 - Should show attempts to break code, with appropriate error messages. 
 	testlock2 - Should show flow from thread to thread, starting with 1 and ending with 2, with 3 ending first after it unsuccessfully attempts to release lock.
 
+	CV Tests
+	testCV1 - This should print out error messages for the creation and destruction of locks, as well as confirmation that a lock is acquired.
+	testCV2 - This should show thread 1 trying to signal thread 2, but failing. Thread 2 should then wait, and the program should end. 
+	testCV3 - Should show 5 waiters acquiring a lock and waiting, and a signaller calling signal once to free 1 waiter. 
+	testCV4 - Should show 5 waiters acquiring a lock and waiting, and a signaller calling broadcast so all 5 waiters are freed. 
+	testCV5 - Should show thread 1 acquiring a lock and waiting, then thread 2 signalling using the wrong lock. 
+
 	+ Experiment result.  (What actually happens.)
 	Fork Tests
 	testfork1 - Nachos starts up and prints out "test1" and "test2".
@@ -187,6 +203,14 @@ VI. Discussion:
 	testlock1 - Nachos prints out all error messages - 5 create errors and 5 destroy errors, and 1 of every other error.
 	testlock2 - Nachos prints out the flow of threads - Thread 1 acquires, thread 3 tries to release and fails, thread 1 releases, thread 2 acquires and releases
 
+	CV Tests
+	testCV1 - All the error messages are printed out - 5 create and destroy errors, and an incorrect lock index error. 
+	testCV2 - Thread 1 signals nothing, and Thread 2 waits.
+	testCV3 - Should show 5 waiters acquiring a lock and waiting, and a signaller calling signal once to free 1 waiter. 
+	testCV4 - Should show 5 waiters acquiring a lock and waiting, and a signaller calling broadcast so all 5 waiters are freed. 
+	testCV5 - Should show thread 1 acquiring a lock and waiting, then thread 2 signalling using the wrong lock. 
+
+
 	+ Explanation
 	Fork Tests
 	forktest1 - The two forked threads are created in main. After main ends, the two forked threads print out their respective test phrases to indicate they ran as well. Nachos then ends as expected.
@@ -199,8 +223,16 @@ VI. Discussion:
 	exectest3 - The first two printouts are as expected. However, the third one worked, which was surprising. When the readin detected end of filename, it just fed in blanks for the buffer. This actually allowed the real file name to get fed in and run the testfiles correctly.
 
 	Lock Tests
-	locktest1 - The Create and Destroy Lock syscalls have been proofed with if-statements to prevent any segfaults from occuring. 
+	locktest1 - The Create and Destroy Lock syscalls have been proofed with if-statements to prevent any segfaults from occuring. 	
 	locktest2 - The yield after acquiring from thread 1 passes the CPU to thread 2, which also yields to thread 3. Thread 3 tries to release then exits, returning to thread 1. Thread 1 releases and exits, then thread 2 can acquire the lock and subsequently release it. 
+
+	CV Tests
+	testCV1 - The create and destroy condition syscalls are proofed with if-statements to prevent anything illegal happening. 
+	testCV2 - The signal is not stored so after thread 1 completes thread 
+	2 is put to wait but there is no thread left to signal back. 
+	testCV3 - Signal only wakes up one thread, so since the signaller only calls signal once, only one waiter is woken up.
+	testCV4 - Broadcast wakes up all threads waiting on the given CV, so all the waiters are woken up. 
+	testCV5 - CV's only work with the correct lock, so using the wrong lock causes nothing to happen.
 
 VII. Miscellaneous:
 	The PhysNumPages has to be increased to a larger number (roughly 1000) for the 2 hospitals to work. 

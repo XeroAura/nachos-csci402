@@ -5,8 +5,6 @@
 
 #include "syscall.h"
 	int testLock1;
-	int testLock2;
-	int testLock3;
 /* --------------------------------------------------
  * t1_t1() -- test1 thread 1
  *   This is the rightful lock owner
@@ -62,8 +60,6 @@ void t1_t3() {
 int main(){
 	Write("Beginning lock test 2\n", sizeof("Beginning lock test 2\n"), ConsoleOutput);
 	testLock1 = CreateLock(1);
-	testLock2 = CreateLock(2);
-	testLock3 = CreateLock(3);
 
 	Fork(t1_t1);
 	Fork(t1_t2);
