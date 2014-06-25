@@ -1,15 +1,15 @@
-/* testfiles.c
- *	Simple program to test the file handling system calls
+/* testfork2.c
+ *	Test to see if fork handles incorrect input gracefully.
  */
 
 #include "syscall.h"
 
-void test(){
-  Write("test\n", 5, ConsoleOutput);
-  Exit(0);
-}
 
 int main() {
-  Fork(test);
+	Fork(-1);
+	Fork("test");
+	while(1){	
+		Yield();
+	}
 }
 

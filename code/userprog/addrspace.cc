@@ -198,6 +198,10 @@ int
 AddrSpace::AllocatePages(){ //Function to allocate 8 pages on the stack for a new thread
 	pageBitMapLock->Acquire();
 	int pageStart = pageBitMap->Find();
+	if(pageStart == -1){
+		pageBitMapLock->Release();
+		return -1;
+	}
 	pageStart = (executablePageCount + pageStart*8) * PageSize; 
 	pageBitMapLock->Release();
 	return pageStart;

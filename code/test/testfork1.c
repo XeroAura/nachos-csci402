@@ -1,15 +1,21 @@
 /* testfork1.c
- *	Simple program to test the file handling system calls
+ *	Simple program to test the fork system call.
  */
 
 #include "syscall.h"
 
-void test(){
-  Write("test\n", 5, ConsoleOutput);
+void test1(){
+  Write("test1\n", 6, ConsoleOutput);
+  Exit(0);
+}
+
+void test2(){
+  Write("test2\n", 6, ConsoleOutput);
   Exit(0);
 }
 
 int main() {
-  Fork(test);
+  Fork(test1);
+  Fork(test2);
 }
 

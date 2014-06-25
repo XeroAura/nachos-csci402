@@ -48,7 +48,7 @@ validateAddress(unsigned int vaddr){ //Validates a virtual address to be within 
     if(vaddr == NULL)
         return false;
     int size = currentThread->space->numPages * PageSize;
-    if( vaddr > 0 && vaddr < size-1 ){ //Check if vaddr is within bounds?
+    if( vaddr > 0 && vaddr < (unsigned int) (size-1) ){ //Check if vaddr is within bounds?
         return true;
     }
     return false;
@@ -58,7 +58,7 @@ bool validateBuffer(unsigned int vaddr, int len){ //Verifies a virtual address f
     if(vaddr == NULL)
         return false;
     int size = currentThread->space->numPages * PageSize;
-    if(vaddr > 0 && vaddr+len < size-1){
+    if(vaddr > 0 && vaddr+len < (unsigned int)(size-1)){
         return true;
     }
     return false;
@@ -315,6 +315,7 @@ void fork_thread(int value){
 }
 
 void Fork_Syscall(unsigned int vaddr){
+    // printf("Vaddr: %d\n", vaddr);
     if(!validateAddress(vaddr)){
         printf("Bad vaddr passed to fork.");
         return;
@@ -326,7 +327,7 @@ void Fork_Syscall(unsigned int vaddr){
 	//Find 8 pages of stack to give to thread?
     int pageAddr = t->space->AllocatePages();
     if(pageAddr != -1) {
-       tmp->pageAddr = pageAddr;
+        tmp->pageAddr = pageAddr;
         //Multiprogramming: Update process table
         ThreadEntry* te = new ThreadEntry(); //Give first stack page?
         te->myThread = t;
@@ -342,8 +343,8 @@ void Fork_Syscall(unsigned int vaddr){
         processTableLock->Release();
         t->Fork((VoidFunctionPtr) fork_thread, (int) tmp);
     }
-    else //Should never happen...
-        printf("Unable to allocate pages for stack in Fork.");
+    else
+        printf("Unable to allocate pages for stack in Fork.\n");
 
 }
 

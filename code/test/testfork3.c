@@ -1,5 +1,5 @@
-/* testfiles.c
- *	Simple program to test the file handling system calls
+/* testfork3.c
+ *	Test what happens when you hit 50 threads for the process (limit).
  */
 
 #include "syscall.h"
@@ -10,6 +10,10 @@ void test(){
 }
 
 int main() {
-  Fork(test);
+	int i = 0;
+	for(i = 0; i<50; i++){
+ 		MyWrite("Creating test%d\n", sizeof("Creating test%d\n"), i*100, 0);
+		Fork(test);
+	}
 }
 
