@@ -6,7 +6,6 @@
 #include "testhospital.c"
 
  int main() {
- 	Setup();
  	
  	recCount = 1;
  	docCount = 1;
@@ -14,6 +13,8 @@
  	cashierCount = 1;
  	clerkCount = 1;
  	numPatients = 5;
+ 	
+ 	Setup();
 
  	InitializeThreads();
  }
