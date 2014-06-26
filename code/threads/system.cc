@@ -41,8 +41,8 @@ ProcessEntry* processTable[10]; //Process table
 int processTableCount;
 Lock* processTableLock; //Lock for process table
 
-const int MAX_LOCKS = 250;
-const int MAX_CVS = 250;
+const int MAX_LOCKS = 500;
+const int MAX_CVS = 500;
 KernelLock* kLocks[MAX_LOCKS];
 KernelCV* kCV[MAX_CVS];
 #endif
