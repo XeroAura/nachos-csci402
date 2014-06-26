@@ -288,16 +288,16 @@
 			break;
 		}
 	}
-	if(shortest > -1 && (cashierState[lineIndex] == 1 || cashierState[lineIndex] == 2)){ //All cashier are busy, wait in line
+	if(shortest > -1 && (cashierState[lineIndex] == 1 || cashierState[lineIndex] == 2)){
 		if (testNum == 3){
 
 			MyWrite("The line Patient %d is entering belongs to Cashier %d and is currently %d people long. \n", 
 				sizeof("The line Patient %d is entering belongs to Cashier %d and is currently %d people long. \n")-1,
 				index*100+lineIndex,cashierLineCount[lineIndex]*100);			
 		}
-		cashierLineCount[lineIndex]++; //Increment shortest line length
+		cashierLineCount[lineIndex]++; 
 		Wait(cashierLineCV[lineIndex],cashierLineLock);
-		cashierLineCount[lineIndex]--; //Decrement after being woken
+		cashierLineCount[lineIndex]--; 
 	}
 	Acquire(cashierLock[lineIndex]);
 	Release(cashierLineLock);
@@ -305,13 +305,13 @@
 		MyWrite("Patient %d is waiting to see Cashier %d\n", sizeof("Patient %d is waiting to see Cashier %d\n")-1,myToken*100+lineIndex);
 	}
 	Acquire(cashierTokenLock);
-	cashierToken[lineIndex] = myToken; //Give token to cashier
+	cashierToken[lineIndex] = myToken; 
 	Release(cashierTokenLock);
 	Signal(cashierCV[lineIndex],cashierLock[lineIndex]);
 	Wait(cashierCV[lineIndex],cashierLock[lineIndex]);
 	
 	Acquire(cashierFeeLock);
-	int myFee = cashierFee[lineIndex]; //Get fee from cashier
+	int myFee = cashierFee[lineIndex]; 
 	Release(cashierFeeLock);
 	if (testNum == 8){
 		MyWrite("Patient %d is paying their consultancy fees of %d\n", sizeof("Patient %d is paying their consultancy fees of %d\n")-1, myToken*100+myFee);
@@ -443,13 +443,13 @@ Door_Boy(int index){
 	int i;
 	while(true){
 		Acquire(doorBoyLineLock);
-		doorBoyState[index] = 0; //Set self to free
-			if(doorBoyLineCount > 0){ //Someone waiting in line
+		doorBoyState[index] = 0; 
+			if(doorBoyLineCount > 0){ 
 				Release(doorBoyLineLock);
 				Acquire(dbbLock);
 
-				if(doctorDoorBoyCount > 0){ //If doctor waiting
-					doctorDoorBoyCount--; //Decrease count of doctors waiting on doorboys
+				if(doctorDoorBoyCount > 0){ 
+					doctorDoorBoyCount--; 
 
 					Acquire(docReadyLock);
 					
@@ -480,12 +480,12 @@ Door_Boy(int index){
 				
 				Acquire(docReadyLock);
 				int docIndex = 0;
-			for{i = 0; i < docCount; i++){ //Goes through each doctor
-				if(docState[i] == 0){ //Finds first one ready
+			for{i = 0; i < docCount; i++){
+				if(docState[i] == 0){ 
 					if(testNum == 1 || testNum == 8){
 						MyWrite("DoorBoy %d has been told by Doctor %d to bring a Patient.\n", sizeof("DoorBoy %d has been told by Doctor %d to bring a Patient.\n")-1, index*100+docIndex,0);
 					}
-					docState[i] = 3; //Claims doctor as own
+					docState[i] = 3; 
 					docIndex = i;
 					break;
 				}
@@ -494,8 +494,8 @@ Door_Boy(int index){
 			Acquire(doorBoyLineLock);
 			Release(docReadyLock);
 			
-			doorBoyState[index] = 3; //Set self to waiting
-			doorBoyLineCount--; //Decrement line count
+			doorBoyState[index] = 3; 
+			doorBoyLineCount--; 
 			Signal(doorBoyLineCV,doorBoyLineLock);
 			
 			Acquire(doorBoyPatientLock);
@@ -506,13 +506,13 @@ Door_Boy(int index){
 			Wait(doorBoyPatientCV[index],doorBoyPatientLock);
 			
 			Acquire(doorBoyTokenLock);
-			int token = doorBoyToken[index]; //Get token from patient
+			int token = doorBoyToken[index]; 
 			Release(doorBoyTokenLock);
 			if(testNum == 1 || testNum == 8){
 				MyWrite("DoorBoy %d has received Token %d from Patient %d\n", sizeof("DoorBoy %d has received Token %d from Patient %d\n")-1, index*100+token, token*100);
 			}
 			Acquire(doorBoyPatientRoomLock);
-			doorBoyPatientRoom[index] = docIndex; //Tell patient which room
+			doorBoyPatientRoom[index] = docIndex;
 			Release(doorBoyPatientRoomLock);
 			
 			Signal(doorBoyPatientCV[index],doorBoyPatientLock);
@@ -523,7 +523,7 @@ Door_Boy(int index){
 			Release(doorBoyPatientLock);
 			
 		}
-		else{ //Noone in line
+		else{
 			doorBoyState[index] = 2;
 			if(testNum == 1 || testNum == 2 || testNum == 6 || testNum == 8){
 				MyWrite("DoorBoy %d is going on break because there are no Patients. \n", sizeof("DoorBoy %d is going on break because there are no Patients. \n")-1, index*100, 0);
@@ -665,14 +665,14 @@ void
 Cashier(int index){
 	while(1){
 		Acquire(cashierLineLock);
-		cashierState[index]=0; //Set self to not busy
+		cashierState[index]=0; 
 		
-		if(cashierLineCount[index] > 0) { //Check to see if anyone in line
+		if(cashierLineCount[index] > 0) { 
 			Signal(cashierLineCV[index],cashierLineLock);
 			if (testNum == 3 || testNum == 8){
 				MyWrite("Cashier %d has signaled a Patient \n", sizeof("Cashier %d has signaled a Patient \n")-1, index*100, 0);
 			}
-			cashierState[index]=1; //Set self to busy
+			cashierState[index]=1; 
 		}
 
 		Acquire(cashierLock[index]);		
@@ -681,7 +681,7 @@ Cashier(int index){
 		Wait(cashierCV[index],cashierLock[index]);
 
 		Acquire(cashierTokenLock);	
-		int token = cashierToken[index]; //Get token from patient
+		int token = cashierToken[index]; 
 		if (testNum == 3 || testNum == 8){
 			MyWrite("Cashier %d gets Token %d from a Patient \n", sizeof("Cashier %d gets Token %d from a Patient \n")-1, index*100+token, 0);
 		}
@@ -689,35 +689,35 @@ Cashier(int index){
 		cashierTokenLock->Release();
 		
 		Acquire(consultLock);
-		int fee = consultationFee[token]; //Look up consultation fee
+		int fee = consultationFee[token]; 
 		Release(consultLock);
 		
 		Acquire(cashierFeeLock);
-		cashierFee[index] = fee;  //Set fee for patient to look at
+		cashierFee[index] = fee;  
 		Release(cashierFeeLock);
 		
-		cashierCV[index]->Signal(cashierLock[index]); //Tell patient fee
+		cashierCV[index]->Signal(cashierLock[index]); 
 		if (testNum == 3 || testNum == 8){
 			MyWrite("Cashier %d tells Patient with Token %d they owe %d \n", sizeof("Cashier %d tells Patient with Token %d they owe %d \n")-1, index*100+token, fee*100);
 		}
-		cashierCV[index]->Wait(cashierLock[index]); //Wait for patient to give money
+		cashierCV[index]->Wait(cashierLock[index]); 
 		if (testNum == 3 || testNum == 8){
 			MyWrite("Cashier %d receives fees from Patient with Token %d \n", sizeof("Cashier %d receives fees from Patient with Token %d \n")-1, index*100+token, 0);
 		}		
 		totalFeeLock->Acquire();
-		totalConsultationFee += fee; //Add consultation fee to total count
+		totalConsultationFee += fee; 
 		totalFeeLock->Release();
 
 		Release(cashierLock[index]);
 
-		//Take break check
+
 		Acquire(cashierLineLock);
 
-		if(cashierLineCount[index] == 0){ //If noone in line
+		if(cashierLineCount[index] == 0){ 
 			if (testNum == 6 || testNum == 8){
 				MyWrite("Cashier %d is going on break \n", sizeof("Cashier %d is going on break \n")-1, index*100, 0);
 			}
-			cashierState[index] = 2; //Set to on-break
+			cashierState[index] = 2;
 			Acquire(cashierBreakLock);
 			Release(cashierLineLock);
 			Wait(cashierBreakCV[index],cashierBreakLock);
@@ -1030,3 +1030,141 @@ InitializeThreads(){
 	}
 
 }
+
+
+void
+Problem2() {
+	Setup();
+	
+	int menu = 0;
+	printf("Problem 2 Start \n");
+	printf("Please choose an option to test: \n");
+	printf("1: Patient-DoorBoy-Doctor Interaction Test\n");
+	printf("2: DoorBoy Break Test \n");
+	printf("3: Patient Line-Choosing Test\n");
+	printf("4: Patient Line-Waiting Test\n");
+	printf("5: Doctor Break Test\n");
+	printf("6: Job Break and Hospital Manager Test\n");
+	printf("7: Hospital Fee\n");	
+	printf("8: Custom Simulation \n");
+	scanf("%d",&menu);
+
+	recCount = 2;
+	docCount = 2;
+	doorBoyCount = 2;
+	cashierCount = 2;
+	clerkCount = 2;
+	numPatients = 5;
+
+	switch(menu){
+		case 1:
+		{	
+			testNum = 1;
+			docCount = 1;
+			doorBoyCount = 1;
+			numPatients = 2;
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 1\n");
+			printf("Patients only gets in to see a Doctor when the DoorBoy asks them to. \n");
+			printf("Only one Patient get to see one Doctor at any given instance of time, in a room\n \n");
+			InitializeThreads();
+			break;
+		}
+		case 2:
+		{
+			testNum = 2;
+			docCount = 1;
+			doorBoyCount = 3;
+			numPatients = 5;
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 2\n");
+			printf("If all the Doorboys are on a break no patient gets in to see Doctors. \n \n");
+			InitializeThreads();
+			break;
+		}
+		case 3:
+		{
+			testNum = 3;
+			recCount = 2;
+			docCount = 2;
+			doorBoyCount = 2;	
+			cashierCount = 2;
+			clerkCount = 2;
+			numPatients = 6;
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 3\n");
+			printf("Patients always choose the shortest line with the Cashier, PharmacyClerk and Receptionist. \n \n");		
+			InitializeThreads();
+			break;
+		}
+		case 4:
+		{	
+			recCount = 0;
+			cashierCount = 0;
+			clerkCount = 0;
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 4\n");
+			printf("If there is no Cashier/PharmacyClerk/Receptionist the patient must wait in line. \n \n");		
+			testNum = 4;
+			InitializeThreads();
+			break;
+		}
+		case 5:
+		{
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 5\n");
+			printf("Doctors go on break at random intervals. \nWhen the Doctor is at break no patient gets in to that examining room. \nIf all Doctors are on break, all Patients wait.\n");
+			testNum = 5;
+			numPatients = 10;
+			InitializeThreads();
+			break;
+		}
+		case 6:
+		{
+			testNum = 6;
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 6\n");
+			printf("DoorBoy/Cashier/PharmacyClerk gett signaled by hospital manager when patients are waiting.\n");			
+			printf("DoorBoy/PharmacyClerk/Receptionist/Cashier go on break if their line is empty. \n");
+			InitializeThreads();
+			break;
+		}
+		case 7:
+		{
+			printf("-----------------------------------------------------------------------\n");
+			printf("Test 7\n");
+			printf("The total sales of medicines and the total consultation fees never get affected by race conditions. \n");
+			testNum = 7;
+			InitializeThreads();
+			break;
+		}
+		case 8:
+		{
+			testNum = 8;
+			printf("Enter how many receptionists to have in the office (between 2 and 5): ");
+			scanf("%d",&recCount);
+			printf("Enter how many patients to have in the office (between 5 and 20): ");
+			scanf("%d",&numPatients);
+			printf("Enter how many doctors to have in the office (between 2 and 5):");
+			scanf("%d",&docCount);
+			printf("Enter how many door boys to have in the office (between 2 and 5):");
+			scanf("%d",&doorBoyCount);
+			printf("Enter how many cashiers to have in the office (between 2 and 5):");
+			scanf("%d",&cashierCount);
+			printf("Enter how many clerks to have in the office (between 2 and 5):");
+			scanf("%d",&clerkCount);
+			InitializeThreads();
+			break;
+		}
+		default:
+		{
+			printf("Invalid option entered. Exiting the program. \n");
+			break;
+		}
+	}
+}
+
+int main() {
+	
+}
+
