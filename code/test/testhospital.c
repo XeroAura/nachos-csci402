@@ -124,6 +124,7 @@
  int clerkBreakCV[5];
 
 /* Hospital members*/
+<<<<<<< HEAD
  void
  Patient(){
  	int i;
@@ -134,6 +135,11 @@
  	int lineIndex = 0;
  	int myDoorBoy = 0;
  	int docIndex;
+
+	Acquire(patientIndexLock);
+	index = nextPatientIndex;
+	nextPatientIndex++;
+	Release(patientIndexLock);
 
  	MyWrite("Patient %d has arrived at the Hospital. \n", sizeof("Patient %d has arrived at the Hospital. \n")-1, index*100, 0);
 
