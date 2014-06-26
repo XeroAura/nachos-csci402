@@ -124,7 +124,6 @@
  int clerkBreakCV[5];
 
 /* Hospital members*/
-<<<<<<< HEAD
  void
  Patient(){
  	int i;
@@ -208,7 +207,7 @@
 	Release(doorBoyLineLock);
 	
 	Acquire(doorBoyTokenLock);
-	doorBoyToken[myDoorBoy] = myToken; //Give doorboy my token
+	doorBoyToken[myDoorBoy] = myToken;
 	Release(doorBoyTokenLock);
 	
 	Signal(doorBoyPatientCV[myDoorBoy],doorBoyPatientLock);
@@ -275,16 +274,16 @@
 	/*
 	* Cashier
 	*/
-	shortest = cashierLineCount[0]; //Shortest line length
-	lineIndex = 0; //Index of line
-	for(i=0; i<cashierCount; i++){ //Go through each cashier
-		if(cashierLineCount[i] < shortest){ //If the next cashier has a shorter line
-			lineIndex = i; //Set index to this cashier
-			shortest = cashierLineCount[i]; //Set shortest line length to this one's
+	shortest = cashierLineCount[0]; 
+	lineIndex = 0; 
+	for(i=0; i<cashierCount; i++){
+		if(cashierLineCount[i] < shortest){ 
+			lineIndex = i; 
+			shortest = cashierLineCount[i]; 
 		}
-		if(cashierState[i] == 0){ //If cashier is open
-			cashierState[i] = 1; //Set cashier's state to busy
-			lineIndex = i; //Change line index to this cashier
+		if(cashierState[i] == 0){ 
+			cashierState[i] = 1; 
+			lineIndex = i; 
 			shortest = -1;
 			break;
 		}
