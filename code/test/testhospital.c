@@ -441,6 +441,9 @@ Receptionist(int index){
 void
 Door_Boy(int index){
 	int i;
+	int docNum;
+	int docIndex;
+	int token;
 	while(true){
 		Acquire(doorBoyLineLock);
 		doorBoyState[index] = 0; 
@@ -453,7 +456,7 @@ Door_Boy(int index){
 
 					Acquire(docReadyLock);
 					
-					int docNum = 0;
+					docNum = 0;
 					for(i = 0; i < docCount; i++){
 						if(docState[i] == 9){
 							docState[i] = 0;
@@ -479,7 +482,7 @@ Door_Boy(int index){
 				Release(dbbLock);
 				
 				Acquire(docReadyLock);
-				int docIndex = 0;
+				docIndex = 0;
 			for{i = 0; i < docCount; i++){
 				if(docState[i] == 0){ 
 					if(testNum == 1 || testNum == 8){
@@ -506,7 +509,7 @@ Door_Boy(int index){
 			Wait(doorBoyPatientCV[index],doorBoyPatientLock);
 			
 			Acquire(doorBoyTokenLock);
-			int token = doorBoyToken[index]; 
+			token = doorBoyToken[index]; 
 			Release(doorBoyTokenLock);
 			if(testNum == 1 || testNum == 8){
 				MyWrite("DoorBoy %d has received Token %d from Patient %d\n", sizeof("DoorBoy %d has received Token %d from Patient %d\n")-1, index*100+token, token*100);
@@ -663,6 +666,8 @@ Doctor(){
 
 void
 Cashier(int index){
+	int token;
+	int fee;
 	while(1){
 		Acquire(cashierLineLock);
 		cashierState[index]=0; 
@@ -681,32 +686,32 @@ Cashier(int index){
 		Wait(cashierCV[index],cashierLock[index]);
 
 		Acquire(cashierTokenLock);	
-		int token = cashierToken[index]; 
+		token = cashierToken[index]; 
 		if (testNum == 3 || testNum == 8){
 			MyWrite("Cashier %d gets Token %d from a Patient \n", sizeof("Cashier %d gets Token %d from a Patient \n")-1, index*100+token, 0);
 		}
 		Release(cashierTokenLock);
-		cashierTokenLock->Release();
+		Release(cashierTokenLock);
 		
 		Acquire(consultLock);
-		int fee = consultationFee[token]; 
+		fee = consultationFee[token]; 
 		Release(consultLock);
 		
 		Acquire(cashierFeeLock);
 		cashierFee[index] = fee;  
 		Release(cashierFeeLock);
 		
-		cashierCV[index]->Signal(cashierLock[index]); 
+		Signal(cashierCV[index], cashierLock[index]);
 		if (testNum == 3 || testNum == 8){
 			MyWrite("Cashier %d tells Patient with Token %d they owe %d \n", sizeof("Cashier %d tells Patient with Token %d they owe %d \n")-1, index*100+token, fee*100);
 		}
-		cashierCV[index]->Wait(cashierLock[index]); 
+		Wait(cashierCV[index], cashierLock[index]);
 		if (testNum == 3 || testNum == 8){
 			MyWrite("Cashier %d receives fees from Patient with Token %d \n", sizeof("Cashier %d receives fees from Patient with Token %d \n")-1, index*100+token, 0);
 		}		
-		totalFeeLock->Acquire();
+		Acquire(totalFeeLock);
 		totalConsultationFee += fee; 
-		totalFeeLock->Release();
+		Release(totalFreeLock);
 
 		Release(cashierLock[index]);
 
