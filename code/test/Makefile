@@ -31,7 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort testfiles testlock1 testlock2 testfork1 testfork2 testfork3 testexec1 testexec2 testexec3 testCV1 testCV2 testCV3 testCV4 testCV5 testhospital1 testhospital2 testhospital3 testhospital4 testhospital5 testhospital6 testhospital7 testhospital8 testhospital
+all: halt matmult sort testfiles testlock1 testlock2 testfork1 testfork2 testfork3 testexec1 testexec2 testexec3 testCV1 testCV2 testCV3 testCV4 testCV5 testhospital1 testhospital2 testhospital3 testhospital4 testhospital5 testhospital6 testhospital7 testhospital8
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -188,13 +188,6 @@ testhospital8.o: testhospital8.c
 testhospital8: testhospital8.o start.o
 	$(LD) $(LDFLAGS) start.o testhospital8.o -o testhospital8.coff
 	../bin/coff2noff testhospital8.coff testhospital8
-
-testhospital.o: testhospital.c
-	$(CC) $(CFLAGS) -c testhospital.c
-testhospital: testhospital.o start.o
-	$(LD) $(LDFLAGS) start.o testhospital.o -o testhospital.coff
-	../bin/coff2noff testhospital.coff testhospital
-
 
 clean:
 	rm -f *.o *.coff
