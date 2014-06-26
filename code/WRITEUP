@@ -14,6 +14,8 @@ I. Requirements:
 II. Assumptions:
 	Provided code works, except parts indicated to be changed.
 	The physical memory size has been increased to match the needed number of pages. (Changed NumPhysPages to 1000)
+	Each process can only hold 50 threads. Each thread only uses its own 8 pages without going over.
+	There can be no more than 10 processes.
 	Maximum number of locks and CV's have been hard-coded to 250 each.
 
 III. Design:
@@ -160,8 +162,11 @@ V. Testing:  (For each test case, you must show)
 	CV Tests
 	Call nachos -x ../test/testCV(1-5) individually to see the tests for CV's.
 
+	Hospital Tests
+	Call nachos -X ../test/testhospital(1-8) individually to see the tests for the hospital.
+
 	+ Test Output
-*	Fork Tests
+	Fork Tests
 	testfork1 - Should see two write messages saying "test1" and "test2". Nachos then ends.
 	testfork2 - Should see various messages saying various error messages about fork input. Nachos should _not_ end. Will need to force quit.
 	testfork3 - Should see 49 messages saying Creating test# to show the forks. The 50th should show "Unable to allocate pages for stack in Fork." Then 49 tests should be written out to show the other threads ending. Nachos then ends.
@@ -178,6 +183,16 @@ V. Testing:  (For each test case, you must show)
 	CV Tests
 	testCV1 - Should show error messages when trying to make too many CV's, attempting to Wait on an index that does not exist, and error messages when trying to destroy too many CV's. 
 	testCV2 - Should see Thread 1 acquiring a lock and signalling, with no results. Thread 2 should run into wait and the program should terminate. 
+
+	Hospital Tests
+	testhospital1 - Shows outputs for DoorBoy, Patient, and Doctor interaction only.
+	testhospital2 - Shows outputs for DoorBoy and Patient only.
+	testhospital3 - Shows outputs for Patient, Receptionist, Cashier, and PharmacyClerk. Additionally prints information about the line length.
+	testhospital4 - Shows outputs for Receptionist and patient only.
+	testhospital5 - Shows outputs for Patient and Doctor only.
+	testhospital6 - Shows outputs pertaining to breaks and Patient outputs only.
+	testhospital7 - Shows patient coming in and leaving, and prints fees only.
+	testhospital8 - Prints entire script without omissions assuming 5 of each job, 20 patients, and 1 manager.
 
 VI. Discussion:
 	+ Experiment expectation.  (What you hope will happen.)
@@ -202,6 +217,15 @@ VI. Discussion:
 	testCV4 - Should show 5 waiters acquiring a lock and waiting, and a signaller calling broadcast so all 5 waiters are freed. 
 	testCV5 - Should show thread 1 acquiring a lock and waiting, then thread 2 signalling using the wrong lock. 
 
+	Hospital Tests
+	testhospital1 - The patient will wait until the doorboy and the doctor signal to the patient, then get examined and leave.	testhospital2 - The doorBoys will all go on break and the patients will be left with nothing to do after meeting the receptionists, therefore ending the simulation.
+	testhospital3 - The patient will wait on receptionist, get a token, then wait in line for a cashier, pay, find a pharmacy clerk if needed, pay, and then leave the hospital
+	testhospital4 - The patients will wait for the receptionists, but since there are none, the simulation will end. 
+	testhospital5 - The Doctor will tell the DoorBoy he is going on a break and state for how many milliseconds. The doctor will then leave permanently, and the simulation will end. 
+	testhospital6 - the free jobs will go on break until they are woken up as needed by the Hospital Manager.
+	testhospital7 - The hospital manager will report the fees for consulting and pharmacy. The cost of medicine is 25 per person and the consulting fee is 40 per person. 
+	testhospital8 - Should show all the interactions listed in tests above assuming everything is running as normal.
+
 	+ Experiment result.  (What actually happens.)
 	Fork Tests
 	testfork1 - Nachos starts up and prints out "test1" and "test2".
@@ -223,6 +247,9 @@ VI. Discussion:
 	testCV3 - Should show 5 waiters acquiring a lock and waiting, and a signaller calling signal once to free 1 waiter. 
 	testCV4 - Should show 5 waiters acquiring a lock and waiting, and a signaller calling broadcast so all 5 waiters are freed. 
 	testCV5 - Should show thread 1 acquiring a lock and waiting, then thread 2 signalling using the wrong lock. 
+
+	Hospital Tests
+	Sample output from full hospital run: (Each test should only cover a portion except the last one)
 
 
 	+ Explanation
@@ -247,7 +274,17 @@ VI. Discussion:
 	testCV3 - Signal only wakes up one thread, so since the signaller only calls signal once, only one waiter is woken up.
 	testCV4 - Broadcast wakes up all threads waiting on the given CV, so all the waiters are woken up. 
 	testCV5 - CV's only work with the correct lock, so using the wrong lock causes nothing to happen.
+	
+	Hospital Tests
+	testhospital1 - Works because the patient must wait for the doorBoy to signal it to go to a doctor, and the doorBoy can only signal once it receives an OK from the doctor.
+	testhospital2 - Works because without the doorBoy to let them pass, the Patients are stuck in place. 
+	testhospital3 - 
+	testhospital4 - This test works because the patient needs the token from the receptionist to pass, but there are no receptionists so the patient cannot continue. 
+	testhospital5 - This test works because although the patients that were served pass successfully, the doctors  do not come back and the remaining patients cannot continue without a diagnosis.
+	testhospital6 - The test works because the hospital manager checks every line to make sure there aren't any waiting patients, and notifies the corresponding worker if there is. Since the code that handles breaks is separate from the core function, it causes no problem to any job's core operation. 
+	testhospital7 - The test works because the sickness is held constant so we can accurately track how many times the fee is paid. Since the shared data is securely controlled by locks, even with race conditions nothing abnormal happens to the fees.
+	testhospital8 - The test works because the hospital ended. If anything was wrong, there should be someone waiting on something within the hospital.
 
 VII. Miscellaneous:
-	The PhysNumPages has to be increased to a larger number (roughly 1000) for the 2 hospitals to work. 
+	The PhysNumPages has to be increased to a larger number (we just used 5000) for the 2 hospitals to work. 
 	Current implementation uses 400 + code size / pages for each process.

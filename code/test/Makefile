@@ -31,7 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort testfiles testlock1 testlock2 testfork1 testfork2 testfork3 testexec1 testexec2 testexec3 testCV1 testCV2 testCV3 testCV4 testCV5
+all: halt matmult sort testfiles testlock1 testlock2 testfork1 testfork2 testfork3 testexec1 testexec2 testexec3 testCV1 testCV2 testCV3 testCV4 testCV5 testhospital1 testhospital2 testhospital3 testhospital4 testhospital5 testhospital6 testhospital7 testhospital8 testhospital
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -140,6 +140,60 @@ testCV5.o: testCV5.c
 testCV5: testCV5.o start.o
 	$(LD) $(LDFLAGS) start.o testCV5.o -o testCV5.coff
 	../bin/coff2noff testCV5.coff testCV5
+
+testhospital1.o: testhospital1.c
+	$(CC) $(CFLAGS) -c testhospital1.c
+testhospital1: testhospital1.o start.o
+	$(LD) $(LDFLAGS) start.o testhospital1.o -o testhospital1.coff
+	../bin/coff2noff testhospital1.coff testhospital1
+
+testhospital2.o: testhospital2.c
+	$(CC) $(CFLAGS) -c testhospital2.c
+testhospital2: testhospital2.o start.o
+	$(LD) $(LDFLAGS) start.o testhospital2.o -o testhospital2.coff
+	../bin/coff2noff testhospital2.coff testhospital2
+
+testhospital3.o: testhospital3.c
+	$(CC) $(CFLAGS) -c testhospital3.c
+testhospital3: testhospital3.o start.o
+	$(LD) $(LDFLAGS) start.o testhospital3.o -o testhospital3.coff
+	../bin/coff2noff testhospital3.coff testhospital3
+
+testhospital4.o: testhospital4.c
+	$(CC) $(CFLAGS) -c testhospital4.c
+testhospital4: testhospital4.o start.o
+	$(LD) $(LDFLAGS) start.o testhospital4.o -o testhospital4.coff
+	../bin/coff2noff testhospital4.coff testhospital4
+
+testhospital5.o: testhospital5.c
+	$(CC) $(CFLAGS) -c testhospital5.c
+testhospital5: testhospital5.o start.o
+	$(LD) $(LDFLAGS) start.o testhospital5.o -o testhospital5.coff
+	../bin/coff2noff testhospital5.coff testhospital5
+
+testhospital6.o: testhospital6.c
+	$(CC) $(CFLAGS) -c testhospital6.c
+testhospital6: testhospital6.o start.o
+	$(LD) $(LDFLAGS) start.o testhospital6.o -o testhospital6.coff
+	../bin/coff2noff testhospital6.coff testhospital6
+
+testhospital7.o: testhospital7.c
+	$(CC) $(CFLAGS) -c testhospital7.c
+testhospital7: testhospital7.o start.o
+	$(LD) $(LDFLAGS) start.o testhospital7.o -o testhospital7.coff
+	../bin/coff2noff testhospital7.coff testhospital7
+
+testhospital8.o: testhospital8.c
+	$(CC) $(CFLAGS) -c testhospital8.c
+testhospital8: testhospital8.o start.o
+	$(LD) $(LDFLAGS) start.o testhospital8.o -o testhospital8.coff
+	../bin/coff2noff testhospital8.coff testhospital8
+
+testhospital.o: testhospital.c
+	$(CC) $(CFLAGS) -c testhospital.c
+testhospital: testhospital.o start.o
+	$(LD) $(LDFLAGS) start.o testhospital.o -o testhospital.coff
+	../bin/coff2noff testhospital.coff testhospital
 
 
 clean:
