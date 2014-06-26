@@ -384,6 +384,7 @@ Patient(){
 	
 	MyWrite("Patient %d is leaving the Hospital\n", sizeof("Patient %d is leaving the Hospital\n")-1, myToken*100, 0);
 	completedPatientThreads++;
+	Exit(0);
 }
 
 void
@@ -394,7 +395,9 @@ Receptionist(){
 	index = nextRecIndex;
 	nextRecIndex++;
 	Release(recIndexLock);
+
 	while(1){		
+		Acquire(recLineLock);
 		recState[index]=0;
 		if(recLineCount[index] > 0) {
 			if(testNum == 8){
@@ -436,6 +439,7 @@ Receptionist(){
 			Release(recLineLock);
 		}
 	}
+	Exit(0);	
 }
 
 void
@@ -547,6 +551,7 @@ Door_Boy(){
 			Release(doorBoyBreakLock);
 		}
 	}
+	Exit(0);
 }
 
 void
@@ -665,6 +670,7 @@ Doctor(){
 			break;
 		}
 	}
+	Exit(0);
 }
 
 void
@@ -738,6 +744,7 @@ Cashier(){
 			Release(cashierLineLock);
 		}
 	}
+	Exit(0);
 }
 
 void
@@ -817,6 +824,7 @@ Clerk(){
 			Release(clerkLineLock);
 		}
 	}
+	Exit(0);
 }
 
 void
@@ -924,6 +932,7 @@ Manager(){
 		}
 		
 	}
+	Exit(0);
 }
 
 void
