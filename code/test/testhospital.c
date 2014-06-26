@@ -69,8 +69,6 @@ int nextDoorBoyIndex = 0;
 
 
 /*Cashier globals */
-int consultLock;
-/*std::map<int, int> consultationFee;*/
 int totalFeeLock;
 int totalConsultationFee = 0;
 int cashierCount = 5;
@@ -636,9 +634,6 @@ Doctor(){
 		Signal(docCV[index], docLock[index]);
 		Wait(docCV[index], docLock[index]);
 		
-		Acquire(consultLock);
-		/*consultationFee[token] = sickTest*20+20;*/
-		Release(consultLock);
 		if(testNum == 1 || testNum == 5 || testNum == 7 ||testNum == 8){
 			MyWrite("Doctor %d tells Patient with Token %d they can leave \n", sizeof("Doctor %d tells Patient with Token %d they can leave \n")-1, index*100+ token,0);
 		}
@@ -705,9 +700,6 @@ Cashier(){
 		}
 		Release(cashierTokenLock);
 		
-		Acquire(consultLock);
-		/*fee = consultationFee[token];*/
-		Release(consultLock);
 		
 		Acquire(cashierFeeLock);
 		cashierFee[index] = fee;
@@ -722,7 +714,7 @@ Cashier(){
 			MyWrite("Cashier %d receives fees from Patient with Token %d \n", sizeof("Cashier %d receives fees from Patient with Token %d \n")-1, index*100+token, 0);
 		}
 		Acquire(totalFeeLock);
-		totalConsultationFee += fee;
+		totalConsultationFee += 25;
 		Release(totalFeeLock);
 		
 		Release(cashierLock[index]);
@@ -996,7 +988,6 @@ Setup(){
 	for (i = 0; i < 5; i++){
 		cashierLineCV[i] = CreateCondition(0);
 	}
-	consultLock  = CreateLock(0);
 	totalFeeLock = CreateLock(0);
 	cashierLineLock= CreateLock(0);
 	cashierTokenLock= CreateLock(0);
