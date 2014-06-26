@@ -5,180 +5,192 @@
 #include "syscall.h"
 
 /*Global variables*/
-int completedPatientThreads = 0;
-int numPatients = 0;
-int testNum = 0;
+ int completedPatientThreads = 0;
+ int numPatients = 0;
+ int testNum = 0;
 
-//Receptionist globals
-Lock* recLineLock = new Lock("recLineLock");
-int recLineCount[5] = {0,0,0,0,0}; //Number of patients in each receptionist line
-Condition* recLineCV[5]; //CV for receptionist line patients
-int recState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
+/*Receptionist globals*/
+ int recLineLock = CreateLock(0);;
+ int recLineCount[5] = {0,0,0,0,0};
+ int recLineCV[5];
+ int recState[5] = {1,1,1,1,1};
 
-int recTokens[5] = {0,0,0,0,0}; //Used to transfer token from patient to receptionist
-Lock* recLock[5]; //Lock for interaction between receptionist and patient
-Condition* recCV[5]; //Condition for interaction between receptionist and patient
-Lock* tokenLock = new Lock("tokenLock"); //Lock for token assignment
-int nextToken = 0; //Next token value
-int recCount = 5; //Number of receptionists
+ int recTokens[5] = {0,0,0,0,0};
+ int recLock[5];
+ int recCV[5];
+ int tokenLock = CreateLock(0); 
+ int nextToken = 0; 
+ int recCount = 5; 
+
+ int recIndexLock = CreateLock(0);
+ int nextRecIndex = 0;
+
 
 /*Doctor globals*/
-int docLock[5];
-int docCV[5];
-int docState[5] = {1,1,1,1,1}; 
-int docToken[5] = {-1,-1,-1,-1,-1};
-int docTokenLock = CreateLock(0);
-int docPrescriptionLock = CreateLock(0); 
-int docPrescription[5] = {0,0,0,0,0}; 
-int docCount = 5; 
-int nextDoctorIndex = 0;
-int doctorIndexLock = CreateLock(0);
+ int docLock[5];
+ int docCV[5];
+ int docState[5] = {1,1,1,1,1}; 
+ int docToken[5] = {-1,-1,-1,-1,-1};
+ int docTokenLock = CreateLock(0);
+ int docPrescriptionLock = CreateLock(0); 
+ int docPrescription[5] = {0,0,0,0,0}; 
+ int docCount = 5; 
+ int nextDoctorIndex = 0;
+ int doctorIndexLock = CreateLock(0);
 
-//Doorboy globals
-Lock* doorBoyLineLock = new Lock("doorBoyLineLock"); //Lock to manage line
-Condition* doorBoyLineCV = new Condition("doorBoyLineCV"); //CV for doctor line
-int doorBoyLineCount = 0; //Number of people in doorboy line
+/*Doorboy globals*/
+ int doorBoyLineLock = CreateLock(0);
+ int doorBoyLineCV = CreateCondition(0);
+ int doorBoyLineCount = 0; 
 
-int doorBoyDoctorCount = 0; //Number of doorboys waiting on doctor
-int doctorDoorBoyCount = 0; //Number of doctors waiting on doorboy
-Lock* dbbLock = new Lock("dbbLock"); //Lock for doorboy
-Condition* doctorDoorBoyCV[5]; //CV for doctors waiting on doorboy
-Condition* doorBoyDoctorCV[5]; //CV for doorboy waiting on doctor
+ int doorBoyDoctorCount = 0; 
+ int doctorDoorBoyCount = 0; 
+ int dbbLock = CreateLock(0);
+ int doctorDoorBoyCV[5];
+ int doorBoyDoctorCV[5];
 
-Lock* docReadyLock = new Lock("docReadyLock"); //Lock for doctor readiness
-Condition* docReadyCV[5]; //Condition variable for doctor readiness call
+ int docReadyLock = CreateLock(0);
+ int docReadyCV[5]; 
 
-int doorBoyCount = 5; //Number of doorboys
-int doorBoyState[5] = {1,1,1,1,1}; //0 free, 1 busy, 2 onbreak, 3 waiting for patient, 9 waiting doctor
+ int doorBoyCount = 5; 
+ int doorBoyState[5] = {1,1,1,1,1}; 
 
-Condition* doorBoyPatientCV[5]; //Used for interaction between doorboy and patient
-Lock* doorBoyPatientLock = new Lock("doorBoyPatientLock");
-int doorBoyToken[5] = {-1,-1,-1,-1,-1}; //Used to pass token between patient and doorboy
+ int doorBoyPatientCV[5]; 
+ int doorBoyPatientLock = CreateLock(0);
+ int doorBoyToken[5] = {-1,-1,-1,-1,-1}; 
 
-Lock* doorBoyTokenLock = new Lock("doorBoyTokenLock"); // Lock for doorBoyToken
-Lock* doorBoyPatientRoomLock = new Lock("doorBoyPatientRoomLock"); //Lock for doorBoyPatientRoom
-int doorBoyPatientRoom[5] = {-1,-1,-1,-1,-1}; //Used to tell patient which examination room
+ int doorBoyTokenLock = CreateLock(0);
+ int doorBoyPatientRoomLock = CreateLock(0);
+ int doorBoyPatientRoom[5] = {-1,-1,-1,-1,-1};
 
-//Cashier globals
-Lock* consultLock = new Lock("consultLock"); //Lock for consultation fee map
-std::map<int, int> consultationFee; //Map of consultation fees tied to token
-Lock* totalFeeLock = new Lock("totalFeeLock"); //Lock for total consultation fee
-int totalConsultationFee = 0; //Total consultation fee
-int cashierCount = 5; //Number of cashiers
+ int doorBoyIndexLock = CreateLock(0);
+ int nextDoorBoyIndex = 0;
 
-Lock* cashierLineLock = new Lock("cashierLineLock"); //Used for lines for cashier
-int cashierLineCount[5] = {0,0,0,0,0}; //Used for counting people in lines for cashier
-Condition* cashierLineCV[5]; //Cashier line CV
 
-Lock* cashierLock[5]; //Lock for interaction with cashier
-Condition* cashierCV[5]; //CV for interaction with cashier
+/*Cashier globals */
+ int consultLock = CreateLock(0); 
+ std::map<int, int> consultationFee;
+ int totalFeeLock = CreateLock(0); 
+ int totalConsultationFee = 0; 
+ int cashierCount = 5; 
 
-int cashierState[5] = {1,1,1,1,1}; //0 available, 1 busy, 2 on-break
-int cashierToken[5] = {0,0,0,0,0}; //Used to pass token to cashier
-Lock* cashierTokenLock = new Lock("cashierTokenLock"); //Lock for cashierToken
-int cashierFee[5] = {0,0,0,0,0}; //Fee charged by cashier to patient
-Lock* cashierFeeLock = new Lock("cashierFeeLock"); //Lock for cashierFee
+ int cashierLineLock = CreateLock(0);
+ int cashierLineCount[5] = {0,0,0,0,0};
+ int cashierLineCV[5]; 
+
+ int cashierLock[5]; 
+ int cashierCV[5]; 
+
+ int cashierState[5] = {1,1,1,1,1};
+ int cashierToken[5] = {0,0,0,0,0};
+ int cashierTokenLock = CreateLock(0);
+ int cashierFee[5] = {0,0,0,0,0}; 
+ int cashierFeeLock = CreateLock(0);
+
+ int cashierIndexLock = CreateLock(0);
+ int nextCashierIndex = 0;
 
 /*Clerk globals*/
-int medicineFeeLock = CreateLock(0); 
-int medicineFee[5] = {0,0,0,0,0}; 
-int totalMedicineLock = CreateLock(0); 
-int totalMedicineCost = 0; 
-int clerkCount = 5; 
+ int medicineFeeLock = CreateLock(0); 
+ int medicineFee[5] = {0,0,0,0,0}; 
+ int totalMedicineLock = CreateLock(0); 
+ int totalMedicineCost = 0; 
+ int clerkCount = 5; 
 
-int clerkLineLock = CreateLock(0); 
-int clerkLineCount[5] = {0,0,0,0,0}; 
-int clerkLineCV[5]; 
-int clerkState[5] = {1,1,1,1,1};
-int clerkPrescription[5] = {0,0,0,0,0}; 
-int clerkPrescriptionLock = CreateLock(0); 
+ int clerkLineLock = CreateLock(0); 
+ int clerkLineCount[5] = {0,0,0,0,0}; 
+ int clerkLineCV[5]; 
+ int clerkState[5] = {1,1,1,1,1};
+ int clerkPrescription[5] = {0,0,0,0,0}; 
+ int clerkPrescriptionLock = CreateLock(0); 
 
-int clerkTokenLock = CreateLock(0); 
-int clerkToken[5] = {0,0,0,0,0}; 
+ int clerkTokenLock = CreateLock(0); 
+ int clerkToken[5] = {0,0,0,0,0}; 
 
-int clerkLock[5]; 
-int clerkCV[5];
+ int clerkLock[5]; 
+ int clerkCV[5];
 
-int clerkIndexLock = CreateLock(0);
-int nextClerkIndex = 0;
+ int clerkIndexLock = CreateLock(0);
+ int nextClerkIndex = 0;
 
 /*Manager globals*/
-int receptionistBreakLock = CreateLock(0);
-int receptionistBreakCV[5];
-int doorBoyBreakLock = CreateLock(0);
-int doorBoyBreakCV[5];
-int cashierBreakLock = CreateLock(0);
-int cashierBreakCV[5];
-int clerkBreakLock = CreateLock(0);
-int clerkBreakCV[5];
+ int receptionistBreakLock = CreateLock(0);
+ int receptionistBreakCV[5];
+ int doorBoyBreakLock = CreateLock(0);
+ int doorBoyBreakCV[5];
+ int cashierBreakLock = CreateLock(0);
+ int cashierBreakCV[5];
+ int clerkBreakLock = CreateLock(0);
+ int clerkBreakCV[5];
 
 /* Hospital members*/
-void
-Patient(){
-	int i;
-	int myPrescription;
-	int myMedicineFee;
-	int index;
+ void
+ Patient(){
+ 	int i;
+ 	int myPrescription;
+ 	int myMedicineFee;
+ 	int index;
+ 	int shortest = recLineCount[0];
+ 	int lineIndex = 0;
+ 	int myDoorBoy = 0;
+ 	int docIndex;
 
-	MyWrite("Patient %d has arrived at the Hospital. \n", sizeof("Patient %d has arrived at the Hospital. \n")-1, index*100, 0);
-	
+ 	MyWrite("Patient %d has arrived at the Hospital. \n", sizeof("Patient %d has arrived at the Hospital. \n")-1, index*100, 0);
+
 	/*
 	* Receptionist
 	*/
-	recLineLock->Acquire();
-	//Find shortest line or receptionist
-	int shortest = recLineCount[0]; //Shortest line length
-	int lineIndex = 0; //Index of line
-	for(int i=0; i<recCount; i++){ //Go through each receptionist
-		if(recLineCount[i] < shortest){ //If the next receptionist has a shorter line
-			lineIndex = i; //Set index to this receptionist
-			shortest = recLineCount[i]; //Set shortest line length to this one's
+	Acquire(recLineLock);
+	for(i=0; i<recCount; i++){ 
+		if(recLineCount[i] < shortest){ 
+			lineIndex = i; 
+			shortest = recLineCount[i]; 
 		}
-		if(recState[i] == 0){ //If receptionist is open
-			recState[i] = 1; //Set receptionist's state to busy
-			lineIndex = i; //Change line index to this receptionist
+		if(recState[i] == 0){ 
+			recState[i] = 1; 
+			lineIndex = i; 
 			shortest = -1;
 			break;
 		}
 	}
 	if (testNum == 3 || testNum == 4 || testNum == 8){
-		printf("Patient %d is waiting on Receptionist %d. \n", index, lineIndex);
+		MyWrite("Patient %d is waiting on Receptionist %d. \n", sizeof("Patient %d is waiting on Receptionist %d. \n")-1, index*100+lineIndex,0);
 	}
-	if(shortest > -1 && (recState[lineIndex] == 1 || recState[lineIndex] == 2)){ //All Receptionists are busy, wait in line
+	if(shortest > -1 && (recState[lineIndex] == 1 || recState[lineIndex] == 2)){ 
 		if (testNum == 3){
-			printf("The line Patient %d is entering is for receptionist %d and is currently %d people long. \n",index, lineIndex, recLineCount[lineIndex]);
+			MyWrite("The line Patient %d is entering is for receptionist %d and is currently %d people long. \n",sizeof("The line Patient %d is entering is for receptionist %d and is currently %d people long. \n")-1,
+				index*100+lineIndex, recLineCount[lineIndex]*100);
 		}
-		recLineCount[lineIndex]++; //Increment shortest line length
-		recLineCV[lineIndex]->Wait(recLineLock); //Wait till called
-		recLineCount[lineIndex]--; //Decrement after being woken
+		recLineCount[lineIndex]++; 
+		Wait(recLineCV[lineIndex],recLineLock);
+		recLineCount[lineIndex]--; 
 	}
-	recLineLock->Release(); //Release lock on line
-	recLock[lineIndex]->Acquire(); //Acquire lock to receptionist
-	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist ready
-	recCV[lineIndex]->Wait(recLock[lineIndex]); //Wait for receptionist to reply
-	int myToken = recTokens[lineIndex]; //Take token from receptionist
+	Release(recLineLock);
+	Acquire(recLock[lineIndex]);
+	Signal(recCV[lineIndex],recLock[lineIndex]);
+	Wait(recCV[lineIndex],recLock[lineIndex]);
+	int myToken = recTokens[lineIndex]; 
 	if ( testNum == 3  || testNum == 8){	
-		printf("Patient %d has recieved Token %d from Receptionist %d \n",index, myToken, lineIndex);
+		MyWrite("Patient %d has recieved Token %d from Receptionist %d \n", sizeof("Patient %d has recieved Token %d from Receptionist %d \n")-1, index*100+myToken,lineIndex*100);
 	}
-	recCV[lineIndex]->Signal(recLock[lineIndex]); //Notify receptionist token taken
+	Signal(recCV[lineIndex],recLock[lineIndex]);
 	
-	recLock[lineIndex]->Release(); //Release lock to receptionist
-	doorBoyLineLock->Acquire(); //Acquires lock for doctor line
+	Release(recLock[lineIndex]);
+	Acquire(doorBoyLineLock);
 	
 	
 	/*
 	* Doorboy
 	*/
-	doorBoyLineCount++; //Increments line count by one
+	doorBoyLineCount++; 
 	if (testNum == 1 || testNum == 2 || testNum == 8){
-		printf("Patient %d is waiting on a DoorBoy \n",index);
+		MyWrite("Patient %d is waiting on a DoorBoy \n", sizeof("Patient %d is waiting on a DoorBoy \n")-1, index*100, 0);
 	}
-	doorBoyLineCV->Wait(doorBoyLineLock); //Wait for doorboy to call
+	Wait(doorBoyLineCV,doorBoyLineLock);
 	if (testNum == 1 || testNum == 2 || testNum == 8){
-		printf("Patient %d was signaled by a DoorBoy\n", index);
+		MyWrite("Patient %d was signaled by a DoorBoy\n", sizeof("Patient %d was signaled by a DoorBoy\n")-1,index*100, 0);
 	}
 	
-	int myDoorBoy = 0;
 	for(int i = 0; i < doorBoyCount; i++){
 		if(doorBoyState[i] == 3){
 			doorBoyState[i] = 1;
@@ -186,28 +198,27 @@ Patient(){
 			break;
 		}
 	}
+	Acquire(doorBoyPatientLock);
+	Release(doorBoyLineLock);
 	
-	doorBoyLineLock->Release();
-	doorBoyPatientLock->Acquire();
-	
-	doorBoyTokenLock->Acquire();
+	Acquire(doorBoyTokenLock);
 	doorBoyToken[myDoorBoy] = myToken; //Give doorboy my token
-	doorBoyTokenLock->Release();
+	Release(doorBoyTokenLock);
 	
-	doorBoyPatientCV[myDoorBoy]->Signal(doorBoyPatientLock); //Tell doorboy to take token
-	doorBoyPatientCV[myDoorBoy]->Wait(doorBoyPatientLock); //Wait for doorboy to respond
+	Signal(doorBoyPatientCV[myDoorBoy],doorBoyPatientLock);
+	Wait(doorBoyPatientCV[myDoorBoy],doorBoyPatientLock);
 	
-	doorBoyPatientRoomLock->Acquire();
-	int docIndex = doorBoyPatientRoom[myDoorBoy];
-	doorBoyPatientRoomLock->Release();
+	Acquire(doorBoyPatientRoomLock);
+	docIndex = doorBoyPatientRoom[myDoorBoy];
+	Release(doorBoyPatientRoomLock);
 	if (testNum == 1 || testNum == 2 || testNum == 8){
-		printf("Patient %d has been told by DoorBoy %d to go to Examining Room %d \n", myToken, myDoorBoy, docIndex);		
+		MyWrite("Patient %d has been told by DoorBoy %d to go to Examining Room %d \n", sizeof("Patient %d has been told by DoorBoy %d to go to Examining Room %d \n"), myToken*100+myDoorBoy, docIndex*100);
 	}
 	
-	doorBoyPatientCV[myDoorBoy]->Signal(doorBoyPatientLock);
-	
-	doorBoyPatientLock->Release();
-	docReadyLock->Acquire(); //Acquire lock for doctor
+	Signal(doorBoyPatientCV[myDoorBoy],doorBoyPatientLock);
+
+	Acquire(docReadyLock);
+	Release(doorBoyPatientLock);	
 	
 	/*
 	* Doctor
@@ -274,34 +285,37 @@ Patient(){
 	}
 	if(shortest > -1 && (cashierState[lineIndex] == 1 || cashierState[lineIndex] == 2)){ //All cashier are busy, wait in line
 		if (testNum == 3){
-			printf("The line Patient %d is entering belongs to Cashier %d and is currently %d people long. \n",index, lineIndex,cashierLineCount[lineIndex]);
+
+			MyWrite("The line Patient %d is entering belongs to Cashier %d and is currently %d people long. \n", 
+				sizeof("The line Patient %d is entering belongs to Cashier %d and is currently %d people long. \n")-1,
+				index*100+lineIndex,cashierLineCount[lineIndex]*100);			
 		}
 		cashierLineCount[lineIndex]++; //Increment shortest line length
-		cashierLineCV[lineIndex]->Wait(cashierLineLock); //Wait till called
+		Wait(cashierLineCV[lineIndex],cashierLineLock);
 		cashierLineCount[lineIndex]--; //Decrement after being woken
 	}
-	cashierLineLock->Release(); //Release lock on line
-	cashierLock[lineIndex]->Acquire(); //Acquire lock to cashier
+	Acquire(cashierLock[lineIndex]);
+	Release(cashierLineLock);
 	if ( testNum == 3 || testNum == 8){
-		printf("Patient %d is waiting to see Cashier %d\n", myToken, lineIndex);
+		MyWrite("Patient %d is waiting to see Cashier %d\n", sizeof("Patient %d is waiting to see Cashier %d\n")-1,myToken*100+lineIndex);
 	}
-	cashierTokenLock->Acquire();
+	Acquire(cashierTokenLock);
 	cashierToken[lineIndex] = myToken; //Give token to cashier
-	cashierTokenLock->Release();
-	cashierCV[lineIndex]->Signal(cashierLock[lineIndex]); //Notify cashier ready
-	cashierCV[lineIndex]->Wait(cashierLock[lineIndex]); //Wait for cashier to reply with fee
+	Release(cashierTokenLock);
+	Signal(cashierCV[lineIndex],cashierLock[lineIndex]);
+	Wait(cashierCV[lineIndex],cashierLock[lineIndex]);
 	
-	cashierFeeLock->Acquire();
+	Acquire(cashierFeeLock);
 	int myFee = cashierFee[lineIndex]; //Get fee from cashier
-	cashierFeeLock->Release();
+	Release(cashierFeeLock);
 	if (testNum == 8){
-		printf("Patient %d is paying their consultancy fees of %d\n", myToken, myFee);
+		MyWrite("Patient %d is paying their consultancy fees of %d\n", sizeof("Patient %d is paying their consultancy fees of %d\n")-1, myToken*100+myFee);
 	}
-	cashierCV[lineIndex]->Signal(cashierLock[lineIndex]); //Give cashier cash
+	Signal(cashierCV[lineIndex],cashierLock[lineIndex]);
 	if (testNum == 8){	
-		printf("Patient %d is leaving Cashier %d\n", myToken, lineIndex);
+		MyWrite("Patient %d is leaving Cashier %d\n", sizeof("Patient %d is leaving Cashier %d\n")-1, myToken*100+lineIndex);
 	}
-	cashierLock[lineIndex]->Release();
+	Release(cashierLock[lineIndex]);
 
 	/*
 	* Pharmacy Clerk
@@ -369,104 +383,102 @@ Patient(){
 void
 Receptionist(int index){
 	while(1){
-		recLineLock->Acquire(); //Acquire line lock
-		recState[index]=0; //Set self to not busy
-		if(recLineCount[index] > 0) { //Check to see if anyone in line
+		int index;
+		Acquire(recIndexLock);
+		index = nextRecIndex;
+		nextRecIndex++;
+		Release(recIndexLock);
+		Acquire(recLineLock);
+
+		recState[index]=0; 
+		if(recLineCount[index] > 0) { 
 			if(testNum == 8){
-				printf("Receptionist %d has signaled a Patient. \n",index);
+				MyWrite("Receptionist %d has signaled a Patient. \n", sizeof("Receptionist %d has signaled a Patient. \n")-1, index*100, 0);
 			}
-			recLineCV[index]->Signal(recLineLock); //Signal first person in line
-			recState[index]=1; //Set self to busy
+			Signal(recLineCV[index],recLineLock);
+			recState[index]=1; 
 		}
-		recLock[index]->Acquire(); //Acquire receptionist lock
-		recLineLock->Release(); //Release line lock
-		recCV[index]->Wait(recLock[index]); //Wait for patient to arrive
-		tokenLock->Acquire(); //Acquire token lock
-		recTokens[index]=nextToken; //Provide token to patient
+		Acquire(recLock[index]);
+		Release(recLineLock);
+		Wait(recCV[index],recLock[index]);
+		Acquire(tokenLock);
+		recTokens[index]=nextToken; 
 		if(testNum == 8){
-			printf("Receptionist %d gives Token %d to a Patient. \n",index,nextToken);
+			MyWrite("Receptionist %d gives Token %d to a Patient. \n", sizeof("Receptionist %d gives Token %d to a Patient. \n")-1, index*100+nextToken);
 		}
-		nextToken++; //Increment token count
-		tokenLock->Release(); //Release token lock
-		recCV[index]->Signal(recLock[index]); //Signal patient that token ready
-		recCV[index]->Wait(recLock[index]); //Wait for patient to take token
-		recLock[index]->Release(); //Release lock on receptionist
+		nextToken++; 
+		Release(tokenLock);
+		Signal(recCV[index],recLock[index]);
+		Wait(recCV[index],recLock[index]);
+		Release(recLock[index]);
 		
-		//Take break check
-		recLineLock->Acquire();
-		if(recLineCount[index] == 0){ //If noone in line
+
+		Acquire(recLineLock);
+		if(recLineCount[index] == 0){ 
 			if(testNum == 8){
-				printf("Receptionist %d is going on break. \n",index);
+				MyWrite("Receptionist %d is going on break. \n", sizeof("Receptionist %d is going on break. \n")-1, index*100,0);
 			}
-			recState[index] = 2; //Set to on-break
-			receptionistBreakLock->Acquire();
-			recLineLock->Release();
-			receptionistBreakCV[index]->Wait(receptionistBreakLock); //Set condition for manager to callback
+			recState[index] = 2; 
+			Acquire(receptionistBreakLock);
+			Release(recLineLock);
+			Wait(receptionistBreakCV[index],receptionistBreakLock);
 			if(testNum == 8){
-				printf("Receptionist %d is coming off break. \n",index);
+				MyWrite("Receptionist %d is coming off break. \n", sizeof("Receptionist %d is coming off break. \n")-1, index*100, 0);
 			}
-			receptionistBreakLock->Release();
+			Release(receptionistBreakLock);
 		}
 		else{
-			recLineLock->Release();
+			Release(recLineLock);
 		}
 	}
 }
 
 void
 Door_Boy(int index){
+	int i;
 	while(true){
-		// printf("---DoorBoy %d trying for linelock\n", index);
-		doorBoyLineLock->Acquire();
-		// printf("---DoorBoy %d got linelock\n", index);
+		Acquire(doorBoyLineLock);
 		doorBoyState[index] = 0; //Set self to free
 			if(doorBoyLineCount > 0){ //Someone waiting in line
-				doorBoyLineLock->Release();
-
-				// printf("---DoorBoy %d trying for dbblock\n", index);
-				dbbLock->Acquire();
-				// printf("---DoorBoy %d got dbblock\n", index);
+				Release(doorBoyLineLock);
+				Acquire(dbbLock);
 
 				if(doctorDoorBoyCount > 0){ //If doctor waiting
 					doctorDoorBoyCount--; //Decrease count of doctors waiting on doorboys
 
-					// printf("---DoorBoy %d trying for docreadylock\n", index);
-					docReadyLock->Acquire();
-					// printf("---DoorBoy %d got docreadylock\n", index);
+					Acquire(docReadyLock);
 					
 					int docNum = 0;
-					for(int i = 0; i < docCount; i++){
+					for(i = 0; i < docCount; i++){
 						if(docState[i] == 9){
 							docState[i] = 0;
 							docNum = i;
 							break;
 						}
 					}
-					docReadyLock->Release();
-					doctorDoorBoyCV[docNum]->Signal(dbbLock); //Wake doctor to treat
+					Release(docReadyLock);
+					Signal(doctorDoorBoyCV[docNum],dbbLock);
 				}
-				else{ //Wait for doctor
+				else{ 
 					if(testNum == 1 || testNum == 8){
-						printf("DoorBoy %d is waiting for a Doctor\n", index);
+						MyWrite("DoorBoy %d is waiting for a Doctor\n", sizeof("DoorBoy %d is waiting for a Doctor\n")-1, index*100, 0);
 					}
 					doorBoyDoctorCount++;
 					
-					doorBoyLineLock->Acquire();
+					Acquire(doorBoyLineLock);
 					doorBoyState[index] = 9;
-					doorBoyLineLock->Release();
-					// printf("---Doorboy %d wait on dbblock\n", index);
-					doorBoyDoctorCV[index]->Wait(dbbLock); //Wait for doctor to call upon doorboy
+					Release(doorBoyLineLock);
+					Wait(doorBoyDoctorCV[index],dbbLock);
 
 				}
-				dbbLock->Release();
-				// printf("---DoorBoy %d released dbblock\n", index);
+				Release(dbbLock);
 				
-				docReadyLock->Acquire();
+				Acquire(docReadyLock);
 				int docIndex = 0;
-			for(int i = 0; i < docCount; i++){ //Goes through each doctor
+			for{i = 0; i < docCount; i++){ //Goes through each doctor
 				if(docState[i] == 0){ //Finds first one ready
 					if(testNum == 1 || testNum == 8){
-						printf("DoorBoy %d has been told by Doctor %d to bring a Patient.\n", index, docIndex);
+						MyWrite("DoorBoy %d has been told by Doctor %d to bring a Patient.\n", sizeof("DoorBoy %d has been told by Doctor %d to bring a Patient.\n")-1, index*100+docIndex,0);
 					}
 					docState[i] = 3; //Claims doctor as own
 					docIndex = i;
@@ -474,51 +486,51 @@ Door_Boy(int index){
 				}
 			}
 			
-			doorBoyLineLock->Acquire();
-			docReadyLock->Release();
+			Acquire(doorBoyLineLock);
+			Release(docReadyLock);
 			
 			doorBoyState[index] = 3; //Set self to waiting
 			doorBoyLineCount--; //Decrement line count
-			doorBoyLineCV->Signal(doorBoyLineLock); //Signal patient to start
+			Signal(doorBoyLineCV,doorBoyLineLock);
 			
-			doorBoyPatientLock->Acquire();
-			doorBoyLineLock->Release();
+			Acquire(doorBoyPatientLock);
+			Release(doorBoyLineLock);
 			if(testNum == 1 || testNum == 8){			
-				printf("DoorBoy %d has signaled a Patient.\n",index);
+				MyWrite("DoorBoy %d has signaled a Patient.\n", sizeof("DoorBoy %d has signaled a Patient.\n")-1, index*100, 0);
 			}
-			doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to arrive
+			Wait(doorBoyPatientCV[index],doorBoyPatientLock);
 			
-			doorBoyTokenLock->Acquire();
+			Acquire(doorBoyTokenLock);
 			int token = doorBoyToken[index]; //Get token from patient
-			doorBoyTokenLock->Release();
+			Release(doorBoyTokenLock);
 			if(testNum == 1 || testNum == 8){
-				printf("DoorBoy %d has received Token %d from Patient %d\n", index, token, token);
+				MyWrite("DoorBoy %d has received Token %d from Patient %d\n", sizeof("DoorBoy %d has received Token %d from Patient %d\n")-1, index*100+token, token*100);
 			}
-			doorBoyPatientRoomLock->Acquire();
+			Acquire(doorBoyPatientRoomLock);
 			doorBoyPatientRoom[index] = docIndex; //Tell patient which room
-			doorBoyPatientRoomLock->Release();
+			Release(doorBoyPatientRoomLock);
 			
-			doorBoyPatientCV[index]->Signal(doorBoyPatientLock); //Wake up patient to take room
+			Signal(doorBoyPatientCV[index],doorBoyPatientLock);
 			if(testNum == 1 || testNum == 8){
-				printf("DoorBoy %d has told Patient %d to go to Examining Room %d \n", index, token, docIndex);
+				MyWrite("DoorBoy %d has told Patient %d to go to Examining Room %d \n", sizeof("DoorBoy %d has told Patient %d to go to Examining Room %d \n")-1, index*100+token, docIndex*100);
 			}
-			doorBoyPatientCV[index]->Wait(doorBoyPatientLock); //Wait for patient to get room
-			doorBoyPatientLock->Release();
+			Wait(doorBoyPatientCV[index],doorBoyPatientLock);
+			Release(doorBoyPatientLock);
 			
 		}
 		else{ //Noone in line
 			doorBoyState[index] = 2;
 			if(testNum == 1 || testNum == 2 || testNum == 6 || testNum == 8){
-				printf("DoorBoy %d is going on break because there are no Patients. \n",index);
+				MyWrite("DoorBoy %d is going on break because there are no Patients. \n", sizeof("DoorBoy %d is going on break because there are no Patients. \n")-1, index*100, 0);
 			}
-			doorBoyLineLock->Release();
-			doorBoyBreakLock->Acquire();
-			doorBoyBreakCV[index]->Wait(doorBoyBreakLock); //Set condition for manager to callback
+			Acquire(doorBoyBreakLock);
+			Release(doorBoyLineLock);
+			Wait(doorBoyBreakCV[index],doorBoyBreakLock);
 			if(testNum == 1 || testNum == 2 || testNum == 6 || testNum == 8){
-				printf("DoorBoy %d is coming off break. \n",index);
+				MyWrite("DoorBoy %d is coming off break. \n", sizeof("DoorBoy %d is coming off break. \n")-1, index*100, 0);
 			}
-			
-			doorBoyBreakLock->Release();
+			Release(doorBoyBreakLock);	
+
 		}
 	}
 }
@@ -647,70 +659,70 @@ Doctor(){
 void
 Cashier(int index){
 	while(1){
-		cashierLineLock->Acquire(); //Acquire line lock
+		Acquire(cashierLineLock);
 		cashierState[index]=0; //Set self to not busy
 		
 		if(cashierLineCount[index] > 0) { //Check to see if anyone in line
-			cashierLineCV[index]->Signal(cashierLineLock); //Signal first person in line
+			Signal(cashierLineCV[index],cashierLineLock);
 			if (testNum == 3 || testNum == 8){
-				printf("Cashier %d has signaled a Patient \n", index);
+				MyWrite("Cashier %d has signaled a Patient \n", sizeof("Cashier %d has signaled a Patient \n")-1, index*100, 0);
 			}
 			cashierState[index]=1; //Set self to busy
 		}
-		
-		cashierLock[index]->Acquire(); //Acquire cashier lock
-		cashierLineLock->Release(); //Release line lock
 
-		cashierCV[index]->Wait(cashierLock[index]); //Wait for patient to arrive
-		
-		cashierTokenLock->Acquire();
+		Acquire(cashierLock[index]);		
+		Release(cashierLineLock);
+
+		Wait(cashierCV[index],cashierLock[index]);
+
+		Acquire(cashierTokenLock);	
 		int token = cashierToken[index]; //Get token from patient
 		if (testNum == 3 || testNum == 8){
-
-			printf("Cashier %d gets Token %d from a Patient \n", index, token);
+			MyWrite("Cashier %d gets Token %d from a Patient \n", sizeof("Cashier %d gets Token %d from a Patient \n")-1, index*100+token, 0);
 		}
+		Release(cashierTokenLock);
 		cashierTokenLock->Release();
 		
-		consultLock->Acquire();
+		Acquire(consultLock);
 		int fee = consultationFee[token]; //Look up consultation fee
-		consultLock->Release();
+		Release(consultLock);
 		
-		cashierFeeLock->Acquire();
+		Acquire(cashierFeeLock);
 		cashierFee[index] = fee;  //Set fee for patient to look at
-		cashierFeeLock->Release();
+		Release(cashierFeeLock);
 		
 		cashierCV[index]->Signal(cashierLock[index]); //Tell patient fee
 		if (testNum == 3 || testNum == 8){
-			printf("Cashier %d tells Patient with Token %d they owe %d \n", index, token, fee);
+			MyWrite("Cashier %d tells Patient with Token %d they owe %d \n", sizeof("Cashier %d tells Patient with Token %d they owe %d \n")-1, index*100+token, fee*100);
 		}
 		cashierCV[index]->Wait(cashierLock[index]); //Wait for patient to give money
 		if (testNum == 3 || testNum == 8){
-
-			printf("Cashier %d receives fees from Patient with Token %d \n", index, token);
+			MyWrite("Cashier %d receives fees from Patient with Token %d \n", sizeof("Cashier %d receives fees from Patient with Token %d \n")-1, index*100+token, 0);
 		}		
 		totalFeeLock->Acquire();
 		totalConsultationFee += fee; //Add consultation fee to total count
 		totalFeeLock->Release();
 
-		cashierLock[index]->Release(); //Acquire cashier lock
+		Release(cashierLock[index]);
 
 		//Take break check
-		cashierLineLock->Acquire();	
+		Acquire(cashierLineLock);
+
 		if(cashierLineCount[index] == 0){ //If noone in line
 			if (testNum == 6 || testNum == 8){
-				printf("Cashier %d is going on break \n", index);
+				MyWrite("Cashier %d is going on break \n", sizeof("Cashier %d is going on break \n")-1, index*100, 0);
 			}
 			cashierState[index] = 2; //Set to on-break
-			cashierBreakLock->Acquire();
-			cashierLineLock->Release();
-			cashierBreakCV[index]->Wait(cashierBreakLock); //Set condition for manager to callback
+			Acquire(cashierBreakLock);
+			Release(cashierLineLock);
+			Wait(cashierBreakCV[index],cashierBreakLock);
 			if (testNum == 6 || testNum == 8){
-				printf("Cashier %d is coming off break \n", index);
+				MyWrite("Cashier %d is coming off break \n", sizeof("Cashier %d is coming off break \n")-1, index*100, 0);
 			}
-			cashierBreakLock->Release();
+			Release(cashierBreakLock);
 		}
 		else{
-			cashierLineLock->Release();
+			Release(cashierLineLock);
 		}
 	}
 }
@@ -831,23 +843,23 @@ Manager(){
 		
 		if (testNum != 2){
 			Acquire(doorBoyLineLock);
-		if(doorBoyLineCount > 0){ 
-			for(i = 0; i < doorBoyCount; i++){
-				if(doorBoyState[i] == 2){
-					Acquire(doorBoyBreakLock);
-					if (testNum == 6 || testNum == 8){
-						MyWrite("HospitalManager signaled a DoorBoy to come off break\n", sizeof("HospitalManager signaled a DoorBoy to come off break\n")-1,0 ,0);
+			if(doorBoyLineCount > 0){ 
+				for(i = 0; i < doorBoyCount; i++){
+					if(doorBoyState[i] == 2){
+						Acquire(doorBoyBreakLock);
+						if (testNum == 6 || testNum == 8){
+							MyWrite("HospitalManager signaled a DoorBoy to come off break\n", sizeof("HospitalManager signaled a DoorBoy to come off break\n")-1,0 ,0);
+						}
+						Signal(doorBoyBreakCV[i], doorBoyBreakLock);
+						Release(doorBoyBreakLock);
 					}
-					Signal(doorBoyBreakCV[i], doorBoyBreakLock);
-					Release(doorBoyBreakLock);
 				}
 			}
+			Release(doorBoyLineLock);
 		}
-		Release(doorBoyLineLock);
-	}
 
-	Acquire(cashierLineLock);
-	for(i = 0; i < cashierCount; i++){
+		Acquire(cashierLineLock);
+		for(i = 0; i < cashierCount; i++){
 			if(cashierLineCount[i] > 0 && cashierState[i] == 2){
 				Acquire(cashierBreakLock);
 				if (testNum == 6 || testNum == 8){
