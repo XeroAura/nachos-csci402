@@ -3,288 +3,63 @@ Date:  6/23/2014
 Group Num 1 : Name            Email            Student ID
               Philip Lee      leephili@usc.edu 3759772007
               Byron Choy	  byroncho@usc.edu 7784820771
-
+              
 I. Requirements:
-	Implement the system calls and exception handling of fork, exec, yield, and exit. 
-	Also add in the syscalls for all the functions needed to use Locks and CVs.
-	Add bullet-proofing to the syscalls.
-	Implement multiprogramming by adding improving the page table. Also add in process table to keep track of threads and processes.
-	Implement the hospital program from project 1 as a user program. 
+
+- Describe what's your understanding of the requirements from the assignment statement. With the requirement analysis, you would be clear about what you are supposed to do.
 
 II. Assumptions:
-	Provided code works, except parts indicated to be changed.
-	The physical memory size has been increased to match the needed number of pages. (Changed NumPhysPages to 1000)
-	Each process can only hold 50 threads. Each thread only uses its own 8 pages without going over.
-	There can be no more than 10 processes.
-	Maximum number of locks and CV's have been hard-coded to 250 each.
+
+            - Reasonable assumptions you take for your scheme.
 
 III. Design:
-	-addrspace.cc
-	Addrspace has been changed to use a bitmap to determine which physical page to map to each virtual page when creating the address space.
-	Loading of the executable has been moved into the loop that allocates pages, as the ReadAt function automatically will stop reading in pages when its done.
-	A function has been added to easily allocate 8 pages for a new thread by the use of another bitmap to keep track of the pages created.
-	Two functions have been created to clear up pages by going through the pageTable.
-	One is in charge of releasing all pages in the address space for the physical page bitmap.
-	The other releases only 8 pages of a process.
 
-	-exception.cc
-	Fork takes in the virtual address of the function to be run.
-	It then validates the vaddr by checking if its within bounds and making sure it is not NULL.
-	Then it creates a new thread, copies the address space from the current thread, and then allocates 8 pages from the address space's stack for this thread.
-	The process table is then updated with the information.
-	The function then finally calls nacho's Fork using fork_thread, while passing in the virtual address and the address of the first stack page allocated for it.
-	The function fork_thread then sets the PCReg, NextPCReg, and StackReg to the values passed in through the forkInfo struct.
-
-	Exec takes in the virtual address of a filename buffer.
-	It then validates the virtual address.
-	Then it checks to make sure you don't have too many processes at this point.
-	The filename is then loaded from the buffer, and opened through the filesystem.
-	A new addressspace and first thread for the new process is created.
-	The process table is then updated with this information.
-	Finally, exec forks with exec_thread, while passing in the 8 pages for the first thread.
-	exec_thread loads the PCReg with address of main (0), and calls machine->Run() to start it.
-
-	Exit has three main situations.
-	1. Last thread in the last process
-	Nachos checks to see if the thread is the last one in the last process.
-	If so, nachos just calls Halt to end itself.
-	2. Last thread in a process (not the last process)
-	Nachos clears the memory pages, locks, and CVs allocated to the process.
-	The page table is updated with this information.
-	Then it calls Finish() on the current thread to end the process.
-	3. Not last thread in a process
-	The 8 pages allocated to the thread are freed up.
-	The thread is ended with Finish();
-
-	Yield just yields the currentThread as expected.
-
-	Input validation was done on the included syscalls and fork/exec by checking to make sure virtual addresses provided were within bounds.
-	Buffers were checked also by checking that the end point of the buffer is also within the bounds.
-
-	Locks
-	Locks are created using a new struct called KernelLock. Within KernelLock is a lock, a boolean, and the address space. Creating a lock stores a KernelLock in an array of KernelLocks, which can be referenced using its index. Acquiring and releasing a lock are also excecuted using the index of the lock in the KernelLock array. 
-
-	Condition Variables
-	CV's are made in exactly the same way, but the CV functions (Wait, Signal, and Broadcast), have 2 arguments, one for the CV's index and one for the lock's index. 
+- This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  This should include a description of classes, algorithms, etc.
 
 IV. Implementation:
-	+ Files Modified
-	userprog/exception.cc
-	userprog/addrspace.cc
-	userprog/progtest.cc
-	userprog/addrspace.h
-	userprog/syscall.h
-	threads/system.cc
-	threads/system.h
-	test/start.s
-	machine/machine.h (Only to increase the physical page limit)
-	Any files changed in part 1 were also kept.
 
-	+ Files added
-	C Files with name format of test*.c in test directory for test suites.
+            + Files Modified
 
-	+ Data Structures added, and the file they were added to.
-	-system.h
-	struct ThreadEntry //Basic entry for thread
-	struct ProcessEntry //Basic entry for a process
+            + Files added
 
-	-exception.cc
-	struct forkInfo //Used to transfer information into fork_thread
-	struct execInfo //Used to transfer information into exec_thread
+            + Data Structures added, and the file they were added to.
 
-	+ Data Structures modified, and the file they were added to.
-	-addrspace.h
-	class AddrSpace{
-		Moved numPages to public.
-		Added BitMap* pageBitMap for virtual page allocation.
-		Added Lock* pageBitMapLock.
-		Added executablePageCount to keep track of number of pages taken by executable.
-		Added OpenFile* file for assignment 3 use.
-	}
+            + Data Structures modified, and the file they were added to.
 
-	-system.h
-	class KernelLock //User program lock
-	class KernelCV //User program CV
+                        -For example,
 
-	+ Functions added and in which file.
-	-addrspace.cc
-	int AllocatePages(); //Allocates 8 pages from addrspace when called.
-	void EmptyPages(); //Freed all physical pages allocated to addrspace.
-	void Empty8Pages(); //Freed 8 physical pages allocated to a thread when called.
+                                    class Lock                -- in file threads.cc/threads.h
 
-	-syscall.h
-	Exec(); //Added size argument to function.
+                                    {
 
-	-exceptions.cc
-	void fork_thread() //Function passed to nachos fork to set registers for fork syscall
-	void Fork_Syscall() //Fork syscall function
-	void exec_thread() //Function passed to nachos fork to set registers for exec syscall
-	void Exec_Syscall() //Exec syscall function
-	void Yield_Syscall() //Yield syscall function
-	int Exit_Syscall() //Exit syscall function
-	bool validateAddress() //Function for validating vaddr
-	bool validateBuffer() //Function for validating buffer address within vaddr bounds
-	int CreateLock_Syscall() //Creates a lock to put in kernelLock array, returns index
-	void DestroyLock_Syscall() //Destroys lock in kernelLock array
-	void Acquire_Syscall() //Lock acquire syscall function
-	void Release_Syscall() //Lock release syscall function
-	int CreateCondition_Syscall() //Creates a CV to put in kernelCV array, returns index
-	void DestroyCondition_Syscall() //Destroys CV in kernelCV array
-	void Wait_Syscall() //CV Wait syscall function
-	void Signal_Syscall() //CV Signal syscall function
-	void Broadcast_Syscall() //CV Broadcast syscall function
+                                                //. Modified fields.
 
-	+ Functions modified and in which file.
-	-addrspace.cc
-	AddrSpace(); //Added mapping for physical to virtual page.
+                                    }
 
-	-progtest.cc
-	StartProcess(); //Added process table information for the first thread/process.
+            + Functions added and in which file.
 
-	-exception.cc
-	Built in syscalls have input validation added at beginning.
-	void ExceptionHandler() //Added syscalls to switch.
+            + Functions modified and in which file.
 
 V. Testing:  (For each test case, you must show)
 
-	+ How to test
-	Call gmake in test and userprog directory. Run tests from userprog directory as indicated below.
+            + How to test
 
-	Fork Tests
-	Call nachos -x ../test/testfork(1-3) individually to see the tests for fork.
+- How to run the test cases, the commands, the arguments and so on.
 
-	Exec Tests
-	Call nachos -x ../test/testexec(1-3) individually to see the tests for exec.
+            + Test Output
 
-	Lock Tests
-	Call nachos -x ../test/testlock(1-2) individually to see the tests for lock.
-
-	CV Tests
-	Call nachos -x ../test/testCV(1-5) individually to see the tests for CV's.
-
-	Hospital Tests
-	Call nachos -X ../test/testhospital(1-8) individually to see the tests for the hospital.
-
-	+ Test Output
-	Fork Tests
-	testfork1 - Should see two write messages saying "test1" and "test2". Nachos then ends.
-	testfork2 - Should see various messages saying various error messages about fork input. Nachos should _not_ end. Will need to force quit.
-	testfork3 - Should see 49 messages saying Creating test# to show the forks. The 50th should show "Unable to allocate pages for stack in Fork." Then 49 tests should be written out to show the other threads ending. Nachos then ends.
-
-	Exec Tests
-	exectest1 - Should show a single print of "test". Nachos then ends.
-	exectest2 - Should see exec run 11 times. Error message "Too many processes for any more to be made!" should show up for last exec because too many processes. "test" is printed out 10 times. Nachos should end.
-	exectest3 - The test prints out Unable to open file, Bad pointer to Open, and test.
-
-	Lock Tests
-	testlock1 - Should show attempt to create more locks than allowed, with error messages when overflow occurs. The program should then attempt a series of illegal actions (invalid index, releasing before acquiring, attempting to acquire the same lock twice). Finally the program should attempt to destroy all locks, and overflow a little, with error messages indicating its success.
-	testlock2 - Should show results similar to testSuite test 1 - thread 1 acquires lock, passes from thread 2 to 3, 3 unsuccessfully attempts to release lock, thread 1 releases, thread 2 acquires, and thread 2 releases. 
-
-	CV Tests
-	testCV1 - Should show error messages when trying to make too many CV's, attempting to Wait on an index that does not exist, and error messages when trying to destroy too many CV's. 
-	testCV2 - Should see Thread 1 acquiring a lock and signalling, with no results. Thread 2 should run into wait and the program should terminate. 
-
-	Hospital Tests
-	testhospital1 - Shows outputs for DoorBoy, Patient, and Doctor interaction only.
-	testhospital2 - Shows outputs for DoorBoy and Patient only.
-	testhospital3 - Shows outputs for Patient, Receptionist, Cashier, and PharmacyClerk. Additionally prints information about the line length.
-	testhospital4 - Shows outputs for Receptionist and patient only.
-	testhospital5 - Shows outputs for Patient and Doctor only.
-	testhospital6 - Shows outputs pertaining to breaks and Patient outputs only.
-	testhospital7 - Shows patient coming in and leaving, and prints fees only.
-	testhospital8 - Prints entire script without omissions assuming 5 of each job, 20 patients, and 1 manager.
+- Describe the testing output. You don't have to dump all the output info. Just make sure your description can exactly reflect your output.
 
 VI. Discussion:
-	+ Experiment expectation.  (What you hope will happen.)
-	Fork Tests
-	testfork1 - Should just end normally after printing out test1 and test2 into console.
-	testfork2 - Should see error messages saying how fork failed. Nachos should not end because infinite loop in main to show that nachos didn't crash because of the failed forks.
-	testfork3 - Should see messages showing forking threads. 50th thread should not fork, as that is the hard limit. Error message should indicate so. The other threads that forked should each print out test to indicate they ran.
 
-	Exec Tests
-	exectest1 - This should simply work by printing out "test" which is the user file called by exec. 
-	exectest2 - There should be a short pause while the processes are created. Then a message saying too many processes should appear. Then the other 10 exec threads should print out "test" to show they ran successfully.
-	exectest3 - The first exec checks a nonexisting file. This should return an open file error message. The second one tests invalid length for the filename. It should return an error regarding bad pointer. The last one uses an extra long filename. 
+            + Experiment expectation.  (What you hope will happen.)
 
-	Lock Tests
-	testlock1 - Should show attempts to break code, with appropriate error messages. 
-	testlock2 - Should show flow from thread to thread, starting with 1 and ending with 2, with 3 ending first after it unsuccessfully attempts to release lock.
+            + Experiment result.  (What actually happens.)
 
-	CV Tests
-	testCV1 - This should print out error messages for the creation and destruction of locks, as well as confirmation that a lock is acquired.
-	testCV2 - This should show thread 1 trying to signal thread 2, but failing. Thread 2 should then wait, and the program should end. 
-	testCV3 - Should show 5 waiters acquiring a lock and waiting, and a signaller calling signal once to free 1 waiter. 
-	testCV4 - Should show 5 waiters acquiring a lock and waiting, and a signaller calling broadcast so all 5 waiters are freed. 
-	testCV5 - Should show thread 1 acquiring a lock and waiting, then thread 2 signalling using the wrong lock. 
+            + Explanation
 
-	Hospital Tests
-	testhospital1 - The patient will wait until the doorboy and the doctor signal to the patient, then get examined and leave.	testhospital2 - The doorBoys will all go on break and the patients will be left with nothing to do after meeting the receptionists, therefore ending the simulation.
-	testhospital3 - The patient will wait on receptionist, get a token, then wait in line for a cashier, pay, find a pharmacy clerk if needed, pay, and then leave the hospital
-	testhospital4 - The patients will wait for the receptionists, but since there are none, the simulation will end. 
-	testhospital5 - The Doctor will tell the DoorBoy he is going on a break and state for how many milliseconds. The doctor will then leave permanently, and the simulation will end. 
-	testhospital6 - the free jobs will go on break until they are woken up as needed by the Hospital Manager.
-	testhospital7 - The hospital manager will report the fees for consulting and pharmacy. The cost of medicine is 25 per person and the consulting fee is 40 per person. 
-	testhospital8 - Should show all the interactions listed in tests above assuming everything is running as normal.
-
-	+ Experiment result.  (What actually happens.)
-	Fork Tests
-	testfork1 - Nachos starts up and prints out "test1" and "test2".
-	testfork2 - Nachos prints out "Bad vaddr passed to fork." 3 times for each bad fork attempt. Nachos then hangs on purpose because of the infinite yields.
-	testfork3 - Nachos prints out test0 through test49. Then it prints out unable to allocate pages. Then it prints out test 50 times.
-
-	ExecTests
-	exectest1 - Nachos prints out "test".
-	exectest2 - Nachos prints out "Too many processes for any more to be made!". THen it prints out "test" 10 times.
-	exectest3 - Nachos prints out "Unable to open file ../test/testfile", "Bad pointer passed to Open", and "test".
-
-	Lock Tests
-	testlock1 - Nachos prints out all error messages - 5 create errors and 5 destroy errors, and 1 of every other error.
-	testlock2 - Nachos prints out the flow of threads - Thread 1 acquires, thread 3 tries to release and fails, thread 1 releases, thread 2 acquires and releases
-
-	CV Tests
-	testCV1 - All the error messages are printed out - 5 create and destroy errors, and an incorrect lock index error. 
-	testCV2 - Thread 1 signals nothing, and Thread 2 waits.
-	testCV3 - Should show 5 waiters acquiring a lock and waiting, and a signaller calling signal once to free 1 waiter. 
-	testCV4 - Should show 5 waiters acquiring a lock and waiting, and a signaller calling broadcast so all 5 waiters are freed. 
-	testCV5 - Should show thread 1 acquiring a lock and waiting, then thread 2 signalling using the wrong lock. 
-
-	Hospital Tests
-	Sample output from full hospital run: (Each test should only cover a portion except the last one)
-
-
-	+ Explanation
-	Fork Tests
-	forktest1 - The two forked threads are created in main. After main ends, the two forked threads print out their respective test phrases to indicate they ran as well. Nachos then ends as expected.
-	forktest2 - The bad values passed into fork are detected and kicked out. The infinite yields just shows that Nachos did not crash.
-	forktest3 - The thread limit is hard coded at 50 per thread. The fork works for 50 times, but fails on the 51st cause the limit is reached. It then continues as normal to finish off the other 50 successfully forked threads.
-
-	ExecTests
-	exectest1 - The exec works because the file "testfile" is loaded and run. Testfile basically prints out test when run.
-	exectest2 - The max process limit is reached on the 11th exec. The error message is printed. Then the other 10 execs should run as planned as shown by the 10 test print messages.
-	exectest3 - The first two printouts are as expected. However, the third one worked, which was surprising. When the readin detected end of filename, it just fed in blanks for the buffer. This actually allowed the real file name to get fed in and run the testfiles correctly.
-
-	Lock Tests
-	locktest1 - The Create and Destroy Lock syscalls have been proofed with if-statements to prevent any segfaults from occuring. 	
-	locktest2 - The yield after acquiring from thread 1 passes the CPU to thread 2, which also yields to thread 3. Thread 3 tries to release then exits, returning to thread 1. Thread 1 releases and exits, then thread 2 can acquire the lock and subsequently release it. 
-
-	CV Tests
-	testCV1 - The create and destroy condition syscalls are proofed with if-statements to prevent anything illegal happening. 
-	testCV2 - The signal is not stored so after thread 1 completes thread 
-	2 is put to wait but there is no thread left to signal back. 
-	testCV3 - Signal only wakes up one thread, so since the signaller only calls signal once, only one waiter is woken up.
-	testCV4 - Broadcast wakes up all threads waiting on the given CV, so all the waiters are woken up. 
-	testCV5 - CV's only work with the correct lock, so using the wrong lock causes nothing to happen.
-	
-	Hospital Tests
-	testhospital1 - Works because the patient must wait for the doorBoy to signal it to go to a doctor, and the doorBoy can only signal once it receives an OK from the doctor.
-	testhospital2 - Works because without the doorBoy to let them pass, the Patients are stuck in place. 
-	testhospital3 - 
-	testhospital4 - This test works because the patient needs the token from the receptionist to pass, but there are no receptionists so the patient cannot continue. 
-	testhospital5 - This test works because although the patients that were served pass successfully, the doctors  do not come back and the remaining patients cannot continue without a diagnosis.
-	testhospital6 - The test works because the hospital manager checks every line to make sure there aren't any waiting patients, and notifies the corresponding worker if there is. Since the code that handles breaks is separate from the core function, it causes no problem to any job's core operation. 
-	testhospital7 - The test works because the sickness is held constant so we can accurately track how many times the fee is paid. Since the shared data is securely controlled by locks, even with race conditions nothing abnormal happens to the fees.
-	testhospital8 - The test works because the hospital ended. If anything was wrong, there should be someone waiting on something within the hospital.
+                        - Explain your experiment result.
 
 VII. Miscellaneous:
-	The PhysNumPages has to be increased to a larger number (we just used 5000) for the 2 hospitals to work. 
-	Current implementation uses 400 + code size / pages for each process.
+
+- Whatever else you want the grader know about your development.  You can create your own subsections headings here.
