@@ -770,7 +770,7 @@ void ExceptionHandler(ExceptionType which) {
             Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
 	    #endif
-        }
+        } 
 
 	// Put in the return value and increment the PC
         machine->WriteRegister(2,rv);
@@ -778,7 +778,11 @@ void ExceptionHandler(ExceptionType which) {
         machine->WriteRegister(PCReg,machine->ReadRegister(NextPCReg));
         machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
         return;
-    } else {
+    } 
+    else if(which == PageFaultException){
+        cout<<"PageFaultException\n"<<endl;
+    }
+    else {
     	cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
     	interrupt->Halt();
     }

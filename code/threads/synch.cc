@@ -243,7 +243,7 @@ void Condition::Wait(Lock* conditionLock){
     waitingLock = conditionLock;
   }
   if(waitingLock != conditionLock){
-    std::cout << "Error: Incorrect lock used." << std::endl;
+    std::cout << "Error in Wait: Incorrect lock used." << std::endl;
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
@@ -273,7 +273,7 @@ void Condition::Signal(Lock* conditionLock) {
     return;
   }
   if(waitingLock != conditionLock){
-    std::cout << "Error: Incorrect lock used." << std::endl;
+    std::cout << "Error in Signal: Incorrect lock used." << std::endl;
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
