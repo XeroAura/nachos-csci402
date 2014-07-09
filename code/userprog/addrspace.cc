@@ -146,6 +146,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	size = noffH.code.size + noffH.initData.size + noffH.uninitData.size ;
 	executablePageCount = divRoundUp(size, PageSize);
 	numPages = divRoundUp(size, PageSize) + 400; //<-- added in this semicolon  //divRoundUp(UserStackSize,PageSize);
+	// printf("NumPages: %d\n", numPages);
 	// we need to increase the size
 	// to leave room for the stack
 	size = numPages * PageSize;
@@ -168,16 +169,13 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 			printf("Out of physical pages to add to page table. \n");
 		}
 		else{
-			pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+			pageTable[i].virtualPage = i;
 			pageTable[i].physicalPage = ppn;
 			pageTable[i].valid = TRUE;
 			pageTable[i].use = TRUE;
 			pageTable[i].dirty = FALSE;
-			pageTable[i].readOnly = FALSE;  // if the code segment was entirely on
-			// a separate page, we could set its
-			// pages to be read-only
-			executable->ReadAt(&(machine->mainMemory[ppn*PageSize]), PageSize, 40+i*PageSize); //Read in executable
-			
+			pageTable[i].readOnly = FALSE;
+
 			IPTLock->Acquire();
 			ipt[ppn].virtualPage = i;
 			ipt[ppn].physicalPage = ppn;
@@ -185,8 +183,11 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 			ipt[ppn].use = TRUE;
 			ipt[ppn].dirty = FALSE;
 			ipt[ppn].readOnly = FALSE;
-			ipt[ppn].as = currentThread->space;
+			ipt[ppn].as = this;
 			IPTLock->Release();
+
+			executable->ReadAt(&(machine->mainMemory[ppn*PageSize]), PageSize, 40+i*PageSize); //Read in executable
+			
 		}
 		
 	}

@@ -686,14 +686,14 @@ void ExceptionHandler(ExceptionType which) {
             case SC_Write:
             DEBUG('a', "Write syscall.\n");
             Write_Syscall(machine->ReadRegister(4),
-             machine->ReadRegister(5),
-             machine->ReadRegister(6));
+               machine->ReadRegister(5),
+               machine->ReadRegister(6));
             break;
             case SC_Read:
             DEBUG('a', "Read syscall.\n");
             rv = Read_Syscall(machine->ReadRegister(4),
-             machine->ReadRegister(5),
-             machine->ReadRegister(6));
+               machine->ReadRegister(5),
+               machine->ReadRegister(6));
             break;
             case SC_Close:
             DEBUG('a', "Close syscall.\n");
@@ -706,26 +706,26 @@ void ExceptionHandler(ExceptionType which) {
             MyWrite_Syscall(machine->ReadRegister(4), machine->ReadRegister(5),machine->ReadRegister(6), machine->ReadRegister(7));
             break;
 
-    		case SC_Fork:
-    		DEBUG('a', "Fork syscall.\n");
-    		Fork_Syscall(machine->ReadRegister(4));
-    		break;
+            case SC_Fork:
+            DEBUG('a', "Fork syscall.\n");
+            Fork_Syscall(machine->ReadRegister(4));
+            break;
 
-    		case SC_Exec:
-    		DEBUG('a', "Exec syscall.\n");
-    		Exec_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
-    		break;
+            case SC_Exec:
+            DEBUG('a', "Exec syscall.\n");
+            Exec_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+            break;
 
-    		case SC_Exit:
-    		DEBUG('a', "Exit syscall.\n");
-    		printf("Exit: %d\n", machine->ReadRegister(4));
-    		rv = Exit_Syscall();
-    		break;
+            case SC_Exit:
+            DEBUG('a', "Exit syscall.\n");
+            printf("Exit: %d\n", machine->ReadRegister(4));
+            rv = Exit_Syscall();
+            break;
 
-    		case SC_Yield:
-    		DEBUG('a', "Yield syscall.\n");
-    		Yield_Syscall();
-    		break;
+            case SC_Yield:
+            DEBUG('a', "Yield syscall.\n");
+            Yield_Syscall();
+            break;
 
             case SC_CreateLock:
             DEBUG('a', "Create Lock syscall.\n");
@@ -782,36 +782,42 @@ void ExceptionHandler(ExceptionType which) {
         return;
     } 
     else if(which == PageFaultException){
-        // cout<<"PageFaultException\n"<<endl;
         int vpn = (machine-> ReadRegister(BadVAddrReg))/PageSize; //Find virtual page number 
+        // cout<<vpn<<" | ";
         AddrSpace* as = currentThread->space; //Get AddrSpace
-         
+        IPTLock->Acquire();
         int ppn = -1;
         for(int i = 0; i < NumPhysPages; i++){
-        	if(ipt[i].valid == TRUE && ipt[i].virtualPage == vpn && ipt[i].as == as){
-        		ppn = i;
-        		break;
-        	}
+        	if(ipt[i].as == as){
+                if(ipt[i].valid == TRUE ){
+                    if(ipt[i].virtualPage == vpn){
+                        ppn = i;
+                        break;
+                    }
+                }
+            }
         }
+        IPTLock->Release();
         if(ppn == -1){ //Handle IPT
-
+            // printf("Unable to find physical page.\n");
+            ASSERT(0);
         }
 
         IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
         machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
-		machine->tlb[currentTLB].physicalPage = ppn;
-		machine->tlb[currentTLB].valid = ipt[ppn].valid;
-		machine->tlb[currentTLB].use = ipt[ppn].use;
-		machine->tlb[currentTLB].dirty = ipt[ppn].dirty;
-		machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;		
-  
+        machine->tlb[currentTLB].physicalPage = ppn;
+        machine->tlb[currentTLB].valid = ipt[ppn].valid;
+        machine->tlb[currentTLB].use = ipt[ppn].use;
+        machine->tlb[currentTLB].dirty = ipt[ppn].dirty;
+        machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;		
+
 		// machine->tlb[currentTLB].virtualPage = as->pageTable[vpn].virtualPage;
 		// machine->tlb[currentTLB].physicalPage = as->pageTable[vpn].physicalPage;
-		// machine->tlb[currentTLB].valid = TRUE;//as->pageTable[vpn].valid;
+		// machine->tlb[currentTLB].valid = as->pageTable[vpn].valid;
 		// machine->tlb[currentTLB].use = as->pageTable[vpn].use;
 		// machine->tlb[currentTLB].dirty = as->pageTable[vpn].dirty;
 		// machine->tlb[currentTLB].readOnly = as->pageTable[vpn].readOnly;		
-		currentTLB = (currentTLB+1)%TLBSize;
+        currentTLB = (currentTLB+1)%TLBSize;
         
         (void) interrupt->SetLevel(oldLevel); // re-enable interrupts
     }

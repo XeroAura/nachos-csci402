@@ -303,10 +303,10 @@ Thread::SaveUserState()
 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
     for(int x = 0; x < TLBSize; x++){
-        if(machine->tlb[x].dirty = 1){
+        if(machine->tlb[x].dirty == TRUE){
             
         }
-        machine->tlb[x].valid = 0;
+        machine->tlb[x].valid = FALSE;
     } 
     (void) interrupt->SetLevel(oldLevel); // re-enable interrupts
 }
