@@ -15,6 +15,7 @@
 #include "interrupt.h"
 #include "stats.h"
 #include "timer.h"
+#include "IPTEntry.h"
 
 // Initialization and cleanup routines
 extern void Initialize(int argc, char **argv); 	// Initialization,
@@ -95,6 +96,10 @@ extern const int MAX_CVS;
 extern const int MAX_LOCKS;
 extern KernelLock* kLocks[];
 extern KernelCV* kCV[]; 
+
+extern int currentTLB;
+extern IPTEntry *ipt;
+extern Lock* IPTLock;
 
 
 #endif

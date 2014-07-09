@@ -300,6 +300,15 @@ Thread::SaveUserState()
 {
     for (int i = 0; i < NumTotalRegs; i++)
 	userRegisters[i] = machine->ReadRegister(i);
+
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+    for(int x = 0; x < TLBSize; x++){
+        if(machine->tlb[x].dirty = 1){
+            
+        }
+        machine->tlb[x].valid = 0;
+    } 
+    (void) interrupt->SetLevel(oldLevel); // re-enable interrupts
 }
 
 //----------------------------------------------------------------------

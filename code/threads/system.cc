@@ -45,6 +45,10 @@ const int MAX_LOCKS = 500;
 const int MAX_CVS = 500;
 KernelLock* kLocks[MAX_LOCKS];
 KernelCV* kCV[MAX_CVS];
+
+int currentTLB;
+IPTEntry *ipt;
+Lock* IPTLock;
 #endif
 
 // External definition, to allow us to take a pointer to this function
@@ -189,6 +193,9 @@ for (int i = 0; i < MAX_CVS; i++){
     kCV[i] = new KernelCV();
 }
 
+currentTLB = 0;
+ipt = new IPTEntry[NumPhysPages];
+IPTLock = new Lock("IPTLock");
 #endif    
 }
 

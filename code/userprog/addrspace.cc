@@ -177,6 +177,16 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 			// a separate page, we could set its
 			// pages to be read-only
 			executable->ReadAt(&(machine->mainMemory[ppn*PageSize]), PageSize, 40+i*PageSize); //Read in executable
+			
+			IPTLock->Acquire();
+			ipt[ppn].virtualPage = i;
+			ipt[ppn].physicalPage = ppn;
+			ipt[ppn].valid = TRUE;
+			ipt[ppn].use = TRUE;
+			ipt[ppn].dirty = FALSE;
+			ipt[ppn].readOnly = FALSE;
+			ipt[ppn].as = currentThread->space;
+			IPTLock->Release();
 		}
 		
 	}
@@ -212,9 +222,12 @@ void
 AddrSpace::EmptyPages(){
 	pageTableLock->Acquire();
 	bitMapLock->Acquire();
+	IPTLock->Acquire();
 	for(int i = 0; i < numPages; i++){
+		ipt[pageTable[i].physicalPage].valid = FALSE;
 		memoryBitMap->Clear(pageTable[i].physicalPage);
 	}
+	IPTLock->Release();
 	bitMapLock->Release();
 	pageTableLock->Release();
 }
@@ -224,9 +237,12 @@ AddrSpace::Empty8Pages(int startPage){
 	startPage = startPage/PageSize;
 	pageTableLock->Acquire();
 	bitMapLock->Acquire();
+	IPTLock->Acquire();
 	for(int i = 0; i < 8; i++){
+		ipt[pageTable[startPage+i].physicalPage].valid = FALSE;
 		memoryBitMap->Clear(pageTable[startPage+i].physicalPage);
 	}
+	IPTLock->Release();
 	bitMapLock->Release();
 	pageTableLock->Release();
 

@@ -41,6 +41,7 @@ extern const int MAX_CVS;
 extern const int MAX_LOCKS;
 extern KernelLock* kLocks[];
 extern KernelCV* kCV[]; 
+extern int currentTLB;
 
 #ifdef CHANGED
 bool
@@ -717,6 +718,7 @@ void ExceptionHandler(ExceptionType which) {
 
     		case SC_Exit:
     		DEBUG('a', "Exit syscall.\n");
+    		printf("Exit: %d\n", machine->ReadRegister(4));
     		rv = Exit_Syscall();
     		break;
 
@@ -780,7 +782,38 @@ void ExceptionHandler(ExceptionType which) {
         return;
     } 
     else if(which == PageFaultException){
-        cout<<"PageFaultException\n"<<endl;
+        // cout<<"PageFaultException\n"<<endl;
+        int vpn = (machine-> ReadRegister(BadVAddrReg))/PageSize; //Find virtual page number 
+        AddrSpace* as = currentThread->space; //Get AddrSpace
+         
+        int ppn = -1;
+        for(int i = 0; i < NumPhysPages; i++){
+        	if(ipt[i].valid == TRUE && ipt[i].virtualPage == vpn && ipt[i].as == as){
+        		ppn = i;
+        		break;
+        	}
+        }
+        if(ppn == -1){ //Handle IPT
+
+        }
+
+        IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+        machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
+		machine->tlb[currentTLB].physicalPage = ppn;
+		machine->tlb[currentTLB].valid = ipt[ppn].valid;
+		machine->tlb[currentTLB].use = ipt[ppn].use;
+		machine->tlb[currentTLB].dirty = ipt[ppn].dirty;
+		machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;		
+  
+		// machine->tlb[currentTLB].virtualPage = as->pageTable[vpn].virtualPage;
+		// machine->tlb[currentTLB].physicalPage = as->pageTable[vpn].physicalPage;
+		// machine->tlb[currentTLB].valid = TRUE;//as->pageTable[vpn].valid;
+		// machine->tlb[currentTLB].use = as->pageTable[vpn].use;
+		// machine->tlb[currentTLB].dirty = as->pageTable[vpn].dirty;
+		// machine->tlb[currentTLB].readOnly = as->pageTable[vpn].readOnly;		
+		currentTLB = (currentTLB+1)%TLBSize;
+        
+        (void) interrupt->SetLevel(oldLevel); // re-enable interrupts
     }
     else {
     	cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
