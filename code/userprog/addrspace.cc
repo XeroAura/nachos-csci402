@@ -159,38 +159,40 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
 	// first, set up the translation
 	pageTableLock->Acquire();
-	pageTable = new TranslationEntry[numPages];
+	pageTable = new PageTableEntry[numPages];
 	for (i = 0; i < numPages; i++) {
 		
-		bitMapLock->Acquire();
-		int ppn = memoryBitMap->Find(); //Use BitMap Find to get an unused page of memory
-		bitMapLock->Release();
-		if(ppn == -1){ //No open pages
-			printf("Out of physical pages to add to page table. \n");
-		}
-		else{
+		//bitMapLock->Acquire();
+		//int ppn = memoryBitMap->Find(); //Use BitMap Find to get an unused page of memory
+		//bitMapLock->Release();
+		// if(ppn == -1){ //No open pages
+		// 	printf("Out of physical pages to add to page table. \n");
+		// }
+		// else{
 			pageTable[i].virtualPage = i;
-			pageTable[i].physicalPage = ppn;
-			pageTable[i].valid = TRUE;
+			//pageTable[i].physicalPage = ppn;
+			pageTable[i].valid = FALSE; //TRUE
 			pageTable[i].use = TRUE;
 			pageTable[i].dirty = FALSE;
 			pageTable[i].readOnly = FALSE;
+			pageTable[i].diskLocation = 2;
+			pageTable[i].offset = 40+i*PageSize;
 
-			IPTLock->Acquire();
-			ipt[ppn].virtualPage = i;
-			ipt[ppn].physicalPage = ppn;
-			ipt[ppn].valid = TRUE;
-			ipt[ppn].use = TRUE;
-			ipt[ppn].dirty = FALSE;
-			ipt[ppn].readOnly = FALSE;
-			ipt[ppn].as = this;
-			IPTLock->Release();
+			// IPTLock->Acquire();
+			// ipt[ppn].virtualPage = i;
+			// ipt[ppn].physicalPage = ppn;
+			// ipt[ppn].valid = TRUE;
+			// ipt[ppn].use = TRUE;
+			// ipt[ppn].dirty = FALSE;
+			// ipt[ppn].readOnly = FALSE;
+			// ipt[ppn].as = this;
+			// IPTLock->Release();
 
-			executable->ReadAt(&(machine->mainMemory[ppn*PageSize]), PageSize, 40+i*PageSize); //Read in executable
+			//executable->ReadAt(&(machine->mainMemory[ppn*PageSize]), PageSize, 40+i*PageSize); //Read in executable
 			
 		}
 		
-	}
+	// }
 	pageTableLock->Release();
 	
 	// then, copy in the code and data segments into memory

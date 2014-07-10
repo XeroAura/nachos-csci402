@@ -42,6 +42,8 @@ extern const int MAX_LOCKS;
 extern KernelLock* kLocks[];
 extern KernelCV* kCV[]; 
 extern int currentTLB;
+// extern BitMap* memoryBitMap;
+// extern Lock* bitMapLock;
 
 #ifdef CHANGED
 bool
@@ -658,6 +660,58 @@ int Exit_Syscall(){
     return -1;
 }
 
+int handleMemoryFull(){
+
+	return -1;
+}
+
+void handleIPTMiss(int vpn){
+	AddrSpace* as = currentThread->space;
+	bitMapLock->Acquire();
+	int ppn = memoryBitMap->Find();
+	bitMapLock->Release();
+
+	if(ppn == -1){ //Out of physical pages
+		ASSERT(0);
+		ppn = handleMemoryFull();
+	}
+
+	//Update TLB (step 3)
+
+	if(vpn < as->executablePageCount){ //VPN is code/init
+		as->pageTable[vpn].physicalPage = ppn;
+		as->pageTable[vpn].valid = TRUE;
+		as->pageTable[vpn].diskLocation = 0;
+
+		IPTLock->Acquire();
+		ipt[ppn].virtualPage = vpn;
+		ipt[ppn].physicalPage = ppn;
+		ipt[ppn].valid = TRUE;
+		ipt[ppn].use = TRUE;
+		ipt[ppn].dirty = FALSE;
+		ipt[ppn].readOnly = FALSE;
+		ipt[ppn].as = as;
+		IPTLock->Release();
+
+		as->file->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, as->pageTable[vpn].offset);
+	}
+	else{
+		as->pageTable[vpn].physicalPage = ppn;
+		as->pageTable[vpn].valid = TRUE;
+		//as->pageTable[vpn].diskLocation = 0;
+
+		IPTLock->Acquire();
+		ipt[ppn].virtualPage = vpn;
+		ipt[ppn].physicalPage = ppn;
+		ipt[ppn].valid = TRUE;
+		ipt[ppn].use = TRUE;
+		ipt[ppn].dirty = FALSE;
+		ipt[ppn].readOnly = FALSE;
+		ipt[ppn].as = as;
+		IPTLock->Release();
+	}
+
+}
 
 
 #endif
@@ -798,9 +852,9 @@ void ExceptionHandler(ExceptionType which) {
             }
         }
         IPTLock->Release();
-        if(ppn == -1){ //Handle IPT
+        if(ppn == -1){ //Handle IPT miss
             // printf("Unable to find physical page.\n");
-            ASSERT(0);
+            handleIPTMiss(vpn);
         }
 
         IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
