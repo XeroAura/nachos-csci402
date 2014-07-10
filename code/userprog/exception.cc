@@ -637,6 +637,7 @@ int Exit_Syscall(){
             }
         }
         processTable[slot]->as->EmptyPages();
+        delete processTable[slot]->as->file;
         ProcessEntry* blank = new ProcessEntry();
         processTable[slot] = blank;
         //Clear locks/CVS here!

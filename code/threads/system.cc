@@ -49,6 +49,7 @@ KernelCV* kCV[MAX_CVS];
 int currentTLB;
 IPTEntry *ipt;
 Lock* IPTLock;
+OpenFile* swap;
 #endif
 
 // External definition, to allow us to take a pointer to this function
@@ -196,6 +197,8 @@ for (int i = 0; i < MAX_CVS; i++){
 currentTLB = 0;
 ipt = new IPTEntry[NumPhysPages];
 IPTLock = new Lock("IPTLock");
+//swap = fileSystem->Open(swap);
+
 #endif    
 }
 

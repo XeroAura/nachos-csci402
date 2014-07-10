@@ -101,6 +101,7 @@ extern int currentTLB;
 extern IPTEntry *ipt;
 extern Lock* IPTLock;
 
+extern OpenFile* swap;
 
 #endif
 
