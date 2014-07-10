@@ -93,8 +93,8 @@ extern int processTableCount;
 extern Lock* processTableLock; //Lock for process table
 extern const int MAX_CVS;
 extern const int MAX_LOCKS;
-extern KernelLock* kLocks[250];
-extern KernelCV* kCV[250]; 
+extern KernelLock* kLocks[];
+extern KernelCV* kCV[]; 
 
 
 #endif

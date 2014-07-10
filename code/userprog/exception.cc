@@ -485,7 +485,7 @@ void Acquire_Syscall(int index){
     if (index >= 0 && index < MAX_LOCKS){
         kLocks[index]->lock->Acquire();
     } else {
-        printf("ERROR: Index exceeds bounds.\n");
+        printf("ERROR: Cannot acquire, index exceeds bounds.\n");
     }
     return;
 }
@@ -501,7 +501,7 @@ void Release_Syscall(int index){
             printf("ERROR: No lock exists at this index.\n");
         }
     } else {
-        printf("ERROR: Index exceeds bounds.\n");
+        printf("ERROR: Cannot release, index exceeds bounds.\n");
     }
     return;
 }
@@ -519,7 +519,7 @@ int CreateCondition_Syscall(int debugInt){
         kCV[nextCVIndex] = tempCV;
         nextCVIndex++;
     } else {
-        printf("ERROR: Maximum number of CV's reached. \n");
+        printf("\nERROR: Cannot create, maximum number of CV's reached. \n\n");
     }
     CVTableLock->Release();
     return nextCVIndex-1;
@@ -552,7 +552,7 @@ void Wait_Syscall(int index, int lockIndex){
         KernelLock* cvLock = kLocks[lockIndex];
         kCV[index]->condition->Wait(cvLock->lock);
     } else {
-        printf("ERROR: Index exceeds bounds.\n");
+        printf("\nERROR: Cannot wait, index exceeds bounds.\n\n");
     }
     return;
 }
@@ -564,7 +564,7 @@ void Signal_Syscall(int index, int lockIndex){
             kCV[index]->condition->Signal(cvLock->lock);
         }
     } else {
-        printf("ERROR: Index exceeds bounds.\n");
+        printf("\nERROR: Cannot signal, index exceeds bounds.\n\n");
     }
     return;
 }
@@ -574,7 +574,7 @@ void Broadcast_Syscall(int index, int lockIndex){
         KernelLock* cvLock = kLocks[lockIndex];
         kCV[index]->condition->Broadcast(cvLock->lock);
     } else {
-        printf("ERROR: Index exceeds bounds.\n");
+        printf("\nERROR: Cannot broadcast, index exceeds bounds.\n\n");
     }
     return;
 }
