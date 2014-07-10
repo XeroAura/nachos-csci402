@@ -661,7 +661,21 @@ int Exit_Syscall(){
     return -1;
 }
 
-int handleMemoryFull(){
+int handleMemoryFull(){ //Evict a page based on flag evictMethod 0 - RAND, 1 - FIFO
+//Evict a page of memory and return that page number
+//Selects and evicts a page from memory
+// Lock->Acquire() //global lock
+//     1. Select a page - random or FIFO. Put a global variable in system.h
+// ppn.use = true;
+// Lock->Release()
+//     2. Is selected page dirty? Write to swap file if so.
+//         a. if(ipt[ppn].dirty) { 
+//             i. Find a byte offset in swap file that is not used.
+//             ii. Need a swap file bitmap, set to size 1000
+//             iii. Do a find and give return value to SwapPage, check for -1 and print message/exit Nachos if so
+//             iv. swap->WriteAt( MainMem Location(PPN*PageSize) , PageSize, SwapPage*PageSize);
+//             v. Update PageTable for evicted page. Use IPT to get to the PageTable pointer, not currentThread->space->PageTable
+// Set ppn.use = false;
 
 	return -1;
 }

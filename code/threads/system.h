@@ -101,7 +101,8 @@ extern int currentTLB;
 extern IPTEntry *ipt;
 extern Lock* IPTLock;
 
-extern OpenFile* swap;
+extern OpenFile* swapFile;
+extern int evictMethod; //0 - RAND, 1 - FIFO
 
 #endif
 

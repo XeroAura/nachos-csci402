@@ -63,6 +63,9 @@ extern void MailTest(int networkID);
 #ifdef THREADS
 extern void Problem2(void), TestSuite(void);
 #endif
+#ifdef CHANGED
+extern int evictMethod; //Determine which method to evict -PRAND or -PFIFO
+#endif
 //----------------------------------------------------------------------
 // main
 // 	Bootstrap the operating system kernel.  
@@ -151,6 +154,14 @@ main(int argc, char **argv)
             argCount = 2;
         }
 #endif // NETWORK
+#ifdef CHANGED
+        if (!strcmp(*argv, "-PRAND")) {
+	   		evictMethod = 0;
+        }
+        if (!strcmp(*argv, "-PFIFO")) {
+	    	evictMethod = 1;
+        }
+#endif
     }
 
     currentThread->Finish();	// NOTE: if the procedure "main" 

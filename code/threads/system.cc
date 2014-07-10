@@ -46,10 +46,11 @@ const int MAX_CVS = 500;
 KernelLock* kLocks[MAX_LOCKS];
 KernelCV* kCV[MAX_CVS];
 
+OpenFile* swapFile;
 int currentTLB;
 IPTEntry *ipt;
 Lock* IPTLock;
-OpenFile* swap;
+int evictMethod;
 #endif
 
 // External definition, to allow us to take a pointer to this function
@@ -197,13 +198,14 @@ for (int i = 0; i < MAX_CVS; i++){
 currentTLB = 0;
 ipt = new IPTEntry[NumPhysPages];
 IPTLock = new Lock("IPTLock");
-//swap = fileSystem->Open(swap);
+swapFile = fileSystem->Open("swap");
+evictMethod = 0;
 
 #endif    
 }
 
 //----------------------------------------------------------------------
-// Cleanup
+// Cleanup"
 // 	Nachos is halting.  De-allocate global data structures.
 //----------------------------------------------------------------------
 void
