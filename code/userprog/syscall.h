@@ -46,6 +46,15 @@
 
 #define SC_MyWrite  20
 
+#define SC_CreateMV  21
+#define SC_DestroyMV  22
+#define SC_GetMV  23
+#define SC_SetMV  24
+
+
+
+
+
 #define MAXFILENAME 256
 
 #ifndef IN_ASM
@@ -179,6 +188,23 @@ int CreateCondition(int debugInt);
 void DestroyCondition(int index);
 
 void MyWrite(int vaddr, int len, int one, int two);
+
+
+
+#ifdef CHANGED
+/* System call to create a new monitor variable. */
+int CreateMV();
+
+/* System call to destroy a monitor variable. */
+void DestroyMV(int index);
+
+/* System call to get a monitor variable at index. */
+int GetMV(int index);
+
+/* System call to set a monitor variable to a new value. */
+void SetMV(int index, int newValue);
+#endif
+
 #endif
 
 

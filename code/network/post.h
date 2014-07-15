@@ -25,6 +25,8 @@
 
 #include "copyright.h"
 
+using namespace std;
+
 #ifndef POST_H
 #define POST_H
 

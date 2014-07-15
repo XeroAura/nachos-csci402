@@ -47,6 +47,9 @@ KernelLock* kLocks[MAX_LOCKS];
 KernelCV* kCV[MAX_CVS];
 #endif
 
+#ifdef CHANGED
+int MVArray[500];
+#endif
 // External definition, to allow us to take a pointer to this function
 extern void Cleanup();
 
@@ -190,6 +193,12 @@ for (int i = 0; i < MAX_CVS; i++){
 }
 
 #endif    
+
+#ifdef CHANGED
+for (int i = 0; i < 500; i++){
+    MVArray[i] = -1;
+}
+#endif
 }
 
 //----------------------------------------------------------------------

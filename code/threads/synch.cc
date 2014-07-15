@@ -118,7 +118,7 @@ Semaphore::V()
 Lock::Lock(char* debugName){
   name = debugName;
   isFree = true;
-  waitList = new std::queue<Thread*>;
+  waitList = new List;
 }
 
 //----------------------------------------------------------------------
@@ -128,9 +128,6 @@ Lock::Lock(char* debugName){
 //----------------------------------------------------------------------
 
 Lock::~Lock() {
-  while (!waitList->empty()){
-    waitList->pop();
-  }
   delete waitList;
 }
 
@@ -155,7 +152,7 @@ void Lock::Acquire() {
     isFree = false;
     lockOwner = currentThread;
   }else{
-    waitList->push(currentThread);
+    waitList->Append((void*)currentThread);
     currentThread->Sleep();
   }
   (void)interrupt->SetLevel(oldLevel);
@@ -182,9 +179,9 @@ void Lock::Release() {
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
-  if (!waitList->empty()){
-    Thread *thread = waitList->front();
-    waitList->pop();
+  if (!waitList->IsEmpty()){
+    Thread* thread;
+    thread = (Thread *)waitList->Remove();
     scheduler->ReadyToRun(thread);
     lockOwner = thread;
     //    std::cout << getName() << ": " << "Passing ownership of " << getName() << " to " << lockOwner->getName() << std::endl;
@@ -205,7 +202,7 @@ void Lock::Release() {
 Condition::Condition(char* debugName) {
   name = debugName;
   waitingLock = NULL;
-  waitList = new std::queue<Thread*>;
+  waitList = new List;
 }
 
 //----------------------------------------------------------------------
@@ -216,9 +213,6 @@ Condition::Condition(char* debugName) {
 //----------------------------------------------------------------------
 
 Condition::~Condition() {
-  while(!waitList->empty()){
-    waitList->pop();
-  }
   delete waitList;
 }
 
@@ -247,7 +241,7 @@ void Condition::Wait(Lock* conditionLock){
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
-  waitList->push(currentThread);
+  waitList->Append((void*) currentThread);
   conditionLock->Release();
   currentThread->Sleep();
   conditionLock->Acquire();
@@ -267,7 +261,7 @@ void Condition::Wait(Lock* conditionLock){
 
 void Condition::Signal(Lock* conditionLock) {
   IntStatus oldLevel = interrupt->SetLevel(IntOff);
-  if (waitList->empty()){
+  if (waitList->IsEmpty()){
     printf("Nothing waiting on this CV.\n");
     (void)interrupt->SetLevel(oldLevel);
     return;
@@ -277,10 +271,9 @@ void Condition::Signal(Lock* conditionLock) {
     (void)interrupt->SetLevel(oldLevel);
     return;
   }
-  Thread *thread = waitList->front();
-  waitList->pop();
+  Thread* thread = (Thread *)waitList->Remove();
   scheduler->ReadyToRun(thread);
-  if (waitList->empty()){
+  if (waitList->IsEmpty()){
     waitingLock = NULL;
   }
   (void)interrupt->SetLevel(oldLevel);
@@ -294,7 +287,7 @@ void Condition::Signal(Lock* conditionLock) {
 //----------------------------------------------------------------------
 
 void Condition::Broadcast(Lock* conditionLock) {
-  while(!(waitList->empty())){
+  while(!(waitList->IsEmpty())){
     Signal(conditionLock);
   }
 }

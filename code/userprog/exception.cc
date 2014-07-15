@@ -34,6 +34,8 @@ int nextLockIndex = 0;
 Lock* lockTableLock = new Lock("lockTableLock");
 int nextCVIndex = 0;
 Lock* CVTableLock = new Lock("CVTableLock");
+int nextMVIndex = 0;
+Lock* MVTableLock = new Lock("MVTableLock");
 extern ProcessEntry* processTable[10];
 extern int processTableCount;
 extern Lock* processTableLock;
@@ -41,6 +43,7 @@ extern const int MAX_CVS;
 extern const int MAX_LOCKS;
 extern KernelLock* kLocks[];
 extern KernelCV* kCV[]; 
+extern int MVArray[500];
 
 #ifdef CHANGED
 bool
@@ -661,6 +664,53 @@ int Exit_Syscall(){
 
 #endif
 
+#ifdef CHANGED
+int CreateMV_Syscall(){
+    MVTableLock->Acquire();
+    MVArray[nextMVIndex] = 0;
+    nextMVIndex++;
+    MVTableLock->Release();    
+    return 0;
+}
+
+void DestroyMV_Syscall(int index){
+    if (MVArray[index] != -1){
+        MVTableLock->Acquire();
+        MVArray[index] = NULL;
+        MVTableLock->Release();
+    } else {
+        printf("ERROR: No MV at this index.\n");
+    }
+}
+
+int GetMV_Syscall(int index){
+    if (MVArray[index] != -1 && MVArray[index] != NULL){
+        return MVArray[index];
+    } else if (MVArray[index] == -1){
+        printf("ERROR: MV at index %d has not been created. \n", index);
+    } else {
+        printf("ERROR: MV at index %d has already been deleted. \n", index);
+    }
+    return -1;
+}
+
+void SetMV_Syscall(int index, int newValue){
+    if (MVArray[index] != -1 && MVArray[index] != NULL){
+        MVTableLock->Acquire();
+        MVArray[index] = newValue;
+        MVTableLock->Release();
+    } else if (MVArray[index] == -1){
+        printf("ERROR: MV at index %d has not been created.\n",index);
+    } else {
+        printf("ERROR: MV at index %d has already been deleted. \n", index);
+    }
+    return;
+}
+
+#endif
+
+
+
 void ExceptionHandler(ExceptionType which) {
     int type = machine->ReadRegister(2); // Which syscall?
     int rv=0; 	// the return value from a syscall
@@ -769,6 +819,27 @@ void ExceptionHandler(ExceptionType which) {
             DEBUG('a', "Broadcast syscall.\n");
             Broadcast_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
             break;
+
+            case SC_CreateMV:
+            DEBUG('a', "Create Monitor Variable(MV) syscall.\n");
+            rv = CreateMV_Syscall();
+            break;
+
+            case SC_DestroyMV:
+            DEBUG('a', "Destroy MV syscall.\n");
+            DestroyCondition_Syscall(machine->ReadRegister(4));
+            break;
+
+            case SC_GetMV:
+            DEBUG('a', "Get MV syscall.\n");
+            rv = GetMV_Syscall(machine->ReadRegister(4));
+            break;
+
+            case SC_SetMV:
+            DEBUG('a', "Set MV syscall.\n");
+            SetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+            break;
+
 	    #endif
         }
 

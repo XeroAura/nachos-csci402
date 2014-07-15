@@ -16,6 +16,8 @@
 #include "stats.h"
 #include "timer.h"
 
+using namespace std;
+
 // Initialization and cleanup routines
 extern void Initialize(int argc, char **argv); 	// Initialization,
 						// called before anything else
@@ -95,7 +97,11 @@ extern const int MAX_CVS;
 extern const int MAX_LOCKS;
 extern KernelLock* kLocks[];
 extern KernelCV* kCV[]; 
+extern int MVArray[500];
 
+#endif
+
+#ifdef CHANGED
 
 #endif
 
