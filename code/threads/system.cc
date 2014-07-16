@@ -203,6 +203,9 @@ currentTLB = 0;
 ipt = new IPTEntry[NumPhysPages];
 for(int i = 0; i < NumPhysPages; i++){
     ipt[i].use = FALSE;
+    ipt[i].valid = FALSE;
+    ipt[i].readOnly = FALSE;
+    ipt[i].dirty = FALSE;
 }
 IPTLock = new Lock("IPTLock");
 bool swapFileMake = fileSystem->Create("swap", PageSize*1000);

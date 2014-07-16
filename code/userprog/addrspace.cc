@@ -124,7 +124,6 @@ Lock* bitMapLock = new Lock("bitMapLock");
 
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	NoffHeader noffH;
-	unsigned int i;
 	unsigned int size;
 
 	pageBitMap = new BitMap(50);
@@ -144,6 +143,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	codeSize = noffH.code.size;
 	dataSize = noffH.initData.size + noffH.uninitData.size;
 	size = noffH.code.size + noffH.initData.size + noffH.uninitData.size ;
+	stackPageStart = divRoundUp(noffH.code.size + noffH.initData.size+ noffH.uninitData.size, PageSize);
 	executablePageCount = divRoundUp(noffH.code.size + noffH.initData.size, PageSize);
 	numPages = divRoundUp(size, PageSize) + 400; //<-- added in this semicolon  //divRoundUp(UserStackSize,PageSize);
 	// printf("NumPages: %d\n", numPages);
@@ -160,7 +160,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	// first, set up the translation
 	pageTableLock->Acquire();
 	pageTable = new PageTableEntry[numPages];
-	for (i = 0; i < numPages; i++) {
+	for (int i = 0; i < numPages; i++) {
 		
 		//bitMapLock->Acquire();
 		//int ppn = memoryBitMap->Find(); //Use BitMap Find to get an unused page of memory
@@ -172,13 +172,16 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 			pageTable[i].virtualPage = i;
 			//pageTable[i].physicalPage = ppn;
 			pageTable[i].valid = FALSE; //TRUE
-			pageTable[i].use = TRUE;
+			pageTable[i].use = FALSE;
 			pageTable[i].dirty = FALSE;
 			pageTable[i].readOnly = FALSE;
 			pageTable[i].diskLocation = 2;
-			if(i < executablePageCount)
+			if(i < executablePageCount){
+				pageTable[i].offset = 40+i*PageSize;
 				pageTable[i].diskLocation = 0;
-			pageTable[i].offset = 40+i*PageSize;
+			} else{
+				pageTable[i].diskLocation = 2;
+			}
 
 			// IPTLock->Acquire();
 			// ipt[ppn].virtualPage = i;
@@ -218,7 +221,7 @@ AddrSpace::AllocatePages(){ //Function to allocate 8 pages on the stack for a ne
 		pageBitMapLock->Release();
 		return -1;
 	}
-	pageStart = (executablePageCount + pageStart*8) * PageSize; 
+	pageStart = (stackPageStart + pageStart*8) * PageSize; 
 	pageBitMapLock->Release();
 	return pageStart;
 }
@@ -229,7 +232,10 @@ AddrSpace::EmptyPages(){
 	bitMapLock->Acquire();
 	IPTLock->Acquire();
 	for(int i = 0; i < numPages; i++){
-		if(ipt[pageTable[i].physicalPage].as == this && ipt[pageTable[i].physicalPage].valid == TRUE){
+		if(ipt[pageTable[i].physicalPage].as == this 
+			&& ipt[pageTable[i].physicalPage].valid == TRUE 
+			&& ipt[pageTable[i].physicalPage].virtualPage == i){
+
 			ipt[pageTable[i].physicalPage].valid = FALSE; //Mark as invalid
 
 			memoryBitMap->Clear(pageTable[i].physicalPage); //Free up page in physical memory
@@ -263,7 +269,10 @@ AddrSpace::Empty8Pages(int startPage){
 	bitMapLock->Acquire();
 	IPTLock->Acquire();
 	for(int i = 0; i < 8; i++){
-		if(ipt[pageTable[startPage+i].physicalPage].as == this && ipt[pageTable[startPage+i].physicalPage].valid == TRUE){
+		if(ipt[pageTable[startPage+i].physicalPage].as == this 
+			&& ipt[pageTable[startPage+i].physicalPage].valid == TRUE 
+			&& ipt[pageTable[startPage+i].physicalPage].virtualPage == (startPage+i)){
+
 			ipt[pageTable[startPage+i].physicalPage].valid = FALSE; //Mark as invalid
 
 			memoryBitMap->Clear(pageTable[startPage+i].physicalPage); //Free up page in physical memory

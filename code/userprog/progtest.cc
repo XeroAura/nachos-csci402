@@ -51,7 +51,7 @@ StartProcess(char *filename)
     ThreadEntry* te = new ThreadEntry();
     te->myThread = currentThread;
     // printf("progTest current: %d\n", currentThread);
-    te->firstStackPage = space->executablePageCount*PageSize;
+    te->firstStackPage = space->stackPageStart*PageSize;
 
     ProcessEntry* pe = new ProcessEntry();
     pe->threadCount = 1;
