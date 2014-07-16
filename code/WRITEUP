@@ -1,65 +1,181 @@
-Title:  Writeup for Project 2, Summer 2014
-Date:  6/23/2014
+Title:  Writeup for Project 3, Summer 2014
+Date:  7/16/2014
 Group Num 1 : Name            Email            Student ID
               Philip Lee      leephili@usc.edu 3759772007
-              Byron Choy	  byroncho@usc.edu 7784820771
+              Byron Choy	byroncho@usc.edu 7784820771
               
 I. Requirements:
+Implement the management for TLB by handling PageFaultExceptions.
+Handle the TLB when context switching.
+Implement virtual memory by use of a swap file.
+Add function to choose between random and fifo for page eviction method.
+Implement inverted page table to allow this to work.
 
-- Describe what's your understanding of the requirements from the assignment statement. With the requirement analysis, you would be clear about what you are supposed to do.
 
 II. Assumptions:
+Since this is built on top of assignment 2, assume the previous assignment is done correctly.
+Makefile has been modified to build any additional files correctly. (Own tests and extra code files.)
 
-            - Reasonable assumptions you take for your scheme.
 
 III. Design:
+The TLB has to be populated whenever there is a page fault exception thrown.
+This is done through the exception handler.
+The newest page is added to the TLB through fifo page eviction method.
+The TLB has to be invalidated when there is a context switch.
+This is done through modifying the SaveUserState() method in thread.cc.
+It disables interrupts, as usual when handling TLB, and marks each page invalid.
 
-- This section is to cover your logic and ideas as to how  you are going to solve the problem presented.  This should include a description of classes, algorithms, etc.
+Implementing the IPT to keep track of physical pages of memory was done next.
+We created an array of NumPhysPages (32 in this case) to keep track of each physical page.
+The fields for each IPT entry included the ones provided in the TranslationEntry struct as well as an additional field for recording AddressSpace.
+The IPT was populated whenever a physical page was changed.
+This was mostly in the PageFaultException handler.
+However, additional code was added into the AddressSpace functions whenever a physical page was not needed anymore as a result of an Exit syscall.
+
+As a result of limited physical pages, nothing is preloaded into memory anymore.
+A function called handleIPTMiss was created to handle PageFaultExceptions as a result.
+Here we find a physical page of memory to use and load the corresponding code or data into it.
+The PageTable and IPT are updated with this new information, as is the old page's information.
+In the case of no more free physical pages, which will occur as soon as 32 physical pages are used up, nachos will call handleMemoryFull().
+Here an algorithm is used to determine which physical page to evict for use.
+The two algorithms implemented are FIFO and random page eviction.
+Random just randomly selects a page to evict, as long as the page isn't already being evicted by another memory full event.
+The fifo algorithm creates a list that holds all the physical pages in use.
+When the fifo portion is run, the first page in the list is used and added to the end.
+Also, when a program exits, the physical page is freed, so the corresponding page is removed from the fifo queue.
+
 
 IV. Implementation:
++ Files Modified
+threads/system.h
+extern int currentTLB; //Int to keep track of which TLB entry to evict for fifo
+extern IPTEntry *ipt; //Inverted page table array
+extern Lock* IPTLock; //Lock to stop IPT race conditions
+extern int evictMethod; //0 - RAND, 1 - FIFO, set by flags when running nachos
+extern OpenFile* swapFile; //Swap file used for virtual memory
+extern BitMap* swapBitMap; //BitMap to keep track of open swap locations in file
+extern Lock* swapLock; //Lock to stop swap file race conditions
+extern std::list<int> *fifoQueue; //List used for fifo queue
+extern Lock* fifoLock; //Lock used for fifo queue
 
-            + Files Modified
++ Files added
+userprog/IPTEntry.h
+class IPTEntry { //The modified TranslationEntry used for the inverted page table
+  public:
+    int virtualPage;    // The page number in virtual memory.
+    int physicalPage;   // The page number in real memory (relative to the
+                  //  start of "mainMemory"
+    bool valid;         // If this bit is set, the translation is ignored.
+                  // (In other words, the entry hasn't been initialized.)
+    bool readOnly;      // If this bit is set, the user program is not allowed
+                  // to modify the contents of the page.
+    bool use;           // This bit is set by the hardware every time the
+                  // page is referenced or modified.
+    bool dirty;         // This bit is set by the hardware every time the
+                  // page is modified.
+    AddrSpace* as; //To record address space for future comparison and access
+    
+};
 
-            + Files added
++ Data Structures added, and the file they were added to.
+userprog/addrspace.h
+class PageTableEntry { //Modified TranslationEntry used for PageTable
+  public:
+    int virtualPage;    // The page number in virtual memory.
+    int physicalPage;   // The page number in real memory (relative to the
+            //  start of "mainMemory"
+    bool valid;         // If this bit is set, the translation is ignored.
+            // (In other words, the entry hasn't been initialized.)
+    bool readOnly;  // If this bit is set, the user program is not allowed
+            // to modify the contents of the page.
+    bool use;           // This bit is set by the hardware every time the
+            // page is referenced or modified.
+    bool dirty;         // This bit is set by the hardware every time the
+            // page is modified.
+    int diskLocation; //0 - exec, 1 - swap, 2 - neither
+    int offset; //Byte offset of page in file (whether in swap or exec)
+};
 
-            + Data Structures added, and the file they were added to.
++ Data Structures modified, and the file they were added to.
 
-            + Data Structures modified, and the file they were added to.
++ Functions added and in which file.
+userprog/exception.cc
+int handleMemoryFull(){ 
+      //Evict a page based on flag evictMethod 0 - RAND, 1 - FIFO
+}
 
-                        -For example,
+int handleIPTMiss(int vpn){
+      //Handle inverted page table missed, called from PFE handler
+}
 
-                                    class Lock                -- in file threads.cc/threads.h
++ Functions modified and in which file.
+threads/system.cc
+void Initialize(int argc, char **argv) {
+      //Initialize all of the variables created in system.h
+}
 
-                                    {
+userprog/addrspace.cc
+AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
+      //The constructor of the addrspace was modified to now preload the exec into memory
+}
+AddrSpace::Empty8Pages(int startPage){ / AdrrSpace::EmptyPages(){
+      //Added code to evict corresponding pages from TLB and IPT when deleting pages not used by exiting threads/processes
+}
 
-                                                //. Modified fields.
+threads/thread.cc
+Thread::SaveUserState(){
+      //Added the function to invalidate the TLB when context switching here
+}
 
-                                    }
+userprog/exception.cc
+void ExceptionHandler(ExceptionType which) {
+      //Added code to handle PageFaultException
+}
 
-            + Functions added and in which file.
-
-            + Functions modified and in which file.
 
 V. Testing:  (For each test case, you must show)
++ How to test
+Compile with gmake as usual in network folder.
+Tests for part 1/2:
+Running nachos [-PRAND OR -PFIFO] -x [../test/matmult OR ../test/matmult_fork OR ../test/matmult_exec]
 
-            + How to test
 
-- How to run the test cases, the commands, the arguments and so on.
++ Test Output
+Tests for part 1/2:
+For the matmult test, the output should be Exit: 7220 to show the test exited correctly.
+The matmult_fork and matmult_exec test should have a combination of one Exit: 0 and two Exit: 7220 outputs.
 
-            + Test Output
-
-- Describe the testing output. You don't have to dump all the output info. Just make sure your description can exactly reflect your output.
 
 VI. Discussion:
++ Experiment expectation.  (What you hope will happen.)
+Tests for part 1/2:
+The tests should end with exit calls with returned value of 7220 to show the matrices multiplication ended with values of 7220.
+The exit 0 should be when main function exits.
 
-            + Experiment expectation.  (What you hope will happen.)
 
-            + Experiment result.  (What actually happens.)
++ Experiment result.  (What actually happens.)
+Tests for part 1/2:
+nachos -x ../test/matmult_exec
+Exit: 0
+Exit: 7220
+Exit: 7220
+No threads ready or runnable, and no pending interrupts.
+Assuming the program completed.
+Machine halting!
 
-            + Explanation
+nachos -x ../test/matmult_fork
+Exit: 0
+Exit: 7220
+Exit: 7220
+No threads ready or runnable, and no pending interrupts.
+Assuming the program completed.
+Machine halting!
 
-                        - Explain your experiment result.
+
++ Explanation
+Tests for part 1/2:
+Each of these tests succeeded as the return value show the memory pages were correctly handled.
+If the return value of the test was not 7220, then I would know the memory pages were scrambled at some point and incorrect values were being passed.
+
 
 VII. Miscellaneous:
-
-- Whatever else you want the grader know about your development.  You can create your own subsections headings here.

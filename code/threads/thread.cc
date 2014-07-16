@@ -304,8 +304,8 @@ Thread::SaveUserState()
     #ifdef CHANGED
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
     for(int x = 0; x < TLBSize; x++){
-        if(machine->tlb[x].dirty == TRUE){
-            
+        if(machine->tlb[x].valid == TRUE && machine->tlb[x].dirty == TRUE){
+            ipt[machine->tlb[x].physicalPage].dirty = TRUE; //Pass IPT dirty bit
         }
         machine->tlb[x].valid = FALSE;
     } 

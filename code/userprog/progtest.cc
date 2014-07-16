@@ -50,11 +50,14 @@ StartProcess(char *filename)
     processTableLock->Acquire();
     ThreadEntry* te = new ThreadEntry();
     te->myThread = currentThread;
+    // printf("progTest current: %d\n", currentThread);
     te->firstStackPage = space->executablePageCount*PageSize;
 
     ProcessEntry* pe = new ProcessEntry();
     pe->threadCount = 1;
+    pe->threadTotal = 1;
     pe->as = space;
+    pe->threads[0] = te;
 
     processTable[0] = pe;
     processTableLock->Release();

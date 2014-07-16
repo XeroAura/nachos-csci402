@@ -51,6 +51,10 @@ int currentTLB;
 IPTEntry *ipt;
 Lock* IPTLock;
 int evictMethod;
+BitMap* swapBitMap;
+Lock* swapLock;
+std::list<int> *fifoQueue;
+Lock* fifoLock;
 #endif
 
 // External definition, to allow us to take a pointer to this function
@@ -197,9 +201,24 @@ for (int i = 0; i < MAX_CVS; i++){
 
 currentTLB = 0;
 ipt = new IPTEntry[NumPhysPages];
+for(int i = 0; i < NumPhysPages; i++){
+    ipt[i].use = FALSE;
+}
 IPTLock = new Lock("IPTLock");
+bool swapFileMake = fileSystem->Create("swap", PageSize*1000);
+if(swapFileMake == false){
+    printf("Swap file creation failed.");
+    ASSERT(0);
+}
 swapFile = fileSystem->Open("swap");
 evictMethod = 0;
+swapBitMap = new BitMap(1000);
+swapLock = new Lock("swapLock");
+fifoQueue = new std::list<int>;
+// for(int i = 0; i < NumPhysPages; i++){
+//     fifoQueue.push_back(i);
+// }
+fifoLock = new Lock("fifoLock");
 
 #endif    
 }
