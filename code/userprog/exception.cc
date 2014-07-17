@@ -602,8 +602,8 @@ void MyWrite_Syscall(unsigned int vaddr, int len, int one, int two){
 
 
 int Exit_Syscall(){
-    // currentThread->Finish();
-    // printf("CurrentThread: %d\n", currentThread);
+    //currentThread->Finish();
+    // printf("Exit syscall: CurrentThread: %d\n", currentThread);
     int count = 0;
     int slot = 0;
     processTableLock->Acquire();
@@ -618,6 +618,7 @@ int Exit_Syscall(){
 
     // 1. Last thread in the last process, just call halt
     if(count == 1){
+        // printf("Exit syscall: halt\n");
         interrupt->Halt();
     }
 
@@ -627,6 +628,7 @@ int Exit_Syscall(){
     //     b. Reclaim all locks/CVs that were allocated to that process
 
     if(processTable[slot]->threadTotal == 1){ //Last thread in process
+        // printf("Exit syscall: second\n");
         for (int i = 0; i < MAX_LOCKS; i++){
             if (kLocks[i]->as == processTable[slot]->as){
                 DestroyLock_Syscall(i);
@@ -645,6 +647,7 @@ int Exit_Syscall(){
         ProcessEntry* blank = new ProcessEntry();
         processTable[slot] = blank;
         processTableLock->Release();
+        // printf("Exit syscall: second end\n");
         currentThread->Finish();
 
         return 0;
@@ -655,14 +658,15 @@ int Exit_Syscall(){
     for(int j = 0; j< processTable[slot]->threadCount; j++){
         if(processTable[slot]->threads[j] != NULL){
             if( currentThread == processTable[slot]->threads[j]->myThread){
-        	// printf("CurrentThread: %d, myThread: %d\n", currentThread, processTable[slot]->threads[j]->myThread);
-            processTable[slot]->as->Empty8Pages(processTable[slot]->threads[j]->firstStackPage);
-            processTable[slot]->threads[j] = NULL;
-            processTable[slot]->threadTotal--;
-            processTableLock->Release();
+                // printf("Exit syscall: third\n");
+            	// printf("CurrentThread: %d, myThread: %d\n", currentThread, processTable[slot]->threads[j]->myThread);
+                processTable[slot]->as->Empty8Pages(processTable[slot]->threads[j]->firstStackPage);
+                processTable[slot]->threads[j] = NULL;
+                processTable[slot]->threadTotal--;
+                processTableLock->Release();
 
-            currentThread->Finish();
-            return 1;
+                currentThread->Finish();
+                return 1;
             }
         }
     }

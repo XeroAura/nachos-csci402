@@ -230,7 +230,6 @@ void
 AddrSpace::EmptyPages(){
 	pageTableLock->Acquire();
 	bitMapLock->Acquire();
-	IPTLock->Acquire();
 	for(int i = 0; i < numPages; i++){
 		if(ipt[pageTable[i].physicalPage].as == this 
 			&& ipt[pageTable[i].physicalPage].use == FALSE
@@ -258,7 +257,6 @@ AddrSpace::EmptyPages(){
 			}
 		}
 	}
-	IPTLock->Release();
 	bitMapLock->Release();
 	pageTableLock->Release();
 }
@@ -268,7 +266,6 @@ AddrSpace::Empty8Pages(int startPage){
 	startPage = startPage/PageSize;
 	pageTableLock->Acquire();
 	bitMapLock->Acquire();
-	IPTLock->Acquire();
 	for(int i = 0; i < 8; i++){
 		if(ipt[pageTable[startPage+i].physicalPage].as == this 
 			&& ipt[pageTable[startPage+i].physicalPage].use == FALSE
@@ -296,7 +293,6 @@ AddrSpace::Empty8Pages(int startPage){
 			}
 		}
 	}
-	IPTLock->Release();
 	bitMapLock->Release();
 	pageTableLock->Release();
 
