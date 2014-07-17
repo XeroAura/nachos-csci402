@@ -233,6 +233,7 @@ AddrSpace::EmptyPages(){
 	IPTLock->Acquire();
 	for(int i = 0; i < numPages; i++){
 		if(ipt[pageTable[i].physicalPage].as == this 
+			&& ipt[pageTable[i].physicalPage].use == FALSE
 			&& ipt[pageTable[i].physicalPage].valid == TRUE 
 			&& ipt[pageTable[i].physicalPage].virtualPage == i){
 
@@ -270,6 +271,7 @@ AddrSpace::Empty8Pages(int startPage){
 	IPTLock->Acquire();
 	for(int i = 0; i < 8; i++){
 		if(ipt[pageTable[startPage+i].physicalPage].as == this 
+			&& ipt[pageTable[startPage+i].physicalPage].use == FALSE
 			&& ipt[pageTable[startPage+i].physicalPage].valid == TRUE 
 			&& ipt[pageTable[startPage+i].physicalPage].virtualPage == (startPage+i)){
 

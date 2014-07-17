@@ -175,9 +175,9 @@ void Lock::Release() {
   IntStatus oldLevel = interrupt->SetLevel(IntOff);
   if (currentThread != lockOwner){
     if (lockOwner != NULL){
-      printf("Error: Only %s, the owner of %s, can release the lock. \n", lockOwner->getName(), getName());
+      //printf("Error: Only %s, the owner of %s, can release the lock. \n", lockOwner->getName(), getName());
     } else {
-      printf("Error: The lock %s has not been acquired yet.\n", getName());
+      //printf("Error: The lock %s has not been acquired yet.\n", getName());
     }
     (void)interrupt->SetLevel(oldLevel);
     return;

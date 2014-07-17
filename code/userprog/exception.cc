@@ -681,13 +681,10 @@ int handleMemoryFull(){ //Evict a page based on flag evictMethod 0 - RAND, 1 - F
         while(true){
             ppn = rand()%NumPhysPages;
             // printf("ppn:%d\n", ppn);
-            IPTLock->Acquire();
             if(ipt[ppn].use == FALSE){ //Make sure not in use by another eviction
                 ipt[ppn].use = TRUE; //Mark in use by this eviction
-                IPTLock->Release();
                 break;
             }
-            IPTLock->Release();
         }
     }
     else{ //FIFO
@@ -710,7 +707,7 @@ int handleMemoryFull(){ //Evict a page based on flag evictMethod 0 - RAND, 1 - F
 
     IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
 	for(int i = 0; i < TLBSize; i++){
-		if(machine->tlb[i].physicalPage == ppn){
+		if(machine->tlb[i].physicalPage == ppn && machine->tlb[i].valid){
         	ipt[ppn].dirty = machine->tlb[i].dirty; //Pass dirty bit to IPT from TLB
 			machine->tlb[i].valid = FALSE; //Invalidate TLB entry
 			break;
@@ -718,7 +715,6 @@ int handleMemoryFull(){ //Evict a page based on flag evictMethod 0 - RAND, 1 - F
 	}
     (void) interrupt->SetLevel(oldLevel); // re-enable interrupts
 	
-	IPTLock->Acquire();
     if(ipt[ppn].dirty == TRUE){ //Check need to write to swap if page is dirty
         swapLock->Acquire();
         int offset = swapBitMap->Find(); //Find location in swap that is open
@@ -733,24 +729,26 @@ int handleMemoryFull(){ //Evict a page based on flag evictMethod 0 - RAND, 1 - F
         ipt[ppn].as->pageTable[ipt[ppn].virtualPage].offset = offset; //Set offset within swap
         ipt[ppn].as->pageTable[ipt[ppn].virtualPage].diskLocation = 1; //Set location to 1 for swap
         ipt[ppn].as-> pageTableLock->Release();
+
         // printf("Evicted physical page: %d, vpn: %d, AS: %d, Location: swap, Offset: %d\n", ppn, ipt[ppn].virtualPage, ipt[ppn].as, offset );
     }
     else{
-        // printf("Evicted physical page: %d, vpn: %d, AS: %d, Location: nowhere\n", ppn, ipt[ppn].virtualPage, ipt[ppn].as);
+        // printf("Evicted physical page: %d, vpn: %d, AS: %d, Location: %d\n", ppn, ipt[ppn].virtualPage, ipt[ppn].as, ipt[ppn].as->pageTable[ipt[ppn].virtualPage].diskLocation);
     }
 
-    IPTLock->Release();
 
     // printf("handleMemoryFull exit\n");
   	return ppn;
 }
 
 int handleIPTMiss(int vpn){
-    // printf("handleIPTMiss enter\n");
-	AddrSpace* as = currentThread->space;
+     // printf("handleIPTMiss enter\n");
+    AddrSpace* as = currentThread->space;
 	bitMapLock->Acquire();
 	int ppn = memoryBitMap->Find();
 	bitMapLock->Release();
+
+    IPTLock->Acquire();
 	if(ppn == -1){ //Out of physical pages
 		ppn = handleMemoryFull();
 	}
@@ -770,17 +768,17 @@ int handleIPTMiss(int vpn){
 		as->pageTable[vpn].valid = TRUE;
         as->pageTableLock->Release();
 
-		IPTLock->Acquire();
 		ipt[ppn].virtualPage = vpn;
 		ipt[ppn].physicalPage = ppn;
 		ipt[ppn].valid = TRUE;
 		ipt[ppn].dirty = FALSE;
 		ipt[ppn].readOnly = FALSE;
 		ipt[ppn].as = as;
-		IPTLock->Release();
+    // printf("Populating IPT - PPN: %d, VPN: %d, AS: %d, DL: %d, Offset: %d\n", ppn, vpn, as, as->pageTable[vpn].diskLocation, as->pageTable[vpn].offset);
 	
 		as->file->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, as->pageTable[vpn].offset);
     }
+
 	else if(as->pageTable[vpn].diskLocation == 1){ //VPN is in swap
         as->pageTable[vpn].physicalPage = ppn;
         as->pageTable[vpn].valid = TRUE;
@@ -792,31 +790,28 @@ int handleIPTMiss(int vpn){
         swapBitMap->Clear(as->pageTable[vpn].offset);
         swapLock->Release();
 
-		IPTLock->Acquire();
 		ipt[ppn].virtualPage = vpn;
 		ipt[ppn].physicalPage = ppn;
 		ipt[ppn].valid = TRUE;
 		ipt[ppn].dirty = TRUE;
 		ipt[ppn].readOnly = FALSE;
 		ipt[ppn].as = as;
-		IPTLock->Release();
+    // printf("Populating IPT - PPN: %d, VPN: %d, AS: %d, DL: %d, Offset: %d\n", ppn, vpn, as, as->pageTable[vpn].diskLocation, as->pageTable[vpn].offset);
 	}
     else{ //VPN not in either
         as->pageTable[vpn].physicalPage = ppn;
         as->pageTable[vpn].valid = TRUE;
         as->pageTableLock->Release();
 
-        IPTLock->Acquire();
         ipt[ppn].virtualPage = vpn;
         ipt[ppn].physicalPage = ppn;
         ipt[ppn].valid = TRUE;
         ipt[ppn].dirty = FALSE;
         ipt[ppn].readOnly = FALSE;
         ipt[ppn].as = as;
-        IPTLock->Release();
+    // printf("Populating IPT - PPN: %d, VPN: %d, AS: %d, DL: %d, Offset: %d\n", ppn, vpn, as, as->pageTable[vpn].diskLocation, as->pageTable[vpn].offset);
     }
 
-    // printf("Populating IPT - PPN: %d, VPN: %d, AS: %d\n", ppn, vpn, as);
     // printf("handleIPTMiss exit\n");
     return ppn;
 }
@@ -945,7 +940,6 @@ void ExceptionHandler(ExceptionType which) {
     #ifdef CHANGED
     else if(which == PageFaultException){
 
-        IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
         // printf("PFE\n");
         int vpn = (machine-> ReadRegister(BadVAddrReg))/PageSize; //Find virtual page number 
 
@@ -956,17 +950,21 @@ void ExceptionHandler(ExceptionType which) {
         	if(ipt[i].as == as){
                 if(ipt[i].valid == TRUE ){
                     if(ipt[i].virtualPage == vpn){
+                        // printf("IPT USE FLAG: %d, ppn: %d, vpn: %d\n", ipt[i].use, i, ipt[i].virtualPage);
                         ppn = i;
                         break;
                     }
                 }
             }
         }
-        IPTLock->Release();
 
         if(ppn == -1){ //Handle IPT miss
+            IPTLock->Release();
             ppn = handleIPTMiss(vpn);
         }
+
+        IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+        IPTLock->Release();
 
         if(machine->tlb[currentTLB].valid == true){
             ipt[machine->tlb[currentTLB].physicalPage].dirty = machine->tlb[currentTLB].dirty;
@@ -980,11 +978,10 @@ void ExceptionHandler(ExceptionType which) {
         machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;		
 
         currentTLB = (currentTLB+1)%TLBSize;
-        
+        // printf("TLB UPdate - VPN: %d, PPN: %d\n", ipt[ppn].virtualPage, ppn);
         (void) interrupt->SetLevel(oldLevel); // re-enable interrupts
-        IPTLock->Acquire(); 
         ipt[ppn].use = FALSE; //Set free for other evict to use
-        IPTLock->Release();
+
     }
     #endif
     else {
