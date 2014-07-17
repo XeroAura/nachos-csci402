@@ -19,30 +19,42 @@ Makefile has been modified to build any additional files correctly. (Own tests a
 
 III. Design:
 The TLB has to be populated whenever there is a page fault exception thrown.
-This is done through the exception handler.
-The newest page is added to the TLB through fifo page eviction method.
+This is done through the exception handler with another else if statement added to it.
+The newest page is added to the TLB through fifo page eviction method by keeping a counter modulated by the TLBSize.
+Update the tlb with the information with the IPT entry using the physical page found matching to the virtual page number calculated.
+
 The TLB has to be invalidated when there is a context switch.
 This is done through modifying the SaveUserState() method in thread.cc.
-It disables interrupts, as usual when handling TLB, and marks each page invalid.
+It disables interrupts, as usual when handling the TLB, and marks each page invalid.
 
-Implementing the IPT to keep track of physical pages of memory was done next.
-We created an array of NumPhysPages (32 in this case) to keep track of each physical page.
-The fields for each IPT entry included the ones provided in the TranslationEntry struct as well as an additional field for recording AddressSpace.
+Implementing the inverted page table to keep track of physical pages of memory was done next.
+We created an array (called ipt) of NumPhysPages size (32 in this case) to keep track of each physical page.
+The fields for each IPTEntry included the ones provided in the TranslationEntry struct as well as an additional field for recording AddressSpace (as).
+
 The IPT was populated whenever a physical page was changed.
 This was mostly in the PageFaultException handler.
 However, additional code was added into the AddressSpace functions whenever a physical page was not needed anymore as a result of an Exit syscall.
+Here we need to invalidate any tlb entries that refer to the pages being cleared.
+The ipt valid bits for the physical pages need to be flagged false.
+Also remove the physical page from fifo queue if needed.
 
 As a result of limited physical pages, nothing is preloaded into memory anymore.
 A function called handleIPTMiss was created to handle PageFaultExceptions as a result.
-Here we find a physical page of memory to use and load the corresponding code or data into it.
+Here we find a physical page of memory to use by using Find() on the memory bit map and load the corresponding code or data into it.
 The PageTable and IPT are updated with this new information, as is the old page's information.
-In the case of no more free physical pages, which will occur as soon as 32 physical pages are used up, nachos will call handleMemoryFull().
+The page is filled with either executable code, swap data, or just nothing if not used yet.
+In the case of no more free physical pages, which will occur as soon as 32 physical pages are used up, nachos will call handleMemoryFull() to determine a page after getting -1 from Find() from the memory bit map.
 Here an algorithm is used to determine which physical page to evict for use.
 The two algorithms implemented are FIFO and random page eviction.
 Random just randomly selects a page to evict, as long as the page isn't already being evicted by another memory full event.
+Use the use field in the IPTEntry to keep track of if another rand is evicting the same page.
 The fifo algorithm creates a list that holds all the physical pages in use.
-When the fifo portion is run, the first page in the list is used and added to the end.
+When the fifo portion is run, the first page in the list is used and added to the end at the end of PageFaultExeption handler.
+Invalidate any tlb entries that refer to this physical page and copy dirty bits if needed.
+The page table, accessed through the ipt addrspace pointer, should also be updated with diskLocation and offset if the page evicted is dirty.
+
 Also, when a program exits, the physical page is freed, so the corresponding page is removed from the fifo queue.
+This should occur in the exit syscall or a function called by it.
 
 
 IV. Implementation:
@@ -101,36 +113,64 @@ class PageTableEntry { //Modified TranslationEntry used for PageTable
 + Functions added and in which file.
 userprog/exception.cc
 int handleMemoryFull(){ 
-      //Evict a page based on flag evictMethod 0 - RAND, 1 - FIFO
+    //Evict a page based on flag evictMethod 0 - RAND, 1 - fifo
+    //Use fifo or random to get a page
+    //If using rand, make sure that another thread isn't evicting the same page by using use flag in ipt entry
+    //If using fifo, pop the front of the queue for use
+    //Update tlb by invalidating matching entries
+    //If page is dirty according to ipt, write to swap file. Set diskLocation fields and offset to pageTable through ipt addrspace
 }
-
 int handleIPTMiss(int vpn){
-      //Handle inverted page table missed, called from PFE handler
+    //Handle inverted page table missed, called from PFE handler
+    //Find open page from memory bit map
+    //If unable to find an open page, call handleMemoryFull() to get a physical page to use
+    //If using fifo queue for eviction, readd the ppn returned to end of queue
+    //Update the page table with physical page mapping and valid
+    //Update ipt with ppn, vpn, valid, dirty, and addrspace
+    //Read in executable if necessary, else from swap, or just nothing
+    //Return ppn with page
 }
 
 + Functions modified and in which file.
 threads/system.cc
 void Initialize(int argc, char **argv) {
-      //Initialize all of the variables created in system.h
+    //Initialize all of the variables created in system.h
 }
 
 userprog/addrspace.cc
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
-      //The constructor of the addrspace was modified to now preload the exec into memory
-}
-AddrSpace::Empty8Pages(int startPage){ / AdrrSpace::EmptyPages(){
-      //Added code to evict corresponding pages from TLB and IPT when deleting pages not used by exiting threads/processes
-}
+    //The constructor of the addrspace was modified to now preload the exec into memory
+    //Comment out all IPT stuff in constructor from project 2
+    //Comment out the physical page assignment to the page table since no more preloading or large memory
+    //Comment out executable read in
 
-threads/thread.cc
-Thread::SaveUserState(){
-      //Added the function to invalidate the TLB when context switching here
+}
+AddrSpace::Empty8Pages(int startPage){ AND AdrrSpace::EmptyPages(){
+    //Added code to evict corresponding pages from TLB and IPT when deleting pages not used by exiting threads/processes
+    //Check the page table entry to be valid first, then check the ipt addressspace matches, use is false, valid is true, and virtual page matches the startPage and on.
+    //Clear the physical page to memoryBitMap
+    //Invalidate any TLB entries that refer to this physical page
+    //If using FIFO for page eviction, remove physical page from queue if there
 }
 
 userprog/exception.cc
 void ExceptionHandler(ExceptionType which) {
-      //Added code to handle PageFaultException
+    //Added code to handle PageFaultException to fault switch
+    //Calculate the VPN from BadVAddrReg divided by PageSize
+    //Check for the VPN in the inverted page table
+    //If not found, go to handleIPTMiss(vpn)
+    //Update TLB with the new entry, remember to disable interrupts around this part
+    //If using rand page evict, remember to update ipt with use = false for that ppn
 }
+
+threads/thread.cc
+Thread::SaveUserState(){
+	//Make sure to disable/enable interrupts around tlb code
+	//Loop through the TLB
+	//If tlb entry is valid and dirty, then pass dirty bit to the IPT
+	//Invalidate the tlb entry by marking valid false
+}
+
 
 
 V. Testing:  (For each test case, you must show)
@@ -183,7 +223,7 @@ Machine halting!
 + Explanation
 Tests for part 1/2:
 Each of these tests succeeded as the return value show the memory pages were correctly handled.
-If the return value of the test was not 7220, then I would know the memory pages were scrambled at some point and incorrect values were being passed.
+If the return value of the test was not 7220, then I would know the memory pages were scrambled at some point and incorrect pages were being accessed. By mixing exec and fork, we know that page handling is not mixing the pages between threads in same process and between two processes as well.
 
 
 VII. Miscellaneous:
