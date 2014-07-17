@@ -171,7 +171,6 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		// else{
 			pageTable[i].virtualPage = i;
 			//pageTable[i].physicalPage = ppn;
-			pageTable[i].valid = FALSE; //TRUE
 			pageTable[i].use = FALSE;
 			pageTable[i].dirty = FALSE;
 			pageTable[i].readOnly = FALSE;
@@ -179,8 +178,10 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 			if(i < executablePageCount){
 				pageTable[i].offset = 40+i*PageSize;
 				pageTable[i].diskLocation = 0;
+				pageTable[i].valid = TRUE;
 			} else{
 				pageTable[i].diskLocation = 2;
+				pageTable[i].valid = FALSE;
 			}
 
 			// IPTLock->Acquire();
@@ -221,8 +222,15 @@ AddrSpace::AllocatePages(){ //Function to allocate 8 pages on the stack for a ne
 		pageBitMapLock->Release();
 		return -1;
 	}
+	for(int i = 0; i< 8; i++){
+		pageTable[i+pageStart+stackPageStart].valid = TRUE;
+	}
+
 	pageStart = (stackPageStart + pageStart*8) * PageSize; 
 	pageBitMapLock->Release();
+
+	
+
 	return pageStart;
 }
 
@@ -231,7 +239,9 @@ AddrSpace::EmptyPages(){
 	pageTableLock->Acquire();
 	bitMapLock->Acquire();
 	for(int i = 0; i < numPages; i++){
-		if(ipt[pageTable[i].physicalPage].as == this 
+
+		if( pageTable[i].valid == TRUE &&
+			ipt[pageTable[i].physicalPage].as == this 
 			&& ipt[pageTable[i].physicalPage].use == FALSE
 			&& ipt[pageTable[i].physicalPage].valid == TRUE 
 			&& ipt[pageTable[i].physicalPage].virtualPage == i){
@@ -256,6 +266,7 @@ AddrSpace::EmptyPages(){
 				fifoLock->Release();
 			}
 		}
+
 	}
 	bitMapLock->Release();
 	pageTableLock->Release();
@@ -266,6 +277,7 @@ AddrSpace::Empty8Pages(int startPage){
 	startPage = startPage/PageSize;
 	pageTableLock->Acquire();
 	bitMapLock->Acquire();
+
 	for(int i = 0; i < 8; i++){
 		if(ipt[pageTable[startPage+i].physicalPage].as == this 
 			&& ipt[pageTable[startPage+i].physicalPage].use == FALSE
@@ -292,6 +304,10 @@ AddrSpace::Empty8Pages(int startPage){
 				fifoLock->Release();
 			}
 		}
+	}
+
+	for(int i = 0; i< 8; i++){
+		pageTable[i+startPage].valid = FALSE;
 	}
 	bitMapLock->Release();
 	pageTableLock->Release();

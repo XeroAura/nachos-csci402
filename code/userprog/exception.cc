@@ -746,7 +746,7 @@ int handleMemoryFull(){ //Evict a page based on flag evictMethod 0 - RAND, 1 - F
 }
 
 int handleIPTMiss(int vpn){
-     // printf("handleIPTMiss enter\n");
+    //printf("handleIPTMiss enter\n");
     AddrSpace* as = currentThread->space;
 	bitMapLock->Acquire();
 	int ppn = memoryBitMap->Find();
@@ -756,9 +756,9 @@ int handleIPTMiss(int vpn){
 	if(ppn == -1){ //Out of physical pages
 		ppn = handleMemoryFull();
 	}
-	if(ppn == -1){
-		ASSERT(0);
-	}
+	if(ppn < 0 || ppn > 33){
+        ASSERT(0);
+    }
 
 	if(evictMethod == 1){
 		fifoLock->Acquire();
