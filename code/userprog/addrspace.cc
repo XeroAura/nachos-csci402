@@ -262,7 +262,7 @@ AddrSpace::EmptyPages(){
 
 			if(evictMethod == 1){
 				fifoLock->Acquire();
-				fifoQueue->remove(pageTable[i].physicalPage);
+				fifoQueue->remove(pageTable[i].physicalPage); //Remove physical page from fifo queue since its free now
 				fifoLock->Release();
 			}
 		}
@@ -300,7 +300,7 @@ AddrSpace::Empty8Pages(int startPage){
 
 			if(evictMethod == 1){
 				fifoLock->Acquire();
-				fifoQueue->remove(pageTable[startPage+i].physicalPage);
+				fifoQueue->remove(pageTable[startPage+i].physicalPage); //Remove physical page from fifo queue since its free now
 				fifoLock->Release();
 			}
 		}

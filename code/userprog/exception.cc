@@ -683,7 +683,7 @@ int handleMemoryFull(){ //Evict a page based on flag evictMethod 0 - RAND, 1 - F
     
     if(evictMethod == 0){ //RAND
         while(true){
-            ppn = rand()%NumPhysPages;
+            ppn = rand()%NumPhysPages; //Choose a random page
             // printf("ppn:%d\n", ppn);
             if(ipt[ppn].use == FALSE){ //Make sure not in use by another eviction
                 ipt[ppn].use = TRUE; //Mark in use by this eviction
@@ -694,9 +694,9 @@ int handleMemoryFull(){ //Evict a page based on flag evictMethod 0 - RAND, 1 - F
     else{ //FIFO
         while(true){
         	fifoLock->Acquire();
-        	ppn = fifoQueue->front();
+        	ppn = fifoQueue->front(); //Get the first page from the queue
             // printf("fifo chose %d\n", ppn); 
-        	fifoQueue->pop_front();
+        	fifoQueue->pop_front(); //Remove from fifo queue
         	if(ppn != -1){
         		fifoLock->Release();
         		break;
@@ -760,7 +760,7 @@ int handleIPTMiss(int vpn){
         ASSERT(0);
     }
 
-	if(evictMethod == 1){
+	if(evictMethod == 1){ //Re-add the ppn to the fifo queue's back
 		fifoLock->Acquire();
 		fifoQueue->push_back(ppn);
 		fifoLock->Release();
@@ -768,11 +768,11 @@ int handleIPTMiss(int vpn){
 
     as->pageTableLock->Acquire();
 	if( as->pageTable[vpn].diskLocation == 0){ //VPN is code
-		as->pageTable[vpn].physicalPage = ppn;
+		as->pageTable[vpn].physicalPage = ppn; //Update page table with new information
 		as->pageTable[vpn].valid = TRUE;
         as->pageTableLock->Release();
 
-		ipt[ppn].virtualPage = vpn;
+		ipt[ppn].virtualPage = vpn; //Update the IPT with the new information
 		ipt[ppn].physicalPage = ppn;
 		ipt[ppn].valid = TRUE;
 		ipt[ppn].dirty = FALSE;
@@ -955,7 +955,7 @@ void ExceptionHandler(ExceptionType which) {
                 if(ipt[i].valid == TRUE ){
                     if(ipt[i].virtualPage == vpn){
                         // printf("IPT USE FLAG: %d, ppn: %d, vpn: %d\n", ipt[i].use, i, ipt[i].virtualPage);
-                        ppn = i;
+                        ppn = i; //Find the physical page number that matches in the IPT
                         break;
                     }
                 }
@@ -970,29 +970,27 @@ void ExceptionHandler(ExceptionType which) {
         IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
         IPTLock->Release();
 
-        if(machine->tlb[currentTLB].valid == true){
+        if(machine->tlb[currentTLB].valid == true){ //Transfer dirty bit if needed
             ipt[machine->tlb[currentTLB].physicalPage].dirty = machine->tlb[currentTLB].dirty;
         }
 
-        machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
+        machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage; //Update TLB with the newest page
         machine->tlb[currentTLB].physicalPage = ppn;
         machine->tlb[currentTLB].valid = ipt[ppn].valid;
         machine->tlb[currentTLB].use = ipt[ppn].use;
         machine->tlb[currentTLB].dirty = ipt[ppn].dirty;
         machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;		
 
-        currentTLB = (currentTLB+1)%TLBSize;
+        currentTLB = (currentTLB+1)%TLBSize; //Increment the fifo counter for TLB
         // printf("TLB UPdate - VPN: %d, PPN: %d\n", ipt[ppn].virtualPage, ppn);
         (void) interrupt->SetLevel(oldLevel); // re-enable interrupts
-        ipt[ppn].use = FALSE; //Set free for other evict to use
+
+        ipt[ppn].use = FALSE; //Set free for other evict to use (in case of random)
 
     }
     #endif
     else {
     	cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
-    	for(int i = 0; i < TLBSize; i++){
-    		// printf("%d: VP: %d, PP: %d, VB: %d\n", i, machine->tlb[i].virtualPage, machine->tlb[i].physicalPage, machine->tlb[i].valid);
-    	}
     	interrupt->Halt();
     }
 }
