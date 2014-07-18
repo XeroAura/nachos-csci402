@@ -20,7 +20,6 @@
 #include "copyright.h"
 #include "thread.h"
 #include "list.h"
-#include <queue>
 
 // The following class defines a "semaphore" whose value is a non-negative
 // integer.  The semaphore has only two operations P() and V():
@@ -89,7 +88,7 @@ class Lock {
     Thread* lockOwner;                  // A reference to the current
                                         // owner of the lock.
 
-    std::queue<Thread*> *waitList;       // A list of threads that are
+    List *waitList;                     // A list of threads that are
                                         // waiting on the lock to be free.
 };
 
@@ -143,7 +142,7 @@ class Condition {
   private:
     char* name;                         // for debugging
 
-    std::queue<Thread*> *waitList;       // list of threads waiting for the 
+    List *waitList;                     // list of threads waiting for the 
                                         // lock in the condition variable to
                                         // be free
 

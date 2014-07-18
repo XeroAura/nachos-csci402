@@ -63,6 +63,9 @@ extern void MailTest(int networkID);
 #ifdef THREADS
 extern void Problem2(void), TestSuite(void);
 #endif
+#ifdef CHANGED
+extern void Server(void);
+#endif
 //----------------------------------------------------------------------
 // main
 // 	Bootstrap the operating system kernel.  
@@ -151,8 +154,13 @@ main(int argc, char **argv)
             argCount = 2;
         }
 #endif // NETWORK
-    }
+#ifdef CHANGED
+        if (!strcmp(*argv, "-server")) {
+        	Server();
+        }
 
+    }
+#endif
     currentThread->Finish();	// NOTE: if the procedure "main" 
 				// returns, then the program "nachos"
 				// will exit (as any other normal program

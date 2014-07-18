@@ -52,6 +52,9 @@ Lock* IPTLock;
 OpenFile* swap;
 #endif
 
+#ifdef CHANGED
+KernelMV* MVArray[500];
+#endif
 // External definition, to allow us to take a pointer to this function
 extern void Cleanup();
 
@@ -200,6 +203,12 @@ IPTLock = new Lock("IPTLock");
 //swap = fileSystem->Open(swap);
 
 #endif    
+
+#ifdef CHANGED
+for (int i = 0; i < 500; i++){
+    MVArray[i] = new KernelMV();
+}
+#endif
 }
 
 //----------------------------------------------------------------------
