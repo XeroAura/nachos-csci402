@@ -174,7 +174,7 @@ void Broadcast(int index, int lockIndex);
 /* System call to create a lock, returns an int to the index position of the kernel 
  * structure array of actual locks. 
  */
-int CreateLock(int debugInt);
+int CreateLock(unsigned int vaddr, int len);
 
 /* System call to destroy a lock. */
 void DestroyLock(int index);
@@ -182,7 +182,7 @@ void DestroyLock(int index);
 /* System call to create a condition variable, returns an int to the index position 
  * of the kernel structure array of actual condition variables. 
  */
-int CreateCondition(int debugInt);
+int CreateCondition(unsigned int vaddr, int len);
 
 /* System call to destroy a condition variable. */
 void DestroyCondition(int index);
@@ -193,13 +193,13 @@ void MyWrite(int vaddr, int len, int one, int two);
 
 #ifdef CHANGED
 /* System call to create a new monitor variable. */
-int CreateMV();
+int CreateMV(unsigned int vaddr, int len, int arrayLen);
 
 /* System call to destroy a monitor variable. */
 void DestroyMV(int index);
 
-/* System call to get a monitor variable at index. */
-int GetMV(int index);
+/* System call to get a monitor variable at index, at array index arrayIndex. */
+int GetMV(int index, int arrayIndex);
 
 /* System call to set a monitor variable to a new value. */
 void SetMV(int index, int newValue);

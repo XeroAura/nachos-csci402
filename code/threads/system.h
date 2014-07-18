@@ -74,21 +74,46 @@ struct ProcessEntry { //Struct to represent a process
 };
 
 struct KernelLock{
+    char* name;
     Lock* lock;
+    int requestThreads;
     AddrSpace* as;
     bool isToBeDestroyed;
-    KernelLock() : lock(NULL), as(NULL), isToBeDestroyed(false) {};
+    KernelLock() : name(NULL),lock(NULL),requestThreads(0), as(NULL),isToBeDestroyed(false) {};
 };
 
 
 struct KernelCV{
+    char* name;
     Condition* condition;
+    int requestThreads;
     AddrSpace* as;
     bool isToBeDestroyed;
-    KernelCV() : condition(NULL), as(NULL), isToBeDestroyed(false) {};
+    KernelCV() : name(NULL), condition(NULL), requestThreads(0), as(NULL), isToBeDestroyed(false) {};
 };
 
+struct KernelMV{
+    char* name;
+    int* values;
+    int maxValue;
+    int requestThreads;
+    AddrSpace* as;
+    bool isToBeDestroyed;
+    KernelMV() : name(NULL), values(NULL), maxValue(NULL), requestThreads(0), as(NULL), isToBeDestroyed(NULL) {};
+};
 
+struct ServerLock{
+    int state; //0 = available, 1 = busy
+    int owner;
+    List* queue;
+    ServerLock() : state(0),owner(0),queue(NULL) {};
+};
+
+struct ServerCV{
+    int lock; //ServerLock table index
+    List* queue;
+    ServerCV() : lock(0),queue(NULL) {};
+};
 
 extern ProcessEntry* processTable[10]; //Process table
 extern int processTableCount;
@@ -97,7 +122,7 @@ extern const int MAX_CVS;
 extern const int MAX_LOCKS;
 extern KernelLock* kLocks[];
 extern KernelCV* kCV[]; 
-extern int MVArray[500];
+extern KernelMV* MVArray[500];
 
 #endif
 
