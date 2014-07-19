@@ -113,7 +113,7 @@ struct ServerLock{
 struct ServerCV{
     int lock; //ServerLock table index
     List* queue;
-    ServerCV() : lock(0),queue(NULL) {};
+    ServerCV() : lock(-1),queue(NULL) {};
 };
 
 extern ProcessEntry* processTable[10]; //Process table

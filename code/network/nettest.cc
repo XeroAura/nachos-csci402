@@ -109,6 +109,8 @@ Server(){
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     char *data = "Hello there!";
+    char* oSuccess = "success";
+    char* oFailure = "failure";
     char* buffer;
     string key;
     string outputString;
@@ -145,45 +147,42 @@ Server(){
             ss1 << buffer;
             ss1 >> name >> addr;
 
-            output[0] = 'C';
-            output[1] = 'L';
-            postOffice->Send(outPktHdr,outMailHdr,output);
 /*            checking to see if the lock has already been made from another program*/
-            // for (int i = 0; i < nextLockIndex; i++){
-            //     printf("Comparing %s to %s \n", kLocks[i]->name,name);
-            //     if(strcmp(kLocks[i]->name,name)==0){
-            //         printf("Names are identical\n");
-            //         kLocks[i]->requestThreads++;
-            //         sprintf(output,"%d",i);
-            //         success = postOffice->Send(outPktHdr,outMailHdr,output);
-            //         flag = true;
-            //         break;
-            //     }
-            // }
-            // if (!flag){
-            //     KernelLock* tempLock = new KernelLock;
-            //     tempLock->name = name;
-            //     tempLock->as = (AddrSpace*)addr;
-            //     tempLock->isToBeDestroyed = false;
-            //     tempLock->lock = new Lock(name);
-            //     if (nextLockIndex < 500){
-            //         kLocks[nextLockIndex] = tempLock;
-            //         kLocks[nextLockIndex]->requestThreads++;
-            //         sLocks[nextLockIndex] = new ServerLock();
+            for (int i = 0; i < nextLockIndex; i++){
+                printf("Comparing %s to %s \n", kLocks[i]->name,name);
+                if(strcmp(kLocks[i]->name,name)==0){
+                    printf("Names are identical\n");
+                    kLocks[i]->requestThreads++;
+                    sprintf(output,"%d",i);
+                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag){
+                KernelLock* tempLock = new KernelLock;
+                tempLock->name = name;
+                tempLock->as = (AddrSpace*)addr;
+                tempLock->isToBeDestroyed = false;
+                tempLock->lock = new Lock(name);
+                if (nextLockIndex < 500){
+                    kLocks[nextLockIndex] = tempLock;
+                    kLocks[nextLockIndex]->requestThreads++;
+                    sLocks[nextLockIndex] = new ServerLock();
 
-            //         nextLockIndex++;
-            //         sprintf(output, "%d",nextLockIndex-1);
-            //         printf("Sending success message");
-            //         success = postOffice->Send(outPktHdr, outMailHdr, output); 
+                    nextLockIndex++;
+                    sprintf(output, "%d",nextLockIndex-1);
+                    printf("Sending success message\n");
+                    success = postOffice->Send(outPktHdr, outMailHdr, output); 
 
-            //     } else {
-            //         printf("ERROR: Maximum number of locks reached. Current number of locks is %d. \n", nextLockIndex);
-            //         sprintf(output,"%d",-1);
-            //         success = postOffice->Send(outPktHdr,outMailHdr,output);
-            //         break;
-            //     }
-//            }
-//            flag = false;
+                } else {
+                    printf("ERROR: Maximum number of locks reached. Current number of locks is %d. \n", nextLockIndex);
+                    sprintf(output,"%d",-1);
+                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    break;
+                }
+            }
+            flag = false;
         }
 
 /*        Destroy lock syscall*/
@@ -196,6 +195,31 @@ Server(){
             printf("Destroy Lock syscall\n");
             ss1 << buffer;
             ss1 >> index >> addr;
+            if (index >= 0 && index < MAX_LOCKS){
+                if (kLocks[index]->lock == NULL){
+                    printf("ERROR: No lock exists here.\n");
+                    success = postOffice->Send(outPktHdr,outMailHdr,oFailure);
+                } else {
+                    kLocks[index]->isToBeDestroyed = true;
+                    if (kLocks[index]->isToBeDestroyed && kLocks[index]->lock->getFree()){
+                        kLocks[index]->requestThreads--;
+                        if (kLocks[index]->requestThreads == 0){
+                            delete kLocks[index]->lock;
+                            delete kLocks[index];
+                            delete sLocks[index];
+                            kLocks[index] = NULL;
+                            sLocks[index] = NULL;
+                            printf("All processes asked for its destruction: destroyed lock.\n");                            
+                        }
+                    }
+                    printf("Lock successfully set for destruction\n");
+
+                    success = postOffice->Send(outPktHdr,outMailHdr,oSuccess);
+                }
+            } else {
+                printf("ERROR: Index is out of bounds.\n");
+                success = postOffice->Send(outPktHdr,outMailHdr,oFailure);
+            }
         }
 
 /* Acquire lock syscall*/
@@ -205,10 +229,27 @@ Server(){
             bool flag = false;
             char* addr = new char[MaxMailSize];
             int index;
+            char* output = new char[1];
             int machineID = inMailHdr.from;
             printf("Acquire Lock syscall\n");
             ss1 << buffer;
             ss1 >> index >> addr;
+
+            if (index >= 0 && index < MAX_LOCKS){
+                if (sLocks[index]->state == 0){
+                    sLocks[index]->state = 1;
+                    sLocks[index]->owner = machineID;
+                    kLocks[index]->lock->Acquire();
+                } else {
+                    sLocks[index]->queue->Append((void*)machineID);
+                }
+                sprintf(output, "%d",1);                
+                postOffice->Send(outPktHdr,outMailHdr,output);
+            } else {
+                printf("ERROR: Cannot acquire, index exceeds bounds.\n");
+            }
+            sprintf(output, "%d",0);                
+            postOffice->Send(outPktHdr,outMailHdr,output);
         }
 
     //Release a lock
@@ -218,11 +259,33 @@ Server(){
             bool flag = false;
             char* addr = new char[MaxMailSize];
             int index;
+            char* output = new char[1];
             printf("Release Lock syscall\n");
             ss1 << buffer;
             ss1 >> index >> addr;
+            if (index >= 0 && index < MAX_LOCKS){ //checks if index is valid
+                if (kLocks[index]->lock != NULL){ //checks if the lock exists
+                    kLocks[index]->lock->Release();
+                    if (kLocks[index]->lock->getFree() && kLocks[index]->isToBeDestroyed){
+                        kLocks[index]->requestThreads--;
+                        if (kLocks[index]->requestThreads == 0){
+                            delete kLocks[index]->lock;
+                            delete kLocks[index];
+                            delete sLocks[index];
+                            kLocks[index] = NULL;
+                            sLocks[index] = NULL;
+                        }
+                        sprintf(output, "%d",1);
+                        success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    }
+                } else {
+                    printf("ERROR: No lock exists at this index.\n");
+                } 
+            } else {
+                printf("ERROR: Cannot release, index exceeds bounds.\n");
+            }
+        }               
 
-        }
 
 
         if (key == "CC"){
@@ -236,6 +299,42 @@ Server(){
             ss1 << buffer;
             ss1 >> name >> addr;
 
+/*            checking to see if the lock has already been made from another program*/
+            for (int i = 0; i < nextCVIndex; i++){
+                printf("Comparing %s to %s \n", kCV[i]->name,name);
+                if(strcmp(kCV[i]->name,name)==0){
+                    printf("Names are identical\n");
+                    kCV[i]->requestThreads++;
+                    sprintf(output,"%d",i);
+                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag){
+                KernelCV* tempCV = new KernelCV;
+                tempCV->name = name;
+                tempCV->as = (AddrSpace*)addr;
+                tempCV->isToBeDestroyed = false;
+                tempCV->condition = new Condition(name);
+                if (nextCVIndex < 500){
+                    kCV[nextCVIndex] = tempCV;
+                    kCV[nextCVIndex]->requestThreads++;
+                    sCV[nextCVIndex] = new ServerCV();
+
+                    nextCVIndex++;
+                    sprintf(output, "%d",nextCVIndex-1);
+                    printf("Sending success message\n");
+                    success = postOffice->Send(outPktHdr, outMailHdr, output); 
+
+                } else {
+                    printf("ERROR: Maximum number of CVs reached. Current number of CVs is %d. \n", nextLockIndex);
+                    sprintf(output,"%d",-1);
+                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    break;
+                }
+            }
+            flag = false;
         }
         if (key == "DC"){
             stringstream ss1;
@@ -243,24 +342,59 @@ Server(){
             bool flag = false;
             char* addr = new char[MaxMailSize];
             int index;
+            char* output = new char[1];
             printf("Destroy CV syscall\n");
             ss1 << buffer;
             ss1 >> index >> addr;
+            if (index >= 0 && index < MAX_CVS){
+                if (kCV[index]->condition == NULL){
+                    printf("ERROR: No CV exists here.\n");
+                    sprintf(output, "%d",0);
+                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                } else {
+                    kCV[index]->isToBeDestroyed = true;
+                    if (kCV[index]->isToBeDestroyed && kCV[index]->condition->getLock() == NULL){
+                        kCV[index]->requestThreads--;
+                        if (kCV[index]->requestThreads == 0){
+                            delete kCV[index]->condition;
+                            delete kCV[index];
+                            delete sCV[index];
+                            kCV[index] = NULL;
+                            sCV[index] = NULL;
+                            printf("All processes asked for its destruction: destroyed lock.\n");                            
+                        }
+                    }
+                    printf("Lock successfully set for destruction\n");
+                    sprintf(output, "%d",1);
+                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                }
+            } else {
+                printf("ERROR: Index is out of bounds.\n");
+                sprintf(output, "%d",0);
+                success = postOffice->Send(outPktHdr,outMailHdr,output);
+            }
 
         }
 
         if (key == "WC"){
             stringstream ss1;
             bool success;
-            bool flag = false;
             char* addr = new char[MaxMailSize];
             int index;
             int lockIndex;
+            char* output = new char[3];
             int machineID = inMailHdr.from;
             printf("Wait CV syscall\n");
             ss1 << buffer;
             ss1 >> index >> addr;
-
+            if (index >= 0 && index < MAX_LOCKS){
+                KernelLock* cvLock = kLocks[lockIndex];
+                kCV[index]->condition->Wait(cvLock->lock);
+            } else {
+                printf("\nERROR: Cannot wait, index exceeds bounds.\n\n");
+                sprintf(output, "%d",0);
+                success = postOffice->Send(outPktHdr,outMailHdr,output);
+            }
         }
         if (key == "SC"){
             stringstream ss1;
@@ -273,7 +407,14 @@ Server(){
             printf("Signal CV syscall\n");
             ss1 << buffer;
             ss1 >> index >> addr;
-
+            if (index >= 0 && index < MAX_LOCKS){
+                KernelLock* cvLock = kLocks[lockIndex];
+                if (cvLock->lock != NULL){
+                    kCV[index]->condition->Signal(cvLock->lock);
+                }
+            } else {
+                printf("\nERROR: Cannot signal, index exceeds bounds.\n\n");
+            }
         }
         if (key == "BC"){
             stringstream ss1;
@@ -286,19 +427,61 @@ Server(){
             printf("Broadcast CV syscall\n");
             ss1 << buffer;
             ss1 >> index >> addr;
+            if (index >= 0 && index < MAX_LOCKS){
+                KernelLock* cvLock = kLocks[lockIndex];
+                kCV[index]->condition->Broadcast(cvLock->lock);
+            } else {
+                printf("\nERROR: Cannot broadcast, index exceeds bounds.\n\n");
+            }
 
         }
         if (key == "CM"){
             stringstream ss1;
             bool success;
             bool flag = false;
-            int arrayLen;
             char* name = new char[MaxMailSize];
             char* addr = new char[MaxMailSize];
             char* output = new char[3];
-            printf("Create MV syscall\n");
+            printf("Create Lock syscall\n");
+            int arrayLen;
             ss1 << buffer;
             ss1 >> name >> arrayLen >> addr;
+
+/*checking to see if the MV has already been made from another program*/
+            for (int i = 0; i < nextMVIndex; i++){
+                printf("Comparing %s to %s \n", MVArray[i]->name,name);
+                if(strcmp(MVArray[i]->name,name)==0){
+                    printf("Names are identical\n");
+                    MVArray[i]->requestThreads++;
+                    sprintf(output,"%d",i);
+                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    flag = true;
+                    break;
+                }
+            }
+            if (!flag){
+                KernelMV* tempMV = new KernelMV;
+                tempMV->name = name;
+                tempMV->maxValue = arrayLen;
+                tempMV->values = new int[arrayLen];
+                tempMV->as = (AddrSpace*)addr;
+                tempMV->isToBeDestroyed = false;
+                if (nextMVIndex < 500){
+                    MVArray[nextMVIndex] = tempMV;
+                    MVArray[nextMVIndex]->requestThreads++;
+                    nextMVIndex++;
+                    sprintf(output, "%d",nextMVIndex-1);
+                    printf("Sending success message\n");
+                    success = postOffice->Send(outPktHdr, outMailHdr, output); 
+
+                } else {
+                    printf("ERROR: Maximum number of MVs reached. Current number of MVs is %d. \n", nextMVIndex);
+                    sprintf(output,"%d",-1);
+                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    break;
+                }
+            }
+            flag = false;
 
         }
 
@@ -308,9 +491,32 @@ Server(){
             bool flag = false;
             char* addr = new char[MaxMailSize];
             int index;
-            printf("Destroy MV syscall\n");
+            char* output = new char[1];
+            printf("Destroy CV syscall\n");
             ss1 << buffer;
             ss1 >> index >> addr;
+            if (index >= 0 && index < 500){
+                if (MVArray[index]->values == NULL){
+                    printf("ERROR: No MV exists here.\n");
+                    sprintf(output, "%d",0);
+                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                } else {
+                    MVArray[index]->isToBeDestroyed = true;
+                    MVArray[index]->requestThreads--;
+                    if (MVArray[index]->requestThreads == 0){
+                        delete MVArray[index];
+                        MVArray[index] = NULL;
+                        printf("All processes asked for its destruction: destroyed lock.\n");                            
+                    }
+                    printf("MV successfully set for destruction\n");
+                    sprintf(output, "%d",1);
+                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                }
+            } else {
+                printf("ERROR: Index is out of bounds.\n");
+                sprintf(output, "%d",0);
+                success = postOffice->Send(outPktHdr,outMailHdr,output);
+            }
 
 
         }
@@ -321,9 +527,24 @@ Server(){
             int arrayIndex;
             char* addr = new char[MaxMailSize];
             int index;
+            int outputInt;
+            char* output = new char[5];
             printf("Get MV syscall\n");
             ss1 << buffer;
             ss1 >> index >> arrayIndex >> addr;
+            if (index >= 0 && index < 500){
+                if (MVArray[index]->values != NULL){
+                    outputInt = MVArray[index]->values[arrayIndex];
+                    sprintf(output, "%d", outputInt);
+                    postOffice->Send(outPktHdr,outMailHdr,output);
+                } else {
+                    sprintf(output, "%d", 0);
+                    postOffice->Send(outPktHdr,outMailHdr,output);
+                }
+            } else {
+                sprintf(output, "%d", 0);
+                postOffice->Send(outPktHdr,outMailHdr,output);
+            }
 
         }
         if (key == "SM"){
@@ -333,9 +554,19 @@ Server(){
             int newValue;
             char* addr = new char[MaxMailSize];
             int index;
+            int arrayIndex;
+            char* output;
             printf("Set MV syscall\n");
             ss1 << buffer;
-            ss1 >> index >> newValue >> addr;
+            ss1 >> index >> arrayIndex >> newValue >> addr;
+            if(index >= 0 && index < 500){
+                MVArray[index]->values[arrayIndex] = newValue;
+                postOffice->Send(outPktHdr,outMailHdr,output);
+            } else {
+                printf("ERROR: Index is out of bounds.\n");
+                sprintf(output, "%d", 0);
+                postOffice->Send(outPktHdr,outMailHdr,output);
+            }
 
         }
     }

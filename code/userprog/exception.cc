@@ -481,42 +481,39 @@ int CreateLock_Syscall(unsigned int vaddr, int len){
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("Message received, index is %s \n", buffer);
     lIndex = atoi(buffer);
+    ss.str("");
     return lIndex;
 }
 
 void DestroyLock_Syscall(int index){
-    printf("Destroy Syscall start");
-    // ss << "DL" << index << " " << currentThread->space;
-    // // creates the message to send to the post office
-    // PacketHeader outPktHdr, inPktHdr;
-    // MailHeader outMailHdr, inMailHdr;
-    // char* buffer;
-    // // construct packet, mail header for original message
-    // // To: destination machine, mailbox 0
-    // // From: our machine, reply to: mailbox 1
-    // outPktHdr.to = 0;     
-    // outMailHdr.to = 0;
-    // outMailHdr.from = 1;
-    // outMailHdr.length = ss.str().size() + 1;
+    ss << "DL" << index << " " << currentThread->space;
+    // creates the message to send to the post office
+    PacketHeader outPktHdr, inPktHdr;
+    MailHeader outMailHdr, inMailHdr;
+    char* buffer;
+    // construct packet, mail header for original message
+    // To: destination machine, mailbox 0
+    // From: our machine, reply to: mailbox 1
+    outPktHdr.to = 0;     
+    outMailHdr.to = 0;
+    outMailHdr.from = 1;
+    outMailHdr.length = ss.str().size() + 1;
 
-    // // Send the message to server
-    // bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
-    // if ( !success ) {
-    //   printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
-    //   interrupt->Halt();
-    //   return;
-    // }
-    // postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
-  return;
+    printf("Sending message\n");
+    // Send the message to server
+    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    if ( !success ) {
+      printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
+      interrupt->Halt();
+    }
+    printf("Message sent\n");
+    postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
+    printf("Message received, index is %s \n", buffer);
+    ss.str("");
+    return;
 }
 
 void Acquire_Syscall(int index){
-<<<<<<< HEAD
-    if (index >= 0 && index < MAX_LOCKS){
-        kLocks[index]->lock->Acquire();
-    } else {
-        printf("ERROR: Cannot acquire, index exceeds bounds.\n");
-=======
     ss << "AL" << index << " " << currentThread->space;
 
     // creates the message to send to the post office
@@ -537,28 +534,14 @@ void Acquire_Syscall(int index){
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
       return;
->>>>>>> byroncho
     }
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
-
+    ss.str("");
     return;
 }
 
 void Release_Syscall(int index){
-<<<<<<< HEAD
-    if (index >= 0 && index < MAX_LOCKS){ //checks if index is valid
-        if (kLocks[index]->lock != NULL){ //checks if the lock exists
-            kLocks[index]->lock->Release();
-            if (kLocks[index]->lock->getFree() && kLocks[index]->isToBeDestroyed){
-                DestroyLock_Syscall(index);
-            }
-        } else {
-            printf("ERROR: No lock exists at this index.\n");
-        }
-    } else {
-        printf("ERROR: Cannot release, index exceeds bounds.\n");
-=======
     ss << "RL" << index << " " << currentThread->space;
 
     // creates the message to send to the post office
@@ -578,36 +561,18 @@ void Release_Syscall(int index){
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
->>>>>>> byroncho
     }
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
-
- 
+    ss.str("");
     return;
 }
 
 
-<<<<<<< HEAD
-int CreateCondition_Syscall(int debugInt){
-    char* debugName = new char[20];
-    sprintf(debugName, "Condition %d",debugInt);
-    KernelCV* tempCV = new KernelCV;
-    tempCV->as = currentThread->space;
-    tempCV->isToBeDestroyed = false;
-    tempCV->condition = new Condition(debugName);
-    CVTableLock->Acquire();
-    if (nextCVIndex < MAX_LOCKS){
-        kCV[nextCVIndex] = tempCV;
-        nextCVIndex++;
-    } else {
-        printf("\nERROR: Cannot create, maximum number of CV's reached. \n\n");
-=======
 int CreateCondition_Syscall(unsigned int vaddr, int len){
     if(!validateBuffer(vaddr, len)){
         printf("Bad buffer vaddr or length.\n");
         return -1;
->>>>>>> byroncho
     }
     char *buf = new char[len+1];    // Kernel buffer to put the name in
 
@@ -641,6 +606,7 @@ int CreateCondition_Syscall(unsigned int vaddr, int len){
     }
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
+    ss.str("");    
     return 1;
 }
 
@@ -667,17 +633,11 @@ void DestroyCondition_Syscall(int index){
     }
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
-  return;
+    ss.str("");
+    return;
 }
 
 void Wait_Syscall(int index, int lockIndex){
-<<<<<<< HEAD
-    if (index >= 0 && index < MAX_LOCKS){
-        KernelLock* cvLock = kLocks[lockIndex];
-        kCV[index]->condition->Wait(cvLock->lock);
-    } else {
-        printf("\nERROR: Cannot wait, index exceeds bounds.\n\n");
-=======
     ss << "WC" << index << " " << lockIndex << " " << currentThread->space;
 
     // creates the message to send to the post office
@@ -697,7 +657,6 @@ void Wait_Syscall(int index, int lockIndex){
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
->>>>>>> byroncho
     }
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
@@ -707,19 +666,11 @@ void Wait_Syscall(int index, int lockIndex){
     // } else {
     //     printf("\nERROR: Cannot wait, index exceeds bounds.\n\n");
     // }
+    ss.str("");
     return;
 }
 
 void Signal_Syscall(int index, int lockIndex){
-<<<<<<< HEAD
-    if (index >= 0 && index < MAX_LOCKS){
-        KernelLock* cvLock = kLocks[lockIndex];
-        if (cvLock->lock != NULL){
-            kCV[index]->condition->Signal(cvLock->lock);
-        }
-    } else {
-        printf("\nERROR: Cannot signal, index exceeds bounds.\n\n");
-=======
     ss << "SC" << index << lockIndex << " " << currentThread->space;
 
     // creates the message to send to the post office
@@ -739,7 +690,6 @@ void Signal_Syscall(int index, int lockIndex){
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
->>>>>>> byroncho
     }
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
@@ -752,17 +702,11 @@ void Signal_Syscall(int index, int lockIndex){
     // } else {
     //     printf("\nERROR: Cannot signal, index exceeds bounds.\n\n");
     // }
+    ss.str("");
     return;
 }
 
 void Broadcast_Syscall(int index, int lockIndex){
-<<<<<<< HEAD
-    if (index >= 0 && index < MAX_LOCKS){
-        KernelLock* cvLock = kLocks[lockIndex];
-        kCV[index]->condition->Broadcast(cvLock->lock);
-    } else {
-        printf("\nERROR: Cannot broadcast, index exceeds bounds.\n\n");
-=======
     ss << "BC" << index << " " << lockIndex << " " << currentThread->space;
 
     // creates the message to send to the post office
@@ -782,7 +726,6 @@ void Broadcast_Syscall(int index, int lockIndex){
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
->>>>>>> byroncho
     }
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
@@ -793,6 +736,7 @@ void Broadcast_Syscall(int index, int lockIndex){
     // } else {
     //     printf("\nERROR: Cannot broadcast, index exceeds bounds.\n\n");
     // }
+    ss.str("");
     return;
 }
 
@@ -985,6 +929,8 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int arrayLen){
     // MVArray[nextMVIndex] = 0;
     // nextMVIndex++;
     // MVTableLock->Release();    
+    ss.str("");
+    buffer = NULL;
     return 0;
 }
 
@@ -1016,6 +962,7 @@ void DestroyMV_Syscall(int index){
     // } else {
     //     printf("ERROR: No MV at this index.\n");
     // }
+    ss.str("");
     return;
 }
 
@@ -1050,11 +997,12 @@ int GetMV_Syscall(int index, int arrayIndex){
     // } else {
         // printf("ERROR: MV at index %d has already been deleted. \n", index);
     // }
+    ss.str("");
     return -1;
 }
 
-void SetMV_Syscall(int index, int newValue){
-    ss << "SM" << index << " " << newValue << " " << currentThread->space;
+void SetMV_Syscall(int index, int arrayIndex, int newValue){
+    ss << "SM" << index << " " << arrayIndex << " " << newValue << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -1066,7 +1014,7 @@ void SetMV_Syscall(int index, int newValue){
     outPktHdr.to = 0;     
     outMailHdr.to = 0;
     outMailHdr.from = 1;
-    outMailHdr.length = ss.str().size() + 1;
+        outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
@@ -1086,6 +1034,7 @@ void SetMV_Syscall(int index, int newValue){
     // } else {
     //     printf("ERROR: MV at index %d has already been deleted. \n", index);
     // }
+    ss.str("");
     return;
 }
 
@@ -1220,7 +1169,7 @@ void ExceptionHandler(ExceptionType which) {
 
             case SC_SetMV:
             DEBUG('a', "Set MV syscall.\n");
-            SetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5));
+            SetMV_Syscall(machine->ReadRegister(4), machine->ReadRegister(5), machine->ReadRegister(6));
             break;
 
 	    #endif

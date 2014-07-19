@@ -153,14 +153,12 @@ main(int argc, char **argv)
             MailTest(atoi(*(argv + 1)));
             argCount = 2;
         }
-#endif // NETWORK
-#ifdef CHANGED
         if (!strcmp(*argv, "-server")) {
         	Server();
         }
+#endif // NETWORK
 
     }
-#endif
     currentThread->Finish();	// NOTE: if the procedure "main" 
 				// returns, then the program "nachos"
 				// will exit (as any other normal program
