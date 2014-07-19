@@ -46,10 +46,15 @@ const int MAX_CVS = 500;
 KernelLock* kLocks[MAX_LOCKS];
 KernelCV* kCV[MAX_CVS];
 
+OpenFile* swapFile;
 int currentTLB;
 IPTEntry *ipt;
 Lock* IPTLock;
-OpenFile* swap;
+int evictMethod;
+BitMap* swapBitMap;
+Lock* swapLock;
+std::list<int> *fifoQueue;
+Lock* fifoLock;
 #endif
 
 #ifdef CHANGED
@@ -199,8 +204,27 @@ for (int i = 0; i < MAX_CVS; i++){
 
 currentTLB = 0;
 ipt = new IPTEntry[NumPhysPages];
+for(int i = 0; i < NumPhysPages; i++){
+    ipt[i].use = FALSE;
+    ipt[i].valid = FALSE;
+    ipt[i].readOnly = FALSE;
+    ipt[i].dirty = FALSE;
+}
 IPTLock = new Lock("IPTLock");
-//swap = fileSystem->Open(swap);
+bool swapFileMake = fileSystem->Create("swap", PageSize*1000);
+if(swapFileMake == false){
+    printf("Swap file creation failed.");
+    ASSERT(0);
+}
+swapFile = fileSystem->Open("swap");
+evictMethod = 0;
+swapBitMap = new BitMap(1000);
+swapLock = new Lock("swapLock");
+fifoQueue = new std::list<int>;
+// for(int i = 0; i < NumPhysPages; i++){
+//     fifoQueue.push_back(i);
+// }
+fifoLock = new Lock("fifoLock");
 
 #endif    
 
@@ -212,7 +236,7 @@ for (int i = 0; i < 500; i++){
 }
 
 //----------------------------------------------------------------------
-// Cleanup
+// Cleanup"
 // 	Nachos is halting.  De-allocate global data structures.
 //----------------------------------------------------------------------
 void

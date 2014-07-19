@@ -16,6 +16,7 @@
 #include "stats.h"
 #include "timer.h"
 #include "IPTEntry.h"
+#include <list>
 
 using namespace std;
 
@@ -66,9 +67,10 @@ struct ThreadEntry { //Struct to represent a thread
 
 struct ProcessEntry { //Struct to represent a process
     int threadCount;
+    int threadTotal;
     AddrSpace* as;
     ThreadEntry* threads[50];
-    ProcessEntry() : threadCount(0), as(NULL) {
+    ProcessEntry() : threadCount(0), threadTotal(0), as(NULL) {
         for(int i = 0; i < 50; i++)
             threads[i] = new ThreadEntry();
     }
@@ -128,8 +130,15 @@ extern int currentTLB;
 extern IPTEntry *ipt;
 extern Lock* IPTLock;
 
-extern OpenFile* swap;
+extern int evictMethod; //0 - RAND, 1 - FIFO
+extern OpenFile* swapFile;
+extern BitMap* swapBitMap;
+extern Lock* swapLock;
+extern std::list<int> *fifoQueue;
+extern Lock* fifoLock;
+
 extern KernelMV* MVArray[500];
+
 #endif
 
 #endif // SYSTEM_H

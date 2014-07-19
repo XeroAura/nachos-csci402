@@ -65,6 +65,7 @@ class AddrSpace {
     void Empty8Pages(int startPage); //Dumps the 8 pages for thread exit
     
     int executablePageCount; //Counter for which page its on
+    int stackPageStart;
     OpenFile* file;
     unsigned int numPages;      // Number of pages in the virtual
     // address space

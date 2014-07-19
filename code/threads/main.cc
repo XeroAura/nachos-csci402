@@ -153,6 +153,17 @@ main(int argc, char **argv)
             MailTest(atoi(*(argv + 1)));
             argCount = 2;
         }
+<<<<<<< HEAD
+=======
+#endif // NETWORK
+#ifdef CHANGED
+        if (!strcmp(*argv, "-PRAND")) {
+	   		evictMethod = 0;
+        }
+        if (!strcmp(*argv, "-PFIFO")) {
+	    	evictMethod = 1;
+        }
+>>>>>>> ccc062f052ea73e7be60f3faf24c6bae8233c439
         if (!strcmp(*argv, "-server")) {
         	Server();
         }

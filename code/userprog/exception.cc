@@ -34,9 +34,11 @@ using namespace std;
 extern ProcessEntry* processTable[10];
 extern int processTableCount;
 extern Lock* processTableLock;
+extern const int MAX_CVS;
+extern const int MAX_LOCKS;
+extern KernelLock* kLocks[];
+extern KernelCV* kCV[]; 
 extern int currentTLB;
-// extern BitMap* memoryBitMap;
-// extern Lock* bitMapLock;
 extern int mailboxNumber;
 
 #ifdef CHANGED
@@ -330,12 +332,14 @@ void Fork_Syscall(unsigned int vaddr){
         //Multiprogramming: Update process table
         ThreadEntry* te = new ThreadEntry(); //Give first stack page?
         te->myThread = t;
+        // printf("Fork - CurrentThread: %d, new: %d\n", currentThread, t);
         te->firstStackPage = pageAddr;
         processTableLock->Acquire();
         for(int i = 0; i < 10; i++){
             if(processTable[i]->as == currentThread->space){
                 processTable[i]->threads[processTable[i]->threadCount] = te;
                 processTable[i]->threadCount++;
+                processTable[i]->threadTotal++;
                 break;
             }
         }
@@ -402,7 +406,7 @@ void Exec_Syscall(unsigned int vaddr, int size){
     delete[] buf;
     
 
-	AddrSpace *space = new AddrSpace(f); // Create new addresspace for this executable file.
+	AddrSpace *space = new AddrSpace(f); // Create new addresspace for this     file.
 
     space->file = f; // Store its openfile pointer
 
@@ -424,6 +428,7 @@ void Exec_Syscall(unsigned int vaddr, int size){
     te->myThread = t;
     ProcessEntry* pe = new ProcessEntry();
     pe->threadCount = 1;
+    pe->threadTotal = 1;
     pe->as = space;
     pe->threads[0] = te;
     processTable[processTableCount] = pe;
@@ -638,6 +643,7 @@ void DestroyCondition_Syscall(int index){
 }
 
 void Wait_Syscall(int index, int lockIndex){
+
     ss << "WC" << index << " " << lockIndex << " " << currentThread->space;
 
     // creates the message to send to the post office
@@ -671,6 +677,7 @@ void Wait_Syscall(int index, int lockIndex){
 }
 
 void Signal_Syscall(int index, int lockIndex){
+
     ss << "SC" << index << lockIndex << " " << currentThread->space;
 
     // creates the message to send to the post office
@@ -760,18 +767,23 @@ void MyWrite_Syscall(unsigned int vaddr, int len, int one, int two){
 
 
 int Exit_Syscall(){
-    currentThread->Finish();
-    // 1. Last thread in the last process, just call halt
+    //currentThread->Finish();
+    // printf("Exit syscall: CurrentThread: %d\n", currentThread);
     int count = 0;
     int slot = 0;
     processTableLock->Acquire();
     for(int i = 0; i < 10; i++){
-        if(processTable[i]->threadCount > 0)
-            count++;
-        if(processTable[i]->as == currentThread->space)
+        if(processTable[i]->threadTotal > 0)
+            count += processTable[i]->threadTotal;
+        if(processTable[i]->as != NULL && processTable[i]->as == currentThread->space){
             slot = i;
+        }
     }
+    // printf("Exit syscall - count: %d, slot: %d\n", count, slot);
+
+    // 1. Last thread in the last process, just call halt
     if(count == 1){
+        // printf("Exit syscall: halt\n");
         interrupt->Halt();
     }
 
@@ -780,7 +792,8 @@ int Exit_Syscall(){
     //          memoryBitMap->Clear(ppn);
     //     b. Reclaim all locks/CVs that were allocated to that process
 
-    if(processTable[slot]->threadCount == 1){ //Last thread in process
+    if(processTable[slot]->threadTotal == 1){ //Last thread in process
+        // printf("Exit syscall: second\n");
         for (int i = 0; i < MAX_LOCKS; i++){
             if (kLocks[i]->as == processTable[slot]->as){
                 DestroyLock_Syscall(i);
@@ -793,83 +806,182 @@ int Exit_Syscall(){
             }
         }
         processTable[slot]->as->EmptyPages();
-        delete processTable[slot]->as->file;
+        // delete processTable[slot]->as->file;
         ProcessEntry* blank = new ProcessEntry();
         processTable[slot] = blank;
-        //Clear locks/CVS here!
+        processTableLock->Release();
+        // printf("Exit syscall: second end\n");
         currentThread->Finish();
+
         return 0;
     }
     
     // 3. Not last thread in a process
     //     a. Reclaim 8 stack pages
     for(int j = 0; j< processTable[slot]->threadCount; j++){
-        if(currentThread == processTable[slot]->threads[j]->myThread){
-            processTable[slot]->as->Empty8Pages(processTable[slot]->threads[j]->firstStackPage);
-            processTable[slot]->threads[j] = new ThreadEntry();
-            currentThread->Finish();
-            return 1;
-            break;
+        if(processTable[slot]->threads[j] != NULL){
+            if( currentThread == processTable[slot]->threads[j]->myThread){
+                // printf("Exit syscall: third\n");
+            	// printf("CurrentThread: %d, myThread: %d\n", currentThread, processTable[slot]->threads[j]->myThread);
+                processTable[slot]->as->Empty8Pages(processTable[slot]->threads[j]->firstStackPage);
+                processTable[slot]->threads[j] = NULL;
+                processTable[slot]->threadTotal--;
+                processTableLock->Release();
+
+                currentThread->Finish();
+                return 1;
+            }
         }
     }
 
     printf("Exit syscall called with no acceptable results.\n");
+    processTableLock->Release();
+
     return -1;
 }
 
-int handleMemoryFull(){
+int handleMemoryFull(){ //Evict a page based on flag evictMethod 0 - RAND, 1 - FIFO
+    // printf("handleMemoryFull enter\n");
+    int ppn = -1;
+    
+    if(evictMethod == 0){ //RAND
+        while(true){
+            ppn = rand()%NumPhysPages; //Choose a random page
+            // printf("ppn:%d\n", ppn);
+            if(ipt[ppn].use == FALSE){ //Make sure not in use by another eviction
+                ipt[ppn].use = TRUE; //Mark in use by this eviction
+                break;
+            }
+        }
+    }
+    else{ //FIFO
+        while(true){
+        	fifoLock->Acquire();
+        	ppn = fifoQueue->front(); //Get the first page from the queue
+            // printf("fifo chose %d\n", ppn); 
+        	fifoQueue->pop_front(); //Remove from fifo queue
+        	if(ppn != -1){
+        		fifoLock->Release();
+        		break;
+        	}
+        	else{
+        		printf("Fifo returned -1?\n");
+                ASSERT(0);
+        	}
+        	fifoLock->Release();
+        }
+    }
 
-	return -1;
+    IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+	for(int i = 0; i < TLBSize; i++){
+		if(machine->tlb[i].physicalPage == ppn && machine->tlb[i].valid){
+        	ipt[ppn].dirty = machine->tlb[i].dirty; //Pass dirty bit to IPT from TLB
+			machine->tlb[i].valid = FALSE; //Invalidate TLB entry
+			break;
+		}
+	}
+    (void) interrupt->SetLevel(oldLevel); // re-enable interrupts
+	
+    if(ipt[ppn].dirty == TRUE){ //Check need to write to swap if page is dirty
+        swapLock->Acquire();
+        int offset = swapBitMap->Find(); //Find location in swap that is open
+        if(offset == -1){
+            printf("Nachos swap file full!");
+            ASSERT(0);
+        }
+        swapFile->WriteAt(&(machine->mainMemory[ppn*PageSize]), PageSize, offset*PageSize); //Write to swap
+        swapLock->Release();
+
+        ipt[ppn].as-> pageTableLock->Acquire();
+        ipt[ppn].as->pageTable[ipt[ppn].virtualPage].offset = offset; //Set offset within swap
+        ipt[ppn].as->pageTable[ipt[ppn].virtualPage].diskLocation = 1; //Set location to 1 for swap
+        ipt[ppn].as-> pageTableLock->Release();
+
+        // printf("Evicted physical page: %d, vpn: %d, AS: %d, Location: swap, Offset: %d\n", ppn, ipt[ppn].virtualPage, ipt[ppn].as, offset );
+    }
+    else{
+        // printf("Evicted physical page: %d, vpn: %d, AS: %d, Location: %d\n", ppn, ipt[ppn].virtualPage, ipt[ppn].as, ipt[ppn].as->pageTable[ipt[ppn].virtualPage].diskLocation);
+    }
+
+
+    // printf("handleMemoryFull exit\n");
+  	return ppn;
 }
 
-void handleIPTMiss(int vpn){
-	AddrSpace* as = currentThread->space;
+int handleIPTMiss(int vpn){
+    //printf("handleIPTMiss enter\n");
+    AddrSpace* as = currentThread->space;
 	bitMapLock->Acquire();
 	int ppn = memoryBitMap->Find();
 	bitMapLock->Release();
 
+    IPTLock->Acquire();
 	if(ppn == -1){ //Out of physical pages
-		ASSERT(0);
 		ppn = handleMemoryFull();
 	}
+	if(ppn < 0 || ppn > 33){
+        ASSERT(0);
+    }
 
-	//Update TLB (step 3)
+	if(evictMethod == 1){ //Re-add the ppn to the fifo queue's back
+		fifoLock->Acquire();
+		fifoQueue->push_back(ppn);
+		fifoLock->Release();
+	}
 
-	if(vpn < as->executablePageCount){ //VPN is code/init
-		as->pageTable[vpn].physicalPage = ppn;
+    as->pageTableLock->Acquire();
+	if( as->pageTable[vpn].diskLocation == 0){ //VPN is code
+		as->pageTable[vpn].physicalPage = ppn; //Update page table with new information
 		as->pageTable[vpn].valid = TRUE;
-		as->pageTable[vpn].diskLocation = 0;
+        as->pageTableLock->Release();
 
-		IPTLock->Acquire();
-		ipt[ppn].virtualPage = vpn;
+		ipt[ppn].virtualPage = vpn; //Update the IPT with the new information
 		ipt[ppn].physicalPage = ppn;
 		ipt[ppn].valid = TRUE;
-		ipt[ppn].use = TRUE;
 		ipt[ppn].dirty = FALSE;
 		ipt[ppn].readOnly = FALSE;
 		ipt[ppn].as = as;
-		IPTLock->Release();
-
+    // printf("Populating IPT - PPN: %d, VPN: %d, AS: %d, DL: %d, Offset: %d\n", ppn, vpn, as, as->pageTable[vpn].diskLocation, as->pageTable[vpn].offset);
+	
 		as->file->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, as->pageTable[vpn].offset);
-	}
-	else{
-		as->pageTable[vpn].physicalPage = ppn;
-		as->pageTable[vpn].valid = TRUE;
-		//as->pageTable[vpn].diskLocation = 0;
+    }
 
-		IPTLock->Acquire();
+	else if(as->pageTable[vpn].diskLocation == 1){ //VPN is in swap
+        as->pageTable[vpn].physicalPage = ppn;
+        as->pageTable[vpn].valid = TRUE;
+        as->pageTable[vpn].diskLocation = 2;
+        as->pageTableLock->Release();
+
+        swapLock->Acquire();
+        swapFile->ReadAt(&(machine->mainMemory[ppn * PageSize]), PageSize, as->pageTable[vpn].offset*PageSize);
+        swapBitMap->Clear(as->pageTable[vpn].offset);
+        swapLock->Release();
+
 		ipt[ppn].virtualPage = vpn;
 		ipt[ppn].physicalPage = ppn;
 		ipt[ppn].valid = TRUE;
-		ipt[ppn].use = TRUE;
-		ipt[ppn].dirty = FALSE;
+		ipt[ppn].dirty = TRUE;
 		ipt[ppn].readOnly = FALSE;
 		ipt[ppn].as = as;
-		IPTLock->Release();
+    // printf("Populating IPT - PPN: %d, VPN: %d, AS: %d, DL: %d, Offset: %d\n", ppn, vpn, as, as->pageTable[vpn].diskLocation, as->pageTable[vpn].offset);
 	}
+    else{ //VPN not in either
+        as->pageTable[vpn].physicalPage = ppn;
+        as->pageTable[vpn].valid = TRUE;
+        as->pageTableLock->Release();
 
+        ipt[ppn].virtualPage = vpn;
+        ipt[ppn].physicalPage = ppn;
+        ipt[ppn].valid = TRUE;
+        ipt[ppn].dirty = FALSE;
+        ipt[ppn].readOnly = FALSE;
+        ipt[ppn].as = as;
+    // printf("Populating IPT - PPN: %d, VPN: %d, AS: %d, DL: %d, Offset: %d\n", ppn, vpn, as, as->pageTable[vpn].diskLocation, as->pageTable[vpn].offset);
+    }
+
+    // printf("handleIPTMiss exit\n");
+    return ppn;
 }
-
 
 #endif
 
@@ -1182,9 +1294,12 @@ void ExceptionHandler(ExceptionType which) {
         machine->WriteRegister(NextPCReg,machine->ReadRegister(PCReg)+4);
         return;
     } 
+    #ifdef CHANGED
     else if(which == PageFaultException){
+
+        // printf("PFE\n");
         int vpn = (machine-> ReadRegister(BadVAddrReg))/PageSize; //Find virtual page number 
-        // cout<<vpn<<" | ";
+
         AddrSpace* as = currentThread->space; //Get AddrSpace
         IPTLock->Acquire();
         int ppn = -1;
@@ -1192,36 +1307,41 @@ void ExceptionHandler(ExceptionType which) {
         	if(ipt[i].as == as){
                 if(ipt[i].valid == TRUE ){
                     if(ipt[i].virtualPage == vpn){
-                        ppn = i;
+                        // printf("IPT USE FLAG: %d, ppn: %d, vpn: %d\n", ipt[i].use, i, ipt[i].virtualPage);
+                        ppn = i; //Find the physical page number that matches in the IPT
                         break;
                     }
                 }
             }
         }
-        IPTLock->Release();
+
         if(ppn == -1){ //Handle IPT miss
-            // printf("Unable to find physical page.\n");
-            handleIPTMiss(vpn);
+            IPTLock->Release();
+            ppn = handleIPTMiss(vpn);
         }
 
         IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
-        machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage;
+        IPTLock->Release();
+
+        if(machine->tlb[currentTLB].valid == true){ //Transfer dirty bit if needed
+            ipt[machine->tlb[currentTLB].physicalPage].dirty = machine->tlb[currentTLB].dirty;
+        }
+
+        machine->tlb[currentTLB].virtualPage = ipt[ppn].virtualPage; //Update TLB with the newest page
         machine->tlb[currentTLB].physicalPage = ppn;
         machine->tlb[currentTLB].valid = ipt[ppn].valid;
         machine->tlb[currentTLB].use = ipt[ppn].use;
         machine->tlb[currentTLB].dirty = ipt[ppn].dirty;
         machine->tlb[currentTLB].readOnly = ipt[ppn].readOnly;		
 
-		// machine->tlb[currentTLB].virtualPage = as->pageTable[vpn].virtualPage;
-		// machine->tlb[currentTLB].physicalPage = as->pageTable[vpn].physicalPage;
-		// machine->tlb[currentTLB].valid = as->pageTable[vpn].valid;
-		// machine->tlb[currentTLB].use = as->pageTable[vpn].use;
-		// machine->tlb[currentTLB].dirty = as->pageTable[vpn].dirty;
-		// machine->tlb[currentTLB].readOnly = as->pageTable[vpn].readOnly;		
-        currentTLB = (currentTLB+1)%TLBSize;
-        
+        currentTLB = (currentTLB+1)%TLBSize; //Increment the fifo counter for TLB
+        // printf("TLB UPdate - VPN: %d, PPN: %d\n", ipt[ppn].virtualPage, ppn);
         (void) interrupt->SetLevel(oldLevel); // re-enable interrupts
+
+        ipt[ppn].use = FALSE; //Set free for other evict to use (in case of random)
+
     }
+    #endif
     else {
     	cout<<"Unexpected user mode exception - which:"<<which<<"  type:"<< type<<endl;
     	interrupt->Halt();

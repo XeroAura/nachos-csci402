@@ -124,7 +124,6 @@ Lock* bitMapLock = new Lock("bitMapLock");
 
 AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	NoffHeader noffH;
-	unsigned int i;
 	unsigned int size;
 
 	pageBitMap = new BitMap(50);
@@ -144,14 +143,15 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	codeSize = noffH.code.size;
 	dataSize = noffH.initData.size + noffH.uninitData.size;
 	size = noffH.code.size + noffH.initData.size + noffH.uninitData.size ;
-	executablePageCount = divRoundUp(size, PageSize);
+	stackPageStart = divRoundUp(noffH.code.size + noffH.initData.size+ noffH.uninitData.size, PageSize);
+	executablePageCount = divRoundUp(noffH.code.size + noffH.initData.size, PageSize);
 	numPages = divRoundUp(size, PageSize) + 400; //<-- added in this semicolon  //divRoundUp(UserStackSize,PageSize);
 	// printf("NumPages: %d\n", numPages);
 	// we need to increase the size
 	// to leave room for the stack
 	size = numPages * PageSize;
 	
-	ASSERT(numPages <= NumPhysPages);	// check we're not trying
+	//ASSERT(numPages <= NumPhysPages);	// check we're not trying
 	// to run anything too big --
 	// at least until we have
 	// virtual memory
@@ -160,7 +160,7 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 	// first, set up the translation
 	pageTableLock->Acquire();
 	pageTable = new PageTableEntry[numPages];
-	for (i = 0; i < numPages; i++) {
+	for (int i = 0; i < numPages; i++) {
 		
 		//bitMapLock->Acquire();
 		//int ppn = memoryBitMap->Find(); //Use BitMap Find to get an unused page of memory
@@ -171,12 +171,18 @@ AddrSpace::AddrSpace(OpenFile *executable) : fileTable(MaxOpenFiles) {
 		// else{
 			pageTable[i].virtualPage = i;
 			//pageTable[i].physicalPage = ppn;
-			pageTable[i].valid = FALSE; //TRUE
-			pageTable[i].use = TRUE;
+			pageTable[i].use = FALSE;
 			pageTable[i].dirty = FALSE;
 			pageTable[i].readOnly = FALSE;
 			pageTable[i].diskLocation = 2;
-			pageTable[i].offset = 40+i*PageSize;
+			if(i < executablePageCount){
+				pageTable[i].offset = 40+i*PageSize;
+				pageTable[i].diskLocation = 0;
+				pageTable[i].valid = TRUE;
+			} else{
+				pageTable[i].diskLocation = 2;
+				pageTable[i].valid = FALSE;
+			}
 
 			// IPTLock->Acquire();
 			// ipt[ppn].virtualPage = i;
@@ -216,8 +222,15 @@ AddrSpace::AllocatePages(){ //Function to allocate 8 pages on the stack for a ne
 		pageBitMapLock->Release();
 		return -1;
 	}
-	pageStart = (executablePageCount + pageStart*8) * PageSize; 
+	for(int i = 0; i< 8; i++){
+		pageTable[i+pageStart+stackPageStart].valid = TRUE;
+	}
+
+	pageStart = (stackPageStart + pageStart*8) * PageSize; 
 	pageBitMapLock->Release();
+
+	
+
 	return pageStart;
 }
 
@@ -225,12 +238,36 @@ void
 AddrSpace::EmptyPages(){
 	pageTableLock->Acquire();
 	bitMapLock->Acquire();
-	IPTLock->Acquire();
 	for(int i = 0; i < numPages; i++){
-		ipt[pageTable[i].physicalPage].valid = FALSE;
-		memoryBitMap->Clear(pageTable[i].physicalPage);
+
+		if( pageTable[i].valid == TRUE &&
+			ipt[pageTable[i].physicalPage].as == this 
+			&& ipt[pageTable[i].physicalPage].use == FALSE
+			&& ipt[pageTable[i].physicalPage].valid == TRUE 
+			&& ipt[pageTable[i].physicalPage].virtualPage == i){
+
+			ipt[pageTable[i].physicalPage].valid = FALSE; //Mark as invalid
+
+			memoryBitMap->Clear(pageTable[i].physicalPage); //Free up page in physical memory
+
+			IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+			for(int j = 0; j < TLBSize; j++){
+				if(machine->tlb[j].physicalPage == pageTable[i].physicalPage){
+		        	ipt[pageTable[i].physicalPage].dirty = machine->tlb[j].dirty; //Pass dirty bit to IPT from TLB
+					machine->tlb[j].valid = FALSE; //Invalidate TLB entry
+					break;
+				}
+			}
+		    (void) interrupt->SetLevel(oldLevel); // re-enable interrupts
+
+			if(evictMethod == 1){
+				fifoLock->Acquire();
+				fifoQueue->remove(pageTable[i].physicalPage); //Remove physical page from fifo queue since its free now
+				fifoLock->Release();
+			}
+		}
+
 	}
-	IPTLock->Release();
 	bitMapLock->Release();
 	pageTableLock->Release();
 }
@@ -240,12 +277,38 @@ AddrSpace::Empty8Pages(int startPage){
 	startPage = startPage/PageSize;
 	pageTableLock->Acquire();
 	bitMapLock->Acquire();
-	IPTLock->Acquire();
+
 	for(int i = 0; i < 8; i++){
-		ipt[pageTable[startPage+i].physicalPage].valid = FALSE;
-		memoryBitMap->Clear(pageTable[startPage+i].physicalPage);
+		if(ipt[pageTable[startPage+i].physicalPage].as == this 
+			&& ipt[pageTable[startPage+i].physicalPage].use == FALSE
+			&& ipt[pageTable[startPage+i].physicalPage].valid == TRUE 
+			&& ipt[pageTable[startPage+i].physicalPage].virtualPage == (startPage+i)){
+
+			ipt[pageTable[startPage+i].physicalPage].valid = FALSE; //Mark as invalid
+
+			memoryBitMap->Clear(pageTable[startPage+i].physicalPage); //Free up page in physical memory
+
+			IntStatus oldLevel = interrupt->SetLevel(IntOff);   // disable interrupts
+			for(int j = 0; j < TLBSize; j++){
+				if(machine->tlb[j].physicalPage == pageTable[startPage+i].physicalPage){
+		        	ipt[pageTable[startPage+i].physicalPage].dirty = machine->tlb[j].dirty; //Pass dirty bit to IPT from TLB
+					machine->tlb[j].valid = FALSE; //Invalidate TLB entry
+					break;
+				}
+			}
+		    (void) interrupt->SetLevel(oldLevel); // re-enable interrupts
+
+			if(evictMethod == 1){
+				fifoLock->Acquire();
+				fifoQueue->remove(pageTable[startPage+i].physicalPage); //Remove physical page from fifo queue since its free now
+				fifoLock->Release();
+			}
+		}
 	}
-	IPTLock->Release();
+
+	for(int i = 0; i< 8; i++){
+		pageTable[i+startPage].valid = FALSE;
+	}
 	bitMapLock->Release();
 	pageTableLock->Release();
 
