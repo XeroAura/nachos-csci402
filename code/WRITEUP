@@ -15,6 +15,7 @@ Implement inverted page table to allow this to work.
 II. Assumptions:
 Since this is built on top of assignment 2, assume the previous assignment is done correctly.
 Makefile has been modified to build any additional files correctly. (Own tests and extra code files.)
+Assumes the names of locks, CVs and MVs have no spaces.
 
 
 III. Design:
@@ -55,6 +56,11 @@ The page table, accessed through the ipt addrspace pointer, should also be updat
 
 Also, when a program exits, the physical page is freed, so the corresponding page is removed from the fifo queue.
 This should occur in the exit syscall or a function called by it.
+
+
+
+
+
 
 
 IV. Implementation:
@@ -106,6 +112,26 @@ class PageTableEntry { //Modified TranslationEntry used for PageTable
             // page is modified.
     int diskLocation; //0 - exec, 1 - swap, 2 - neither
     int offset; //Byte offset of page in file (whether in swap or exec)
+};
+
+threads/system.h
+struct KernelMV{ //Kernel version of a MV
+    char* name; //name for comparison
+    int* values; //array of int values
+    int maxValue; //size of the array
+    int requestThreads; //# of threads that requested its creation - when = 0, Thread
+                    // is destroyed
+    AddrSpace* as; //address space of MV
+    bool isToBeDestroyed; //boolean signaling destruction
+};
+struct ServerLock{ //server equivalent of a lock in order to avoid sleeping
+    int state; //0 = available, 1 = busy
+    int owner; //machine ID of the owner of the lock
+    List* queue; //wait queue
+};
+struct ServerCV{ //server equivalent of a CV in order to avoid waiting
+    int lock; //ServerLock table index
+    List* queue; //wait queue
 };
 
 + Data Structures modified, and the file they were added to.
@@ -164,6 +190,17 @@ void ExceptionHandler(ExceptionType which) {
     //If using rand page evict, remember to update ipt with use = false for that ppn
 }
 
+
+all syscalls relating to Locks and CVs were modified to instead do the following: 
+    ○ Determine syscall type
+    ○ Get the input data
+    ○ Only validate char arrays
+    ○ Create a request message; send to server
+    ○ Wait for reply message
+    ○ Parse reply msg
+        § If needed, return value to user program
+
+
 threads/thread.cc
 Thread::SaveUserState(){
 	//Make sure to disable/enable interrupts around tlb code
@@ -180,12 +217,21 @@ Compile with gmake as usual in network folder.
 Tests for part 1/2:
 Running nachos [-PRAND OR -PFIFO] -x [../test/matmult OR ../test/matmult_fork OR ../test/matmult_exec OR ../test/matmult_combo]
 
+Test for part 3:
+Have 4 instances of nachos open, and run in the following order
+nachos -m 0 -server
+nachos -m 1 -x ../test/t1_1
+nachos -m 1 -x ../test/t1_2
+nachos -m 1 -x ../test/t1_3
+
 
 + Test Output
 Tests for part 1/2:
 For the matmult test, the output should be Exit: 7220 to show the test exited correctly.
 The matmult_fork, matmult_exec, and matmult_combo test should have a combination of one Exit: 0 and two Exit: 7220 outputs.
 
+Test for part 3:
+The first and second test should complete, and the third one should not be able to release the lock. The server will run indefinitely.
 
 VI. Discussion:
 + Experiment expectation.  (What you hope will happen.)
@@ -193,6 +239,8 @@ Tests for part 1/2:
 The tests should end with exit calls with returned value of 7220 to show the matrices multiplication ended with values of 7220.
 The exit 0 should be when main function exits.
 
+Test for part 3:
+The test should end with exit calls 
 
 + Experiment result.  (What actually happens.)
 Tests for part 1/2:

@@ -13,4 +13,6 @@ int main(){
 		Write("t1_t1: Releasing Lock 1\n", sizeof("t1_t1: Releasing Lock 1\n"), ConsoleOutput);
 	Release(0);
 	DestroyLock(0);
+	Exit(0);
+
 }
