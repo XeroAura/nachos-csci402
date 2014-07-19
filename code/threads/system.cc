@@ -57,6 +57,9 @@ std::list<int> *fifoQueue;
 Lock* fifoLock;
 #endif
 
+#ifdef CHANGED
+KernelMV* MVArray[500];
+#endif
 // External definition, to allow us to take a pointer to this function
 extern void Cleanup();
 
@@ -224,6 +227,12 @@ fifoQueue = new std::list<int>;
 fifoLock = new Lock("fifoLock");
 
 #endif    
+
+#ifdef CHANGED
+for (int i = 0; i < 500; i++){
+    MVArray[i] = new KernelMV();
+}
+#endif
 }
 
 //----------------------------------------------------------------------

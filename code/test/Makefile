@@ -31,8 +31,7 @@ CPP = $(GCCDIR)cpp
 INCDIR =-I../userprog -I../threads
 CFLAGS = -G 0 -c $(INCDIR)
 
-all: halt matmult sort matmult_fork matmult_exec matmult_combo
-#testfiles testlock1 testlock2 testfork1 testfork2 testfork3 testexec1 testexec2 testexec3 testCV1 testCV2 testCV3 testCV4 testCV5 testhospital1 testhospital2 testhospital3 testhospital4 testhospital5 testhospital6 testhospital7 testhospital8
+all: halt matmult sort matmult_fork matmult_exec matmult_combo testfiles testlock1 testlock2 testfork1 testfork2 testfork3 testexec1 testexec2 testexec3 testCV1 testCV2 testCV3 testCV4 testCV5 testhospital1 testhospital2 testhospital3 testhospital4 testhospital5 testhospital6 testhospital7 testhospital8 networktest
 
 start.o: start.s ../userprog/syscall.h
 	$(CPP) $(CPPFLAGS) start.s > strt.s
@@ -207,6 +206,12 @@ matmult_combo: matmult_combo.o start.o
 # testhospital8: testhospital8.o start.o
 # 	$(LD) $(LDFLAGS) start.o testhospital8.o -o testhospital8.coff
 # 	../bin/coff2noff testhospital8.coff testhospital8
+
+networktest.o: networktest.c
+	$(CC) $(CFLAGS) -c networktest.c
+networktest: networktest.o start.o
+	$(LD) $(LDFLAGS) start.o networktest.o -o networktest.coff
+	../bin/coff2noff networktest.coff networktest
 
 clean:
 	rm -f *.o *.coff

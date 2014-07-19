@@ -64,7 +64,7 @@ extern void MailTest(int networkID);
 extern void Problem2(void), TestSuite(void);
 #endif
 #ifdef CHANGED
-extern int evictMethod; //Determine which method to evict -PRAND or -PFIFO
+extern void Server(void);
 #endif
 //----------------------------------------------------------------------
 // main
@@ -161,9 +161,12 @@ main(int argc, char **argv)
         if (!strcmp(*argv, "-PFIFO")) {
 	    	evictMethod = 1;
         }
-#endif
-    }
+        if (!strcmp(*argv, "-server")) {
+        	Server();
+        }
 
+    }
+#endif
     currentThread->Finish();	// NOTE: if the procedure "main" 
 				// returns, then the program "nachos"
 				// will exit (as any other normal program
