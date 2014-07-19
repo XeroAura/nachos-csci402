@@ -117,6 +117,7 @@ int handleMemoryFull(){
     //Use fifo or random to get a page
     //If using rand, make sure that another thread isn't evicting the same page by using use flag in ipt entry
     //If using fifo, pop the front of the queue for use
+    //Make sure to use a lock to ensure fifo queue is synchronized
     //Update tlb by invalidating matching entries
     //If page is dirty according to ipt, write to swap file. Set diskLocation fields and offset to pageTable through ipt addrspace
 }
