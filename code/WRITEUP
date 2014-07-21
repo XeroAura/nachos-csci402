@@ -57,7 +57,7 @@ The page table, accessed through the ipt addrspace pointer, should also be updat
 Also, when a program exits, the physical page is freed, so the corresponding page is removed from the fifo queue.
 This should occur in the exit syscall or a function called by it.
 
-
+The global variables are now distributed - that is, client Nachos must access global variables by messaging a server with the proper message. In order to create or destroy a global lock, CV, or MV, or in order to do any operations with said variables, a message must be sent from the client Nachos to the server Nachos. Once the server verifies the integrity of the message, the request is attempted and the corresponding message on the status of the request (success or failure) is sent back to the client, where it is parsed and processed. 
 
 
 
@@ -240,7 +240,7 @@ The tests should end with exit calls with returned value of 7220 to show the mat
 The exit 0 should be when main function exits.
 
 Test for part 3:
-The test should end with exit calls 
+The test should end with exit calls on tests t1_1 and t1_2. Test t1_3 should fail all attempts to release the lock and end.
 
 + Experiment result.  (What actually happens.)
 Tests for part 1/2:
@@ -268,11 +268,16 @@ No threads ready or runnable, and no pending interrupts.
 Assuming the program completed.
 Machine halting!
 
+Test for part 3:
+Segmentation Fault
 
 + Explanation
 Tests for part 1/2:
 Each of these tests succeeded as the return value show the memory pages were correctly handled.
 If the return value of the test was not 7220, then I would know the memory pages were scrambled at some point and incorrect pages were being accessed. By mixing exec and fork, we know that page handling is not mixing the pages between threads in same process and between two processes as well.
 
+Test for part 3:
+If the test succeeded, it would have shown that the locks are properly being accessed from a server that is sending the appropriate messages to the client nachos. 
 
 VII. Miscellaneous:
+There is something wrong with the implementation of the Receives (most likely a buffer overflow that I cannot solve), so the test will end with a segmentation fault after the creation of the initial lock. Also, other tests were not added because for some reason only the CreateLock syscall does not segfault.
