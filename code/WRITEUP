@@ -1,3 +1,5 @@
+*** The Dim variable has been changed to 19 for the matmults because you told us to. ***
+
 Title:  Writeup for Project 3, Summer 2014
 Date:  7/16/2014
 Group Num 1 : Name            Email            Student ID
@@ -227,8 +229,8 @@ nachos -m 1 -x ../test/t1_3
 
 + Test Output
 Tests for part 1/2:
-For the matmult test, the output should be Exit: 7220 to show the test exited correctly.
-The matmult_fork, matmult_exec, and matmult_combo test should have a combination of one Exit: 0 and two Exit: 7220 outputs.
+For the matmult test, the output should be Exit: 6156 to show the test exited correctly.
+The matmult_fork, matmult_exec, and matmult_combo test should have a combination of one Exit: 0 and two Exit: 6156 outputs.
 
 Test for part 3:
 The first and second test should complete, and the third one should not be able to release the lock. The server will run indefinitely.
@@ -236,7 +238,7 @@ The first and second test should complete, and the third one should not be able 
 VI. Discussion:
 + Experiment expectation.  (What you hope will happen.)
 Tests for part 1/2:
-The tests should end with exit calls with returned value of 7220 to show the matrices multiplication ended with values of 7220.
+The tests should end with exit calls with returned value of 6156 to show the matrices multiplication ended with values of 6156.
 The exit 0 should be when main function exits.
 
 Test for part 3:
@@ -246,24 +248,24 @@ The test should end with exit calls
 Tests for part 1/2:
 nachos -x ../test/matmult_exec
 Exit: 0
-Exit: 7220
-Exit: 7220
+Exit: 6156
+Exit: 6156
 No threads ready or runnable, and no pending interrupts.
 Assuming the program completed.
 Machine halting!
 
 nachos -x ../test/matmult_fork
 Exit: 0
-Exit: 7220
-Exit: 7220
+Exit: 6156
+Exit: 6156
 No threads ready or runnable, and no pending interrupts.
 Assuming the program completed.
 Machine halting!
 
 nachos -x ../test/matmult_combo
 Exit: 0
-Exit: 7220
-Exit: 7220
+Exit: 6156
+Exit: 6156
 No threads ready or runnable, and no pending interrupts.
 Assuming the program completed.
 Machine halting!
@@ -272,7 +274,7 @@ Machine halting!
 + Explanation
 Tests for part 1/2:
 Each of these tests succeeded as the return value show the memory pages were correctly handled.
-If the return value of the test was not 7220, then I would know the memory pages were scrambled at some point and incorrect pages were being accessed. By mixing exec and fork, we know that page handling is not mixing the pages between threads in same process and between two processes as well.
+If the return value of the test was not 6156, then I would know the memory pages were scrambled at some point and incorrect pages were being accessed. By mixing exec and fork, we know that page handling is not mixing the pages between threads in same process and between two processes as well.
 
 
 VII. Miscellaneous:
