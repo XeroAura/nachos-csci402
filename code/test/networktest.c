@@ -8,6 +8,8 @@
 int main() {
 	CreateLock("Lock1",sizeof("Lock1"));
 	Acquire(0);
+	Release(0);
+	DestroyLock(0);
 	Exit(0);
 }
 

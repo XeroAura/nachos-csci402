@@ -466,7 +466,7 @@ int CreateLock_Syscall(unsigned int vaddr, int len){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -476,12 +476,13 @@ int CreateLock_Syscall(unsigned int vaddr, int len){
     outMailHdr.length = ss.str().size() + 1;
     printf("Sending message\n");
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
     printf("Message sent\n");
+    buffer = new char[MaxMailSize];
     //receive message from server and return lock index
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("Message received, index is %s \n", buffer);
@@ -494,8 +495,7 @@ void DestroyLock_Syscall(int index){
     ss << "DL" << index << " " << currentThread->space;
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
-    MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    MailHeader outMailHdr, inMailHdr;    
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -504,14 +504,19 @@ void DestroyLock_Syscall(int index){
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
 
+
+    char* buffer = (char*)ss.str().c_str();
+
+
     printf("Sending message\n");
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
     printf("Message sent\n");
+    buffer = new char[MaxMailSize];
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("Message received, index is %s \n", buffer);
     ss.str("");
@@ -524,7 +529,7 @@ void Acquire_Syscall(int index){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -534,12 +539,13 @@ void Acquire_Syscall(int index){
     outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
       return;
     }
+    buffer = new char[MaxMailSize];
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
     ss.str("");
@@ -552,7 +558,7 @@ void Release_Syscall(int index){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -562,11 +568,12 @@ void Release_Syscall(int index){
     outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
+    buffer = new char[MaxMailSize];
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
     ss.str("");
@@ -594,7 +601,7 @@ int CreateCondition_Syscall(unsigned int vaddr, int len){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -604,11 +611,12 @@ int CreateCondition_Syscall(unsigned int vaddr, int len){
     outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
+    buffer = new char[MaxMailSize];
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
     ss.str("");    
@@ -621,7 +629,7 @@ void DestroyCondition_Syscall(int index){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -631,11 +639,12 @@ void DestroyCondition_Syscall(int index){
     outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
+    buffer = new char[MaxMailSize];
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
     ss.str("");
@@ -649,7 +658,7 @@ void Wait_Syscall(int index, int lockIndex){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -659,11 +668,12 @@ void Wait_Syscall(int index, int lockIndex){
     outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
+    buffer = new char[MaxMailSize];    
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
     // if (index >= 0 && index < MAX_LOCKS){
@@ -683,7 +693,7 @@ void Signal_Syscall(int index, int lockIndex){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -693,11 +703,12 @@ void Signal_Syscall(int index, int lockIndex){
     outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
+    buffer = new char[MaxMailSize];    
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
 
@@ -719,7 +730,7 @@ void Broadcast_Syscall(int index, int lockIndex){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -729,11 +740,12 @@ void Broadcast_Syscall(int index, int lockIndex){
     outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
+    buffer = new char[MaxMailSize];    
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
 
@@ -1006,7 +1018,7 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int arrayLen){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -1016,31 +1028,15 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int arrayLen){
     outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
+    buffer = new char[MaxMailSize];
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
 
-    // if(!validateBuffer(vaddr, len)){
-    //     printf("Bad buffer vaddr or length.\n");
-    //     return -1;
-    // }
-    // char *buf = new char[len+1];    // Kernel buffer to put the name in
-
-    // if (!buf) return -1;
-
-    // if( copyin(vaddr,len,buf) == -1 ) {
-    //     printf("%s","Bad pointer passed to CreateLock\n");
-    //     delete buf;
-    //     return -1;
-    // }
-    // MVTableLock->Acquire();
-    // MVArray[nextMVIndex] = 0;
-    // nextMVIndex++;
-    // MVTableLock->Release();    
     ss.str("");
     buffer = NULL;
     return 0;
@@ -1052,7 +1048,7 @@ void DestroyMV_Syscall(int index){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -1062,18 +1058,14 @@ void DestroyMV_Syscall(int index){
     outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
+    buffer = new char[MaxMailSize];
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
-    // if(1==1){
-
-    // } else {
-    //     printf("ERROR: No MV at this index.\n");
-    // }
     ss.str("");
     return;
 }
@@ -1084,7 +1076,7 @@ int GetMV_Syscall(int index, int arrayIndex){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -1094,21 +1086,14 @@ int GetMV_Syscall(int index, int arrayIndex){
     outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
+    buffer = new char[MaxMailSize];
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
-
-    // if (MVArray[index] != -1 && MVArray[index] != NULL){
-        // return MVArray[index];
-    // } else if (MVArray[index] == -1){
-        // printf("ERROR: MV at index %d has not been created. \n", index);
-    // } else {
-        // printf("ERROR: MV at index %d has already been deleted. \n", index);
-    // }
     ss.str("");
     return -1;
 }
@@ -1119,7 +1104,7 @@ void SetMV_Syscall(int index, int arrayIndex, int newValue){
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
-    char* buffer;
+    char* buffer = (char*)ss.str().c_str();
     // construct packet, mail header for original message
     // To: destination machine, mailbox 0
     // From: our machine, reply to: mailbox 1
@@ -1129,23 +1114,14 @@ void SetMV_Syscall(int index, int arrayIndex, int newValue){
         outMailHdr.length = ss.str().size() + 1;
 
     // Send the message to server
-    bool success = postOffice->Send(outPktHdr, outMailHdr, (char*)ss.str().c_str()); 
+    bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
       printf("The postOffice Send failed. You must not have the other Nachos running. Terminating Nachos.\n");
       interrupt->Halt();
     }
+    buffer = new char[MaxMailSize];    
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
     printf("%s\n",buffer);
-
-    // if (MVArray[index] != -1 && MVArray[index] != NULL){
-    //     MVTableLock->Acquire();
-    //     MVArray[index] = newValue;
-    //     MVTableLock->Release();
-    // } else if (MVArray[index] == -1){
-    //     printf("ERROR: MV at index %d has not been created.\n",index);
-    // } else {
-    //     printf("ERROR: MV at index %d has already been deleted. \n", index);
-    // }
     ss.str("");
     return;
 }

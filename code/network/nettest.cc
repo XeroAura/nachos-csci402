@@ -133,7 +133,6 @@ Server(){
         outputString = string(buffer);
         key = outputString.substr(0,2);
         buffer += 2;
-        printf("%s \n", buffer);
 
 /*    Create Lock request - assumes that the lock name has no spaces*/
         if (key == "CL"){
@@ -155,6 +154,8 @@ Server(){
                     kLocks[i]->requestThreads++;
                     sprintf(output,"%d",i);
                     success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    buffer = new char[MaxMailSize];
+
                     flag = true;
                     break;
                 }
@@ -172,7 +173,6 @@ Server(){
 
                     nextLockIndex++;
                     sprintf(output, "%d",nextLockIndex-1);
-                    printf("Sending success message\n");
                     success = postOffice->Send(outPktHdr, outMailHdr, output); 
 
                 } else {
