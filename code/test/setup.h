@@ -61,6 +61,7 @@ int doorBoyPatientRoom[5] = {-1,-1,-1,-1,-1};
 int doorBoyIndexLock;
 int nextDoorBoyIndex = 0;
 
+/* ----------------------------------------------------------------- */
 
 /*Cashier globals */
 int totalFeeLock;
@@ -117,5 +118,57 @@ int clerkBreakLock;
 int clerkBreakCV[5];
 
 void setup(){
+
+
+	for(i = 0; i < 5; i++){
+		cashierLock[i] = CreateLock("cashierLock"+i, sizeof("cashierLock")+1);
+	}
+	for (i = 0; i < 5; i++){
+		cashierCV[i] = CreateCondition("cashierCV"+i, sizeof("cashierCV")+1);
+	}
+	for (i = 0; i < 5; i++){
+		cashierLineCV[i] = CreateCondition("cashierLineCV"+i, sizeof("cashierLineCV")+1);
+	}
+	totalFeeLock = CreateLock("totalFeeLock", sizeof("totalFeeLock"));
+	cashierLineLock= CreateLock("cashierLineLock", sizeof("cashierLineLock"));
+	cashierTokenLock= CreateLock("cashierTokenLock", sizeof("cashierTokenLock"));
+	cashierFeeLock = CreateLock("cashierFeeLock", sizeof("cashierFeeLock"));
+	cashierIndexLock = CreateLock("cashierIndexLock", sizeof("cashierIndexLock"));
+	
+	for(i = 0; i < 5; i++){
+		clerkLock[i] = CreateLock("clerkLock"+i, sizeof("clerklock")+1);
+	}
+	for (i = 0; i < 5; i++){
+		clerkCV[i] = CreateCondition("clerkCV"+i, sizeof("clerkCV")+1);
+	}
+	
+	for (i = 0; i < 5; i++){
+		clerkLineCV[i] = CreateCondition("clerkLineCV"+i, sizeof("clerkLineCV")+1);
+	}
+	
+	medicineFeeLock= CreateLock("medicineFeeLock", sizeof("medicineFeeLock"));
+	totalMedicineLock = CreateLock("totalMedicineLock", sizeof("totalMedicineCost"));
+	clerkLineLock = CreateLock("clerkLineLock", sizeof("clerkLineLock"));
+	clerkPrescriptionLock = CreateLock("clerkPrescriptionLock", sizeof("clerkPrescriptionLock"));
+	clerkTokenLock = CreateLock("clerkTokenLock", sizeof("clerkTokenLock"));
+	clerkIndexLock= CreateLock("clerkIndexLock", sizeof("clerkIndexLock"));
+	
+	receptionistBreakLock = CreateLock("receptionistBreakLock", sizeof("receptionistBreakLock"));
+	doorBoyBreakLock = CreateLock("doorBoyBreakLock", sizeof("doorBoyBreakLock"));
+	cashierBreakLock = CreateLock("cashierBreakLock", sizeof("cashierBreakLock"));
+	clerkBreakLock  = CreateLock("clerkBreakLock", sizeof("clerkBreakLock"));
+	
+	for (i = 0; i < 5; i++){
+		receptionistBreakCV[i] = CreateCondition("receptionistBreakCV"+i, sizeof("receptionistBreakCV")+1);
+	}
+	for (i = 0; i < 5; i++){
+		doorBoyBreakCV[i] = CreateCondition("doorBoyBreakCV"+i, sizeof("doorBoyBreakCV")+1);
+	}
+	for (i = 0; i < 5; i++){
+		clerkBreakCV[i] = CreateCondition("clerkBreakCV"+i, sizeof("clerkBreakCV")+1);
+	}
+	for (i = 0; i < 5; i++){
+		cashierBreakCV[i] = CreateCondition("cashierBreakCV"+i, sizeof("cashierBreakCV")+1);
+	}
 
 }

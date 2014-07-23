@@ -24,9 +24,7 @@ Manager(){
 			for(i = 0; i < recCount; i++){
 				if(recState[i] == 2 ){
 					Acquire(receptionistBreakLock);
-					if (testNum == 6 || testNum == 8){
-						MyWrite("HospitalManager signaled a Receptionist to come off break\n", sizeof("HospitalManager signaled a Receptionist to come off break\n")-1, 0, 0);
-					}
+					MyWrite("HospitalManager signaled a Receptionist to come off break\n", sizeof("HospitalManager signaled a Receptionist to come off break\n")-1, 0, 0);
 					Signal(receptionistBreakCV[i], receptionistBreakLock);
 					Release(receptionistBreakLock);
 				}
@@ -41,9 +39,7 @@ Manager(){
 				for(i = 0; i < doorBoyCount; i++){
 					if(doorBoyState[i] == 2){
 						Acquire(doorBoyBreakLock);
-						if (testNum == 6 || testNum == 8){
-							MyWrite("HospitalManager signaled a DoorBoy to come off break\n", sizeof("HospitalManager signaled a DoorBoy to come off break\n")-1,0 ,0);
-						}
+						MyWrite("HospitalManager signaled a DoorBoy to come off break\n", sizeof("HospitalManager signaled a DoorBoy to come off break\n")-1,0 ,0);
 						Signal(doorBoyBreakCV[i], doorBoyBreakLock);
 						Release(doorBoyBreakLock);
 					}
@@ -56,9 +52,7 @@ Manager(){
 		for(i = 0; i < cashierCount; i++){
 			if(cashierLineCount[i] > 0 && cashierState[i] == 2){
 				Acquire(cashierBreakLock);
-				if (testNum == 6 || testNum == 8){
-					MyWrite("HospitalManager signaled a Cashier to come off break\n", sizeof("HospitalManager signaled a Cashier to come off break\n")-1, 0, 0);
-				}
+				MyWrite("HospitalManager signaled a Cashier to come off break\n", sizeof("HospitalManager signaled a Cashier to come off break\n")-1, 0, 0);
 				Signal(cashierBreakCV[i], cashierBreakLock);
 				Release(cashierBreakLock);
 			}
@@ -69,9 +63,7 @@ Manager(){
 		for(i = 0; i<clerkCount; i++){
 			if(clerkLineCount[i] > 0 && clerkState[i] == 2){
 				Acquire(clerkBreakLock);
-				if (testNum == 6 || testNum == 8){
-					MyWrite("HospitalManager signaled a PharmacyClerk to come off break\n", sizeof("HospitalManager signaled a PharmacyClerk to come off break\n")-1, 0, 0);
-				}
+				MyWrite("HospitalManager signaled a PharmacyClerk to come off break\n", sizeof("HospitalManager signaled a PharmacyClerk to come off break\n")-1, 0, 0);
 				Signal(clerkBreakCV[i], clerkBreakLock);
 				Release(clerkBreakLock);
 			}
@@ -81,24 +73,19 @@ Manager(){
 		
 		/*
 		* COMMENT OUT BETWEEN TO REMOVE SPAM FROM HOSPITAL MANAGER
-		*/
-		if (testNum == 7){
-			Acquire(totalFeeLock);
-			myConsultFee = totalConsultationFee;
-			MyWrite("HospitalManager reports that total consultancy fees are %d\n", sizeof("HospitalManager reports that total consultancy fees are %d\n")-1, myConsultFee*100, 0);
-			Release(totalFeeLock);
-			
-			Acquire(totalMedicineLock);
-			myMedicineFee = totalMedicineCost;
-			MyWrite("HospitalManager reports total sales in pharmacy are %d\n", sizeof("HospitalManager reports total sales in pharmacy are %d\n")-1, myMedicineFee*100, 0);
-			Release(totalMedicineLock);
-		}
-		/*
+		
+		Acquire(totalFeeLock);
+		myConsultFee = totalConsultationFee;
+		MyWrite("HospitalManager reports that total consultancy fees are %d\n", sizeof("HospitalManager reports that total consultancy fees are %d\n")-1, myConsultFee*100, 0);
+		Release(totalFeeLock);
+
+		Acquire(totalMedicineLock);
+		myMedicineFee = totalMedicineCost;
+		MyWrite("HospitalManager reports total sales in pharmacy are %d\n", sizeof("HospitalManager reports total sales in pharmacy are %d\n")-1, myMedicineFee*100, 0);
+		Release(totalMedicineLock);
+		
 		* COMMENT OUT BETWEEN TO REMOVE SPAM FROM HOSPITAL MANAGER
 		*/
-		if (testNum == 2 || testNum == 4 || testNum == 5 || testNum == 6){
-			break;
-		}
 		
 		if (completedPatientThreads == numPatients){
 			break;
