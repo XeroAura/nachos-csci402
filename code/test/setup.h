@@ -1,7 +1,7 @@
 /*Global variables*/
 int completedPatientThreads = 0;
-int numPatients = 0;
-int testNum = 0;
+int numPatients = 20; // 20 Patients for final test
+
 int patientIndexLock;
 int nextPatientIndex = 0;
 
@@ -64,48 +64,54 @@ int nextDoorBoyIndex = 0;
 /* ----------------------------------------------------------------- */
 
 /*Cashier globals */
-int totalFeeLock;
-int totalConsultationFee = 0;
-int cashierCount = 5;
+int totalFeeLock; //Lock for total fee charged to patients
+int cashierCount = 5; //5 cashiers
+int cashierLineLock; //Lock for cashier ilnes
+int cashierLineCV[5]; //Line CV for cashiers
+int cashierLock[5]; //Lock for cashier interactions
+int cashierCV[5]; //CV for cashier interactions
+int cashierIndexLock; //Lock for counting cashiers at startup
 
-int cashierLineLock;
-int cashierLineCount[5] = {0,0,0,0,0};
-int cashierLineCV[5];
-
-int cashierLock[5];
-int cashierCV[5];
-
-int cashierState[5] = {1,1,1,1,1};
-int cashierToken[5] = {0,0,0,0,0};
+//Extra locks
 int cashierTokenLock;
-int cashierFee[5] = {0,0,0,0,0};
 int cashierFeeLock;
 
-int cashierIndexLock;
-int nextCashierIndex = 0;
+//Monitor Variables
+int nextCashierIndex = 0; //Used for giving each cashier an unique index
+int totalConsultationFee = 0; //Total consultation fee
+int cashierLineCount[5] = {0,0,0,0,0}; //Number of people in each cashier line
+int cashierState[5] = {1,1,1,1,1}; //State of cashier 1 - busy, 0 - free
+int cashierToken[5] = {0,0,0,0,0}; //Token number passed to cashier by patient
+int cashierFee[5] = {0,0,0,0,0}; //Fee charged by cashier to patient
+
+/* ----------------------------------------------------------------- */
 
 /*Clerk globals*/
-int medicineFeeLock;
-int medicineFee[5] = {0,0,0,0,0};
-int totalMedicineLock;
-int totalMedicineCost = 0;
-int clerkCount = 5;
+int totalMedicineLock; //Total medicine fees Lock
+int clerkCount = 5; //5 clerks
 
 int clerkLineLock;
-int clerkLineCount[5] = {0,0,0,0,0};
 int clerkLineCV[5];
-int clerkState[5] = {1,1,1,1,1};
-int clerkPrescription[5] = {0,0,0,0,0};
-int clerkPrescriptionLock;
-
-int clerkTokenLock;
-int clerkToken[5] = {0,0,0,0,0};
 
 int clerkLock[5];
 int clerkCV[5];
+int clerkIndexLock; //Lock for counting clerks
 
-int clerkIndexLock;
+//Extra Locks
+int clerkTokenLock;
+int clerkPrescriptionLock;
+int medicineFeeLock;
+
+//Monitor Variables
+int clerkState[5] = {1,1,1,1,1};
+int clerkLineCount[5] = {0,0,0,0,0};
+int clerkToken[5] = {0,0,0,0,0};
+int clerkPrescription[5] = {0,0,0,0,0};
+int medicineFee[5] = {0,0,0,0,0};
 int nextClerkIndex = 0;
+int totalMedicineCost = 0;
+
+/* ----------------------------------------------------------------- */
 
 /*Manager globals*/
 int receptionistBreakLock;
@@ -117,9 +123,23 @@ int cashierBreakCV[5];
 int clerkBreakLock;
 int clerkBreakCV[5];
 
+/* ----------------------------------------------------------------- */
+
 void setup(){
 
+	//Patient stuff
+	
 
+	//Receptionist stuff
+
+
+	//Doorboy stuff
+
+
+	//Doctor stuff
+
+
+	//Cashier stuff
 	for(i = 0; i < 5; i++){
 		cashierLock[i] = CreateLock("cashierLock"+i, sizeof("cashierLock")+1);
 	}
@@ -135,6 +155,7 @@ void setup(){
 	cashierFeeLock = CreateLock("cashierFeeLock", sizeof("cashierFeeLock"));
 	cashierIndexLock = CreateLock("cashierIndexLock", sizeof("cashierIndexLock"));
 	
+	//Clerk stuff
 	for(i = 0; i < 5; i++){
 		clerkLock[i] = CreateLock("clerkLock"+i, sizeof("clerklock")+1);
 	}
@@ -153,11 +174,11 @@ void setup(){
 	clerkTokenLock = CreateLock("clerkTokenLock", sizeof("clerkTokenLock"));
 	clerkIndexLock= CreateLock("clerkIndexLock", sizeof("clerkIndexLock"));
 	
+	//Manager stuff
 	receptionistBreakLock = CreateLock("receptionistBreakLock", sizeof("receptionistBreakLock"));
 	doorBoyBreakLock = CreateLock("doorBoyBreakLock", sizeof("doorBoyBreakLock"));
 	cashierBreakLock = CreateLock("cashierBreakLock", sizeof("cashierBreakLock"));
 	clerkBreakLock  = CreateLock("clerkBreakLock", sizeof("clerkBreakLock"));
-	
 	for (i = 0; i < 5; i++){
 		receptionistBreakCV[i] = CreateCondition("receptionistBreakCV"+i, sizeof("receptionistBreakCV")+1);
 	}

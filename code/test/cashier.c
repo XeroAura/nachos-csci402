@@ -13,11 +13,13 @@ Cashier(){
 	setup();
 	int fee = 0;
 	int token = 0;
-	int index;
+
+	int index = 0;
 	Acquire(cashierIndexLock);
 	index = nextCashierIndex;
 	nextCashierIndex++;
 	Release(cashierIndexLock);
+
 	while(1){
 		Acquire(cashierLineLock);
 		cashierState[index]=0;
@@ -33,15 +35,15 @@ Cashier(){
 		
 		Wait(cashierCV[index],cashierLock[index]);
 		
-		Acquire(cashierTokenLock);
+		// Acquire(cashierTokenLock);
 		token = cashierToken[index];
 		MyWrite("Cashier %d gets Token %d from a Patient \n", sizeof("Cashier %d gets Token %d from a Patient \n")-1, index*100+token, 0);
-		Release(cashierTokenLock);
+		// Release(cashierTokenLock);
 		
 		
-		Acquire(cashierFeeLock);
+		// Acquire(cashierFeeLock);
 		cashierFee[index] = fee;
-		Release(cashierFeeLock);
+		// Release(cashierFeeLock);
 		
 		Signal(cashierCV[index], cashierLock[index]);
 		MyWrite("Cashier %d tells Patient with Token %d they owe %d \n", sizeof("Cashier %d tells Patient with Token %d they owe %d \n")-1, index*100+token, fee*100);

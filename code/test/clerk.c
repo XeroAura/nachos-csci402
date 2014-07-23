@@ -5,7 +5,8 @@ Clerk(){
 	int token = 0;
 	int fee = 0;
 	int prescription = 0;
-	int index;
+	int index = 0;
+
 	Acquire(clerkIndexLock);
 	index = nextClerkIndex;
 	nextClerkIndex++;
@@ -25,21 +26,21 @@ Clerk(){
 		Release(clerkLineLock);
 		Wait(clerkCV[index], clerkLock[index]);
 		
-		Acquire(clerkTokenLock);
+		//Acquire(clerkTokenLock);
 		token = clerkToken[index];
-		Release(clerkTokenLock);
+		//Release(clerkTokenLock);
 		
-		Acquire(clerkPrescriptionLock);
+		// Acquire(clerkPrescriptionLock);
 		prescription = clerkPrescription[index];
 		MyWrite("PharmacyClerk %d gets Prescription %d from Patient with Token %d \n", sizeof("PharmacyClerk %d gets Prescription %d from Patient with Token %d \n")-1, index*100+prescription, token*100);
-		Release(clerkPrescriptionLock);
+		// Release(clerkPrescriptionLock);
 		
 		
 		fee = prescription*25;
 		
-		Acquire(medicineFeeLock);
+		// Acquire(medicineFeeLock);
 		medicineFee[index] = fee;
-		Release(medicineFeeLock);
+		// Release(medicineFeeLock);
 		MyWrite("PharmacyClerk %d gives Prescription %d from Patient with Token %d \n", sizeof("PharmacyClerk %d gives Prescription %d from Patient with Token %d \n")-1, index*100+ prescription, token*100);
 		MyWrite("PharmacyClerk %d tells Patient with Token %d they owe %d \n", sizeof("PharmacyClerk %d tells Patient with Token %d they owe %d \n")-1, index*100+ token, fee*100);
 		Signal(clerkCV[index], clerkLock[index]);

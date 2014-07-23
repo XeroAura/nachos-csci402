@@ -7,10 +7,8 @@ Manager(){
 	int lineCnt = 0;
 	int myConsultFee = 0;
 	int myMedicineFee = 0;
+
 	while(1){
-		if (testNum == 7){
-			yield = 5020;
-		}
 		for(i = 0; i<yield; i++){
 			Yield();
 		}
@@ -33,20 +31,19 @@ Manager(){
 		Release(recLineLock);
 		
 		
-		if (testNum != 2){
-			Acquire(doorBoyLineLock);
-			if(doorBoyLineCount > 0){
-				for(i = 0; i < doorBoyCount; i++){
-					if(doorBoyState[i] == 2){
-						Acquire(doorBoyBreakLock);
-						MyWrite("HospitalManager signaled a DoorBoy to come off break\n", sizeof("HospitalManager signaled a DoorBoy to come off break\n")-1,0 ,0);
-						Signal(doorBoyBreakCV[i], doorBoyBreakLock);
-						Release(doorBoyBreakLock);
-					}
+		Acquire(doorBoyLineLock);
+		if(doorBoyLineCount > 0){
+			for(i = 0; i < doorBoyCount; i++){
+				if(doorBoyState[i] == 2){
+					Acquire(doorBoyBreakLock);
+					MyWrite("HospitalManager signaled a DoorBoy to come off break\n", sizeof("HospitalManager signaled a DoorBoy to come off break\n")-1,0 ,0);
+					Signal(doorBoyBreakCV[i], doorBoyBreakLock);
+					Release(doorBoyBreakLock);
 				}
 			}
-			Release(doorBoyLineLock);
 		}
+		Release(doorBoyLineLock);
+		
 		
 		Acquire(cashierLineLock);
 		for(i = 0; i < cashierCount; i++){
