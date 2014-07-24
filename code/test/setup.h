@@ -77,12 +77,12 @@ int cashierTokenLock;
 int cashierFeeLock;
 
 //Monitor Variables
-int nextCashierIndex = 0; //Used for giving each cashier an unique index
-int totalConsultationFee = 0; //Total consultation fee
-int cashierLineCount[5] = {0,0,0,0,0}; //Number of people in each cashier line
-int cashierState[5] = {1,1,1,1,1}; //State of cashier 1 - busy, 0 - free
-int cashierToken[5] = {0,0,0,0,0}; //Token number passed to cashier by patient
-int cashierFee[5] = {0,0,0,0,0}; //Fee charged by cashier to patient
+int nextCashierIndex; //Used for giving each cashier an unique index
+int totalConsultationFee; //Total consultation fee
+int cashierLineCount; //Number of people in each cashier line
+int cashierState; //State of cashier 1 - busy, 0 - free
+int cashierToken; //Token number passed to cashier by patient
+int cashierFee; //Fee charged by cashier to patient
 
 /* ----------------------------------------------------------------- */
 
@@ -103,13 +103,13 @@ int clerkPrescriptionLock;
 int medicineFeeLock;
 
 //Monitor Variables
-int clerkState[5] = {1,1,1,1,1};
-int clerkLineCount[5] = {0,0,0,0,0};
-int clerkToken[5] = {0,0,0,0,0};
-int clerkPrescription[5] = {0,0,0,0,0};
-int medicineFee[5] = {0,0,0,0,0};
-int nextClerkIndex = 0;
-int totalMedicineCost = 0;
+int clerkState;
+int clerkLineCount;
+int clerkToken;
+int clerkPrescription;
+int medicineFee;
+int nextClerkIndex;
+int totalMedicineCost;
 
 /* ----------------------------------------------------------------- */
 
@@ -126,7 +126,6 @@ int clerkBreakCV[5];
 /* ----------------------------------------------------------------- */
 
 void setup(){
-
 	//Patient stuff
 	
 
@@ -140,6 +139,13 @@ void setup(){
 
 
 	//Cashier stuff
+	nextCashierIndex = CreateMV("nextCashierIndex", sizeof("nextCashierIndex"), 1);
+	totalConsultationFee = CreateMV("totalConsultationFee", sizeof("totalConsultationFee"), 1);
+	cashierLineCount = CreateMV("cashierLineCount", sizeof("cashierLineCount"), 5); //{0,0,0,0,0}; //Number of people in each cashier line
+	cashierState = CreateMV("cashierState", sizeof("cashierState"), 5); //{1,1,1,1,1}; //State of cashier 1 - busy, 0 - free
+	cashierToken = CreateMV("cashierToken", sizeof("cashierToken"), 5);  //{0,0,0,0,0}; //Token number passed to cashier by patient
+	cashierFee = CreateMV("cashierFee", sizeof("cashierFee"), 5);  //{0,0,0,0,0}; //Fee charged by cashier to patient
+
 	for(i = 0; i < 5; i++){
 		cashierLock[i] = CreateLock("cashierLock"+i, sizeof("cashierLock")+1);
 	}
@@ -151,11 +157,19 @@ void setup(){
 	}
 	totalFeeLock = CreateLock("totalFeeLock", sizeof("totalFeeLock"));
 	cashierLineLock= CreateLock("cashierLineLock", sizeof("cashierLineLock"));
-	cashierTokenLock= CreateLock("cashierTokenLock", sizeof("cashierTokenLock"));
-	cashierFeeLock = CreateLock("cashierFeeLock", sizeof("cashierFeeLock"));
+	// cashierTokenLock= CreateLock("cashierTokenLock", sizeof("cashierTokenLock"));
+	// cashierFeeLock = CreateLock("cashierFeeLock", sizeof("cashierFeeLock"));
 	cashierIndexLock = CreateLock("cashierIndexLock", sizeof("cashierIndexLock"));
 	
 	//Clerk stuff
+	clerkState = CreateMV("clerkState", sizeof("clerkState"), 5); //{1,1,1,1,1};
+	clerkLineCount = CreateMV("clerkLineCount", sizeof("clerkLineCount"), 5); //{0,0,0,0,0};
+	clerkToken = CreateMV("clerkToken", sizeof("clerkToken"), 5); //{0,0,0,0,0};
+	clerkPrescription = CreateMV("clerkPrescription", sizeof("clerkPrescription"), 5); // {0,0,0,0,0};
+	medicineFee = CreateMV("medicineFee", sizeof("medicineFee"), 5); //{0,0,0,0,0};
+	nextClerkIndex = CreateMV("nextClerkIndex", sizeof("nextClerkIndex"), 1);
+	totalMedicineCost = CreateMV("totalMedicineCost", sizeof("totalMedicineCost"), 5);
+
 	for(i = 0; i < 5; i++){
 		clerkLock[i] = CreateLock("clerkLock"+i, sizeof("clerklock")+1);
 	}
@@ -167,11 +181,11 @@ void setup(){
 		clerkLineCV[i] = CreateCondition("clerkLineCV"+i, sizeof("clerkLineCV")+1);
 	}
 	
-	medicineFeeLock= CreateLock("medicineFeeLock", sizeof("medicineFeeLock"));
+	// medicineFeeLock= CreateLock("medicineFeeLock", sizeof("medicineFeeLock"));
 	totalMedicineLock = CreateLock("totalMedicineLock", sizeof("totalMedicineCost"));
 	clerkLineLock = CreateLock("clerkLineLock", sizeof("clerkLineLock"));
-	clerkPrescriptionLock = CreateLock("clerkPrescriptionLock", sizeof("clerkPrescriptionLock"));
-	clerkTokenLock = CreateLock("clerkTokenLock", sizeof("clerkTokenLock"));
+	// clerkPrescriptionLock = CreateLock("clerkPrescriptionLock", sizeof("clerkPrescriptionLock"));
+	// clerkTokenLock = CreateLock("clerkTokenLock", sizeof("clerkTokenLock"));
 	clerkIndexLock= CreateLock("clerkIndexLock", sizeof("clerkIndexLock"));
 	
 	//Manager stuff

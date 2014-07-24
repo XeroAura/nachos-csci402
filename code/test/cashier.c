@@ -1,12 +1,10 @@
 #include "setup.h"
 
-
-	/*
-	Instatiate all global variables using CreateMV. Same with Locks and CV's and stuff.
-	Any time you want to change a global variable, use SetMV(index in MV array, the index of the array inside the MV, new value to set)
-	Any time you want to get the value of a global variable, use GetMV(index in MV Array, index of the variable in the array inside MV)
-	Destroy stuff at the end if necessary
-	*/
+/*
+Instantiate all global variables using CreateMV. Same with Locks and CV's and stuff.
+Any time you want to change a global variable, use SetMV(index in MV array, the index of the array inside the MV, new value to set)
+Any time you want to get the value of a global variable, use GetMV(index in MV Array, index of the variable in the array inside MV)
+*/
 
 void
 Cashier(){
