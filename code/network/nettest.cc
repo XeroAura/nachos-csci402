@@ -35,6 +35,7 @@ extern const int MAX_LOCKS;
 extern KernelLock* kLocks[];
 extern KernelCV* kCV[]; 
 extern KernelMV* MVArray[500];
+extern int mailboxID;
 #endif
 
 ServerLock* sLocks[500];
@@ -105,13 +106,15 @@ Server(){
     int nextCVIndex = 0;
     int nextMVIndex = 0;
 
-
+    mailboxID = 0;
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;
     char *data = "Hello there!";
-    char* oSuccess = "success";
-    char* oFailure = "failure";
     char* buffer;
+    char* oSuccess = new char;
+    sprintf(oSuccess, "%d", 1);
+    char* oFailure = new char;
+    sprintf(oFailure, "%d", -1);
     string key;
     string outputString;
 
@@ -120,6 +123,7 @@ Server(){
 /*    construct packet, mail header for original message*/
 /*    To: destination machine, mailbox 1*/
 /*    From: our machine, reply to: mailbox 0*/
+        printf("%d\n",mailboxID);
         buffer = new char[MaxMailSize]; 
         postOffice->Receive(0, &inPktHdr, &inMailHdr, buffer);
         outPktHdr.to = inPktHdr.from;     
@@ -140,11 +144,12 @@ Server(){
             bool success;
             bool flag = false;
             char* name = new char[MaxMailSize];
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             char* output = new char[3];
             printf("Create Lock syscall\n");
             ss1 << buffer;
-            ss1 >> name >> addr;
+            ss1 >> name >> addr >> machineID;
 
 /*            checking to see if the lock has already been made from another program*/
             for (int i = 0; i < nextLockIndex; i++){
@@ -154,8 +159,6 @@ Server(){
                     kLocks[i]->requestThreads++;
                     sprintf(output,"%d",i);
                     success = postOffice->Send(outPktHdr,outMailHdr,output);
-                    buffer = new char[MaxMailSize];
-
                     flag = true;
                     break;
                 }
@@ -177,8 +180,7 @@ Server(){
 
                 } else {
                     printf("ERROR: Maximum number of locks reached. Current number of locks is %d. \n", nextLockIndex);
-                    sprintf(output,"%d",-1);
-                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    success = postOffice->Send(outPktHdr,outMailHdr,oFailure);
                     break;
                 }
             }
@@ -190,11 +192,12 @@ Server(){
             stringstream ss1;
             bool success;
             bool flag = false;
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             int index;
             printf("Destroy Lock syscall\n");
             ss1 << buffer;
-            ss1 >> index >> addr;
+            ss1 >> index >> addr >> machineID;
             if (index >= 0 && index < MAX_LOCKS){
                 if (kLocks[index]->lock == NULL){
                     printf("ERROR: No lock exists here.\n");
@@ -213,7 +216,6 @@ Server(){
                         }
                     }
                     printf("Lock successfully set for destruction\n");
-
                     success = postOffice->Send(outPktHdr,outMailHdr,oSuccess);
                 }
             } else {
@@ -227,13 +229,14 @@ Server(){
             stringstream ss1;
             bool success;
             bool flag = false;
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             int index;
             char* output = new char[1];
             int machineID = inMailHdr.from;
             printf("Acquire Lock syscall\n");
             ss1 << buffer;
-            ss1 >> index >> addr;
+            ss1 >> index >> addr >> machineID;
 
             if (index >= 0 && index < MAX_LOCKS){
                 if (sLocks[index]->state == 0){
@@ -243,13 +246,11 @@ Server(){
                 } else {
                     sLocks[index]->queue->Append((void*)machineID);
                 }
-                sprintf(output, "%d",1);                
-                postOffice->Send(outPktHdr,outMailHdr,output);
+                postOffice->Send(outPktHdr,outMailHdr,oSuccess);
             } else {
                 printf("ERROR: Cannot acquire, index exceeds bounds.\n");
             }
-            sprintf(output, "%d",0);                
-            postOffice->Send(outPktHdr,outMailHdr,output);
+            postOffice->Send(outPktHdr,outMailHdr,oFailure);
         }
 
     //Release a lock
@@ -257,12 +258,13 @@ Server(){
             stringstream ss1;
             bool success;
             bool flag = false;
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             int index;
             char* output = new char[1];
             printf("Release Lock syscall\n");
             ss1 << buffer;
-            ss1 >> index >> addr;
+            ss1 >> index >> addr >> machineID;
             if (index >= 0 && index < MAX_LOCKS){ //checks if index is valid
                 if (kLocks[index]->lock != NULL){ //checks if the lock exists
                     kLocks[index]->lock->Release();
@@ -275,14 +277,15 @@ Server(){
                             kLocks[index] = NULL;
                             sLocks[index] = NULL;
                         }
-                        sprintf(output, "%d",1);
-                        success = postOffice->Send(outPktHdr,outMailHdr,output);
+                        success = postOffice->Send(outPktHdr,outMailHdr,oSuccess);
                     }
                 } else {
                     printf("ERROR: No lock exists at this index.\n");
+                    postOffice->Send(outPktHdr,outMailHdr,oFailure);
                 } 
             } else {
                 printf("ERROR: Cannot release, index exceeds bounds.\n");
+                postOffice->Send(outPktHdr,outMailHdr,oFailure);
             }
         }               
 
@@ -293,11 +296,12 @@ Server(){
             bool success;
             bool flag = false;
             char* name = new char[MaxMailSize];
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             char* output = new char[3];
             printf("Create Lock syscall\n");
             ss1 << buffer;
-            ss1 >> name >> addr;
+            ss1 >> name >> addr >> machineID;
 
 /*            checking to see if the lock has already been made from another program*/
             for (int i = 0; i < nextCVIndex; i++){
@@ -324,13 +328,11 @@ Server(){
 
                     nextCVIndex++;
                     sprintf(output, "%d",nextCVIndex-1);
-                    printf("Sending success message\n");
                     success = postOffice->Send(outPktHdr, outMailHdr, output); 
 
                 } else {
                     printf("ERROR: Maximum number of CVs reached. Current number of CVs is %d. \n", nextLockIndex);
-                    sprintf(output,"%d",-1);
-                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    success = postOffice->Send(outPktHdr,outMailHdr,oFailure);
                     break;
                 }
             }
@@ -340,17 +342,17 @@ Server(){
             stringstream ss1;
             bool success;
             bool flag = false;
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             int index;
             char* output = new char[1];
             printf("Destroy CV syscall\n");
             ss1 << buffer;
-            ss1 >> index >> addr;
+            ss1 >> index >> addr >> machineID;
             if (index >= 0 && index < MAX_CVS){
                 if (kCV[index]->condition == NULL){
                     printf("ERROR: No CV exists here.\n");
-                    sprintf(output, "%d",0);
-                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    success = postOffice->Send(outPktHdr,outMailHdr,oFailure);
                 } else {
                     kCV[index]->isToBeDestroyed = true;
                     if (kCV[index]->isToBeDestroyed && kCV[index]->condition->getLock() == NULL){
@@ -365,13 +367,11 @@ Server(){
                         }
                     }
                     printf("Lock successfully set for destruction\n");
-                    sprintf(output, "%d",1);
-                    success = postOffice->Send(outPktHdr,outMailHdr,output);
+                    success = postOffice->Send(outPktHdr,outMailHdr,oSuccess);
                 }
             } else {
                 printf("ERROR: Index is out of bounds.\n");
-                sprintf(output, "%d",0);
-                success = postOffice->Send(outPktHdr,outMailHdr,output);
+                success = postOffice->Send(outPktHdr,outMailHdr,oFailure);
             }
 
         }
@@ -379,14 +379,15 @@ Server(){
         if (key == "WC"){
             stringstream ss1;
             bool success;
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             int index;
             int lockIndex;
             char* output = new char[3];
             int machineID = inMailHdr.from;
             printf("Wait CV syscall\n");
             ss1 << buffer;
-            ss1 >> index >> addr;
+            ss1 >> index >> addr >> machineID;
             if (index >= 0 && index < MAX_LOCKS){
                 KernelLock* cvLock = kLocks[lockIndex];
                 kCV[index]->condition->Wait(cvLock->lock);
@@ -400,13 +401,14 @@ Server(){
             stringstream ss1;
             bool success;
             bool flag = false;
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             int index;
             int lockIndex;
             int machineID = inMailHdr.from;
             printf("Signal CV syscall\n");
             ss1 << buffer;
-            ss1 >> index >> addr;
+            ss1 >> index >> addr >> machineID;
             if (index >= 0 && index < MAX_LOCKS){
                 KernelLock* cvLock = kLocks[lockIndex];
                 if (cvLock->lock != NULL){
@@ -420,13 +422,14 @@ Server(){
             stringstream ss1;
             bool success;
             bool flag = false;
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             int index;
             int lockIndex;
             int machineID = inMailHdr.from;
             printf("Broadcast CV syscall\n");
             ss1 << buffer;
-            ss1 >> index >> addr;
+            ss1 >> index >> addr >> machineID;
             if (index >= 0 && index < MAX_LOCKS){
                 KernelLock* cvLock = kLocks[lockIndex];
                 kCV[index]->condition->Broadcast(cvLock->lock);
@@ -440,12 +443,13 @@ Server(){
             bool success;
             bool flag = false;
             char* name = new char[MaxMailSize];
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             char* output = new char[3];
             printf("Create Lock syscall\n");
             int arrayLen;
             ss1 << buffer;
-            ss1 >> name >> arrayLen >> addr;
+            ss1 >> name >> arrayLen >> addr >> machineID;
 
 /*checking to see if the MV has already been made from another program*/
             for (int i = 0; i < nextMVIndex; i++){
@@ -489,12 +493,13 @@ Server(){
             stringstream ss1;
             bool success;
             bool flag = false;
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             int index;
             char* output = new char[1];
             printf("Destroy CV syscall\n");
             ss1 << buffer;
-            ss1 >> index >> addr;
+            ss1 >> index >> addr >> machineID;
             if (index >= 0 && index < 500){
                 if (MVArray[index]->values == NULL){
                     printf("ERROR: No MV exists here.\n");
@@ -525,13 +530,14 @@ Server(){
             bool success;
             bool flag = false;
             int arrayIndex;
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             int index;
             int outputInt;
             char* output = new char[5];
             printf("Get MV syscall\n");
             ss1 << buffer;
-            ss1 >> index >> arrayIndex >> addr;
+            ss1 >> index >> arrayIndex >> addr >> machineID;
             if (index >= 0 && index < 500){
                 if (MVArray[index]->values != NULL){
                     outputInt = MVArray[index]->values[arrayIndex];
@@ -552,13 +558,14 @@ Server(){
             bool success;
             bool flag = false;
             int newValue;
-            char* addr = new char[MaxMailSize];
+            int addr;
+            int machineID;
             int index;
             int arrayIndex;
             char* output;
             printf("Set MV syscall\n");
             ss1 << buffer;
-            ss1 >> index >> arrayIndex >> newValue >> addr;
+            ss1 >> index >> arrayIndex >> newValue >> addr >> machineID;
             if(index >= 0 && index < 500){
                 MVArray[index]->values[arrayIndex] = newValue;
                 postOffice->Send(outPktHdr,outMailHdr,output);

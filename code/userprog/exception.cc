@@ -39,7 +39,7 @@ extern const int MAX_LOCKS;
 extern KernelLock* kLocks[];
 extern KernelCV* kCV[]; 
 extern int currentTLB;
-extern int mailboxNumber;
+extern int mailboxID;
 
 #ifdef CHANGED
 stringstream ss;
@@ -461,7 +461,6 @@ int CreateLock_Syscall(unsigned int vaddr, int len){
         return -1;
     }
     buf[len]='\0';
-    ss << "CL" << buf << " " << currentThread->space;
  
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -474,6 +473,10 @@ int CreateLock_Syscall(unsigned int vaddr, int len){
     outMailHdr.to = 0;
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
+
+    ss << "CL" << buf << " " << outPktHdr.from << " " << outMailHdr.from;
+
+    printf("%d\n",mailboxID);
     printf("Sending message\n");
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
@@ -492,7 +495,6 @@ int CreateLock_Syscall(unsigned int vaddr, int len){
 }
 
 void DestroyLock_Syscall(int index){
-    ss << "DL" << index << " " << currentThread->space;
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
     MailHeader outMailHdr, inMailHdr;    
@@ -504,7 +506,7 @@ void DestroyLock_Syscall(int index){
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
 
-
+    ss << "DL" << index << " " << outPktHdr.from << " " << outMailHdr.from;
     char* buffer = (char*)ss.str().c_str();
 
 
@@ -524,7 +526,6 @@ void DestroyLock_Syscall(int index){
 }
 
 void Acquire_Syscall(int index){
-    ss << "AL" << index << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -537,6 +538,8 @@ void Acquire_Syscall(int index){
     outMailHdr.to = 0;
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
+
+    ss << "AL" << index << " " << outPktHdr.from << " " << outMailHdr.from;
 
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
@@ -547,13 +550,11 @@ void Acquire_Syscall(int index){
     }
     buffer = new char[MaxMailSize];
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
-    printf("%s\n",buffer);
     ss.str("");
     return;
 }
 
 void Release_Syscall(int index){
-    ss << "RL" << index << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -567,6 +568,8 @@ void Release_Syscall(int index){
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
 
+    ss << "RL" << index << " " << outPktHdr.from << " " << outMailHdr.from;
+
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
     if ( !success ) {
@@ -575,7 +578,6 @@ void Release_Syscall(int index){
     }
     buffer = new char[MaxMailSize];
     postOffice->Receive(1, &inPktHdr, &inMailHdr, buffer);
-    printf("%s\n",buffer);
     ss.str("");
     return;
 }
@@ -596,7 +598,6 @@ int CreateCondition_Syscall(unsigned int vaddr, int len){
         return -1;
     }
     buf[len]='\0';
-    ss << "CC" << buf << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -609,6 +610,8 @@ int CreateCondition_Syscall(unsigned int vaddr, int len){
     outMailHdr.to = 0;
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
+
+    ss << "CC" << buf << " " << outPktHdr.from << " " << outMailHdr.from;
 
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
@@ -624,7 +627,6 @@ int CreateCondition_Syscall(unsigned int vaddr, int len){
 }
 
 void DestroyCondition_Syscall(int index){
-    ss << "DC" << index << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -637,6 +639,8 @@ void DestroyCondition_Syscall(int index){
     outMailHdr.to = 0;
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
+
+    ss << "DC" << index << " " << outPktHdr.from << " " << outMailHdr.from;
 
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
@@ -653,7 +657,6 @@ void DestroyCondition_Syscall(int index){
 
 void Wait_Syscall(int index, int lockIndex){
 
-    ss << "WC" << index << " " << lockIndex << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -666,6 +669,8 @@ void Wait_Syscall(int index, int lockIndex){
     outMailHdr.to = 0;
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
+
+    ss << "WC" << index << " " << lockIndex << " " << outPktHdr.from << " " << outMailHdr.from;
 
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
@@ -688,7 +693,6 @@ void Wait_Syscall(int index, int lockIndex){
 
 void Signal_Syscall(int index, int lockIndex){
 
-    ss << "SC" << index << lockIndex << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -701,6 +705,8 @@ void Signal_Syscall(int index, int lockIndex){
     outMailHdr.to = 0;
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
+
+    ss << "SC" << index << lockIndex << " " << outPktHdr.from << " " << outMailHdr.from;
 
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
@@ -725,7 +731,6 @@ void Signal_Syscall(int index, int lockIndex){
 }
 
 void Broadcast_Syscall(int index, int lockIndex){
-    ss << "BC" << index << " " << lockIndex << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -738,6 +743,8 @@ void Broadcast_Syscall(int index, int lockIndex){
     outMailHdr.to = 0;
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
+
+    ss << "BC" << index << " " << lockIndex << " " << outPktHdr.from << " " << outMailHdr.from;
 
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
@@ -1013,7 +1020,6 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int arrayLen){
         return -1;
     }
     buf[len]='\0';
-    ss << "CM" << buf << " " << arrayLen << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -1026,6 +1032,8 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int arrayLen){
     outMailHdr.to = 0;
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
+
+    ss << "CM" << buf << " " << arrayLen << " " << outPktHdr.from << " " << outMailHdr.from;
 
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
@@ -1043,7 +1051,6 @@ int CreateMV_Syscall(unsigned int vaddr, int len, int arrayLen){
 }
 
 void DestroyMV_Syscall(int index){
-    ss << "DM" << index << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -1056,6 +1063,8 @@ void DestroyMV_Syscall(int index){
     outMailHdr.to = 0;
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
+
+    ss << "DM" << index << " " << outPktHdr.from << " " << outMailHdr.from;
 
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
@@ -1071,7 +1080,6 @@ void DestroyMV_Syscall(int index){
 }
 
 int GetMV_Syscall(int index, int arrayIndex){
-    ss << "GM" << index << " " << arrayIndex << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -1084,6 +1092,8 @@ int GetMV_Syscall(int index, int arrayIndex){
     outMailHdr.to = 0;
     outMailHdr.from = 1;
     outMailHdr.length = ss.str().size() + 1;
+
+    ss << "GM" << index << " " << arrayIndex << " " << outPktHdr.from << " " << outMailHdr.from;
 
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
@@ -1099,7 +1109,6 @@ int GetMV_Syscall(int index, int arrayIndex){
 }
 
 void SetMV_Syscall(int index, int arrayIndex, int newValue){
-    ss << "SM" << index << " " << arrayIndex << " " << newValue << " " << currentThread->space;
 
     // creates the message to send to the post office
     PacketHeader outPktHdr, inPktHdr;
@@ -1112,6 +1121,8 @@ void SetMV_Syscall(int index, int arrayIndex, int newValue){
     outMailHdr.to = 0;
     outMailHdr.from = 1;
         outMailHdr.length = ss.str().size() + 1;
+
+    ss << "SM" << index << " " << arrayIndex << " " << newValue << " " << outPktHdr.from << " " << outMailHdr.from;
 
     // Send the message to server
     bool success = postOffice->Send(outPktHdr, outMailHdr, buffer); 
@@ -1275,7 +1286,7 @@ void ExceptionHandler(ExceptionType which) {
 
         // printf("PFE\n");
         int vpn = (machine-> ReadRegister(BadVAddrReg))/PageSize; //Find virtual page number 
-
+    
         AddrSpace* as = currentThread->space; //Get AddrSpace
         IPTLock->Acquire();
         int ppn = -1;

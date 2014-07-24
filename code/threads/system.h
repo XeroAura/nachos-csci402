@@ -138,6 +138,7 @@ extern std::list<int> *fifoQueue;
 extern Lock* fifoLock;
 
 extern KernelMV* MVArray[500];
+extern int mailboxID;
 
 #endif
 

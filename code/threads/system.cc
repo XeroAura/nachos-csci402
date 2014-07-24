@@ -59,6 +59,7 @@ Lock* fifoLock;
 
 #ifdef CHANGED
 KernelMV* MVArray[500];
+int mailboxID;
 #endif
 // External definition, to allow us to take a pointer to this function
 extern void Cleanup();
@@ -104,6 +105,7 @@ Initialize(int argc, char **argv)
     int argCount;
     char* debugArgs = "";
     bool randomYield = FALSE;
+    mailboxID++;
 
 #ifdef USER_PROGRAM
     bool debugUserProg = FALSE;	// single step user program
@@ -150,6 +152,11 @@ Initialize(int argc, char **argv)
 	    netname = atoi(*(argv + 1));
 	    argCount = 2;
 	}
+    if (!strcmp(*argv, "-i")) {
+        ASSERT(argc > 1);
+        mailboxID = atoi(*(argv + 1));
+        argCount = 2;        
+    }
 #endif
     }
 
