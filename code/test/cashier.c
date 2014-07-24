@@ -14,18 +14,18 @@ Cashier(){
 
 	int index = 0;
 	Acquire(cashierIndexLock);
-	index = nextCashierIndex;
-	nextCashierIndex++;
+	index = GetMV(nextCashierIndex, 0);
+	SetMV(nextCashierIndex, 0, index+1);
 	Release(cashierIndexLock);
 
 	while(1){
 		Acquire(cashierLineLock);
-		cashierState[index]=0;
+		SetMV(cashierState, index, 0);
 		
 		if(cashierLineCount[index] > 0) {
 			Signal(cashierLineCV[index],cashierLineLock);
 			MyWrite("Cashier %d has signaled a Patient \n", sizeof("Cashier %d has signaled a Patient \n")-1, index*100, 0);
-			cashierState[index]=1;
+			SetMV(cashierState, index, 1);
 		}
 		
 		Acquire(cashierLock[index]);
@@ -34,13 +34,13 @@ Cashier(){
 		Wait(cashierCV[index],cashierLock[index]);
 		
 		// Acquire(cashierTokenLock);
-		token = cashierToken[index];
+		token = GetMV(cashierToken, index);
 		MyWrite("Cashier %d gets Token %d from a Patient \n", sizeof("Cashier %d gets Token %d from a Patient \n")-1, index*100+token, 0);
 		// Release(cashierTokenLock);
 		
 		
 		// Acquire(cashierFeeLock);
-		cashierFee[index] = fee;
+		SetMV(cashierFee, index, fee);
 		// Release(cashierFeeLock);
 		
 		Signal(cashierCV[index], cashierLock[index]);
@@ -48,7 +48,8 @@ Cashier(){
 		Wait(cashierCV[index], cashierLock[index]);
 		MyWrite("Cashier %d receives fees from Patient with Token %d \n", sizeof("Cashier %d receives fees from Patient with Token %d \n")-1, index*100+token, 0);
 		Acquire(totalFeeLock);
-		totalConsultationFee += 25;
+		int totalConsultationFee = GetMV(totalConsultationFee, 0);
+		SetMV(totalConsultationFee, 0, totalConsultationFee + 25);
 		Release(totalFeeLock);
 		
 		Release(cashierLock[index]);

@@ -126,25 +126,39 @@ int clerkBreakCV[5];
 /* ----------------------------------------------------------------- */
 
 void setup(){
-	//Patient stuff
+//Patient stuff
 	
 
-	//Receptionist stuff
+//Receptionist stuff
 
 
-	//Doorboy stuff
+//Doorboy stuff
 
 
-	//Doctor stuff
+//Doctor stuff
 
 
-	//Cashier stuff
+//Cashier stuff
 	nextCashierIndex = CreateMV("nextCashierIndex", sizeof("nextCashierIndex"), 1);
+	SetMV(nextCashierIndex, 0, 0);
 	totalConsultationFee = CreateMV("totalConsultationFee", sizeof("totalConsultationFee"), 1);
+	SetMV(totalConsultationFee, 0, 0);
 	cashierLineCount = CreateMV("cashierLineCount", sizeof("cashierLineCount"), 5); //{0,0,0,0,0}; //Number of people in each cashier line
+	for(int i = 0; i < 5; i++){
+		SetMV(cashierLineCount, i, 0);
+	}
 	cashierState = CreateMV("cashierState", sizeof("cashierState"), 5); //{1,1,1,1,1}; //State of cashier 1 - busy, 0 - free
+	for(int i = 0; i < 5; i++){
+		SetMV(cashierState, i, 1);
+	}
 	cashierToken = CreateMV("cashierToken", sizeof("cashierToken"), 5);  //{0,0,0,0,0}; //Token number passed to cashier by patient
+	for(int i = 0; i < 5; i++){
+		SetMV(cashierToken, i, 0);
+	}
 	cashierFee = CreateMV("cashierFee", sizeof("cashierFee"), 5);  //{0,0,0,0,0}; //Fee charged by cashier to patient
+	for(int i = 0; i < 5; i++){
+		SetMV(cashierFee, i, 0);
+	}
 
 	for(i = 0; i < 5; i++){
 		cashierLock[i] = CreateLock("cashierLock"+i, sizeof("cashierLock")+1);
@@ -161,14 +175,31 @@ void setup(){
 	// cashierFeeLock = CreateLock("cashierFeeLock", sizeof("cashierFeeLock"));
 	cashierIndexLock = CreateLock("cashierIndexLock", sizeof("cashierIndexLock"));
 	
-	//Clerk stuff
+//Clerk stuff
 	clerkState = CreateMV("clerkState", sizeof("clerkState"), 5); //{1,1,1,1,1};
+	for(int i = 0; i < 5; i++){
+		SetMV(clerkState, i, 1);
+	}
 	clerkLineCount = CreateMV("clerkLineCount", sizeof("clerkLineCount"), 5); //{0,0,0,0,0};
+	for(int i = 0; i < 5; i++){
+		SetMV(clerkLineCount, i, 0);
+	}
 	clerkToken = CreateMV("clerkToken", sizeof("clerkToken"), 5); //{0,0,0,0,0};
+	for(int i = 0; i < 5; i++){
+		SetMV(clerkToken, i, 0);
+	}
 	clerkPrescription = CreateMV("clerkPrescription", sizeof("clerkPrescription"), 5); // {0,0,0,0,0};
+	for(int i = 0; i < 5; i++){
+		SetMV(clerkPrescription, i, 0);
+	}
 	medicineFee = CreateMV("medicineFee", sizeof("medicineFee"), 5); //{0,0,0,0,0};
+	for(int i = 0; i < 5; i++){
+		SetMV(medicineFee, i, 0);
+	}
 	nextClerkIndex = CreateMV("nextClerkIndex", sizeof("nextClerkIndex"), 1);
-	totalMedicineCost = CreateMV("totalMedicineCost", sizeof("totalMedicineCost"), 5);
+	SetMV(nextClerkIndex, 0, 0);
+	totalMedicineCost = CreateMV("totalMedicineCost", sizeof("totalMedicineCost"), 1);
+	SetMV(totalMedicineCost, 0, 0);
 
 	for(i = 0; i < 5; i++){
 		clerkLock[i] = CreateLock("clerkLock"+i, sizeof("clerklock")+1);
@@ -188,7 +219,7 @@ void setup(){
 	// clerkTokenLock = CreateLock("clerkTokenLock", sizeof("clerkTokenLock"));
 	clerkIndexLock= CreateLock("clerkIndexLock", sizeof("clerkIndexLock"));
 	
-	//Manager stuff
+//Manager stuff
 	receptionistBreakLock = CreateLock("receptionistBreakLock", sizeof("receptionistBreakLock"));
 	doorBoyBreakLock = CreateLock("doorBoyBreakLock", sizeof("doorBoyBreakLock"));
 	cashierBreakLock = CreateLock("cashierBreakLock", sizeof("cashierBreakLock"));
